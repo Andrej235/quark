@@ -4,7 +4,7 @@ import "./globals.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <div className="grid size-full min-h-svh place-items-center">
+    <div className="bg-background grid size-full min-h-svh place-items-center">
       <h1 className="text-2xl">Hello World</h1>
     </div>
   </React.StrictMode>,
