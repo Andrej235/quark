@@ -1,19 +1,29 @@
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+// ------------------------------------------------------------------------------------
+// IMPORTS
+// ------------------------------------------------------------------------------------
+use crate::routes::user_routes::add_user;
+use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection};
 use std::env;
 
-#[get("/hello")]
-async fn hello(db: web::Data<DatabaseConnection>) -> impl Responder {
-    HttpResponse::Ok().body("Hello World!")
-}
+// ------------------------------------------------------------------------------------
+// MODS
+// ------------------------------------------------------------------------------------
+pub mod entity;
+pub mod models;
+pub mod routes;
 
+// ------------------------------------------------------------------------------------
+// FUNCTIONS
+// ------------------------------------------------------------------------------------
 /*
     This function is used to map endpoints.
     Any new endpoints that needs to be access has to be registered in this function.
 */
 fn routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(hello);
+    cfg.service(add_user);
+    //cfg.service(get_user);
 }
 
 #[actix_web::main]

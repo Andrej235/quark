@@ -7,4 +7,6 @@ edition = "2021"
 actix-web = "4.9"
 dotenv = "0.15.0"
 sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-native-tls"] }
+sea-orm-migration = { version = "1.1.13", features = ["sqlx-postgres"]}
 serde = { version = "1.0.219", features = ["serde_derive"] }
+uuid = { version = "1.17.0", features = ["v4", "v7"] }
