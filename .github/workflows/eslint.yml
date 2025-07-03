@@ -17,10 +17,12 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: desktop/src/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./desktop/src
         run: npm ci
 
       - name: Run ESLint
+        working-directory: ./desktop/src
         run: npx eslint . --ext .js,.jsx,.ts,.tsx
-        working-directory: desktop/src
