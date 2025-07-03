@@ -4,34 +4,34 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: 191.2 38.4% 6.4%;
-  --foreground: 191.2 3.6% 92.8%;
-  --card: 191.2 35.5% 2.8%;
-  --card-foreground: 191.2 3.6% 92.8%;
-  --popover: 191.2 38.4% 5%;
-  --popover-foreground: 191.2 3.6% 92.8%;
-  --primary: 191.2 78.3% 30.8%;
+  --background: 206.7 50% 5.3%;
+  --foreground: 206.7 5% 90.5%;
+  --card: 206.7 50% 0.5%;
+  --card-foreground: 206.7 5% 90.5%;
+  --popover: 206.7 50% 5%;
+  --popover-foreground: 206.7 5% 90.5%;
+  --primary: 206.7 81.8% 36.7%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 191.2 24.2% 12.8%;
+  --secondary: 206.7 30% 10.5%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 229.2 24.2% 17.8%;
-  --muted-foreground: 191.2 3.6% 61.4%;
-  --accent: 229.2 24.2% 17.8%;
-  --accent-foreground: 191.2 3.6% 91.4%;
-  --destructive: 0 85.5% 35.6%;
-  --destructive-foreground: 191.2 3.6% 92.8%;
-  --border: 191.2 27.1% 27%;
-  --input: 191.2 27.1% 27%;
-  --ring: 191.2 88.7% 45.3%;
+  --muted: 244.7 30% 15.5%;
+  --muted-foreground: 206.7 5% 60.3%;
+  --accent: 244.7 30% 15.5%;
+  --accent-foreground: 206.7 5% 90.3%;
+  --destructive: 0 100% 31%;
+  --destructive-foreground: 206.7 5% 90.5%;
+  --border: 206.7 30% 19.6%;
+  --input: 206.7 30% 19.6%;
+  --ring: 206.7 88.7% 45.3%;
   --radius: 0.5rem;
-  --sidebar-background: 191, 38%, 8%;
-  --sidebar-foreground: 191, 4%, 100%;
-  --sidebar-primary: 191, 78%, 25%;
+  --sidebar-background: 207, 50%, 7%;
+  --sidebar-foreground: 207, 5%, 100%;
+  --sidebar-primary: 207, 82%, 29%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 229, 24%, 15%;
+  --sidebar-accent: 245, 30%, 13%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 191, 27%, 26%;
-  --sidebar-ring: 181, 98%, 45%;
+  --sidebar-border: 207, 30%, 19%;
+  --sidebar-ring: 197, 98%, 45%;
 }
 
 @theme inline {
