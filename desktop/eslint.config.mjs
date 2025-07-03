@@ -37,6 +37,7 @@ export default [
         "error",
         { argsIgnorePattern: "^_" },
       ],
+      "prefer-const": "error",
     },
     settings: {
       react: {
