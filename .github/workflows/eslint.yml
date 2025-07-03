@@ -20,9 +20,9 @@ jobs:
           cache-dependency-path: desktop/package-lock.json
 
       - name: Install dependencies
-        working-directory: ./desktop/src
+        working-directory: ./desktop
         run: npm ci
 
       - name: Run ESLint
-        working-directory: ./desktop/src
+        working-directory: ./desktop
         run: npx eslint . --ext .js,.jsx,.ts,.tsx
