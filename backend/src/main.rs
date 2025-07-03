@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::routes::user_routes::add_user;
+//use crate::routes::user_routes::sign_in_user;
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection};
@@ -22,7 +22,7 @@ pub mod routes;
     Any new endpoints that needs to be access has to be registered in this function.
 */
 fn routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(add_user);
+    //cfg.service(sign_in_user);
     //cfg.service(get_user);
 }
 

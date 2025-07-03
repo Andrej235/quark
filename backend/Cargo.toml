@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4.9"
+actix-web = "4.11"
+argon2 = "0.5.3"
+base64 = "0.22.1"
 dotenv = "0.15.0"
+rand = "0.9.1"
 sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-native-tls"] }
 sea-orm-migration = { version = "1.1.13", features = ["sqlx-postgres"]}
 serde = { version = "1.0.219", features = ["serde_derive"] }
