@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-//use crate::routes::user_routes::sign_in_user;
+use crate::routes::auth_routs::sign_up;
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection};
@@ -11,6 +11,7 @@ use std::env;
 // MODS
 // ------------------------------------------------------------------------------------
 pub mod entity;
+pub mod extensions;
 pub mod models;
 pub mod routes;
 
@@ -22,7 +23,7 @@ pub mod routes;
     Any new endpoints that needs to be access has to be registered in this function.
 */
 fn routes(cfg: &mut web::ServiceConfig) {
-    //cfg.service(sign_in_user);
+    cfg.service(sign_up);
     //cfg.service(get_user);
 }
 
@@ -31,6 +32,11 @@ fn routes(cfg: &mut web::ServiceConfig) {
 async fn main() -> std::io::Result<()> {
 
     dotenv().ok(); // Makes sure that .env file exists
+
+
+    // Check if all required .env variables are set
+    if env::var("JWT_SECRET").is_err() { panic!("JWT_SECRET not set."); }
+    if env::var("DATABASE_URL").is_err() { panic!("DATABASE_URL not set."); }
 
 
     // Create database connection

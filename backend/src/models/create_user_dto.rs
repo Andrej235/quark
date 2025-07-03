@@ -7,6 +7,7 @@ pub struct CreateUserDTO {
     pub name:       String,
     pub last_name:  String,
     pub email:      String,
+    pub password:   String,
 }
 
 #[rustfmt::skip]
@@ -22,7 +23,8 @@ impl CreateUserDTO {
         if  self.username.is_empty()    == true ||
             self.name.is_empty()        == true ||
             self.last_name.is_empty()   == true ||
-            self.email.is_empty()       == true
+            self.email.is_empty()       == true ||
+            self.password.is_empty()       == true
         {
             return  false;
         }        
@@ -39,5 +41,6 @@ impl CreateUserDTO {
         self.name       = self.name.trim().to_string();
         self.last_name  = self.last_name.trim().to_string();
         self.email      = self.email.trim().to_string();
+        self.password   = self.password.trim().to_string();
     }
 }
