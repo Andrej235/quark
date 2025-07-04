@@ -15,20 +15,20 @@ CREATE TABLE "refresh_tokens" (
   "user_id" UUID NOT NULL REFERENCES "users"("id")
 );
 
-CREATE TABLE "team" (
+CREATE TABLE "teams" (
   "id" UUID PRIMARY KEY NOT NULL,
   "name" TEXT NOT NULL
-)
+);
 
-CREATE TABLE "team_role" (
-  "team_id" UUID REFERENCES "team"("id"),
+CREATE TABLE "team_roles" (
+  "id" UUID PRIMARY KEY NOT NULL,
+  "team_id" UUID REFERENCES "teams"("id") NOT NULL,
   "name" TEXT NOT NULL
-  PRIMARY KEY ("team_id", "name")
-)
+);
 
-CREATE TABLE "team_member" (
-  "user_id" UUID FOREIGN KEY REFERENCES "user"("id"),
-  "team_id" UUID FOREIGN KEY REFERENCES "team"("id"),
-  "role_id" UUID FOREIGN KEY REFERENCES "role"("id"),
-  PRIMARY KEY ("user_id", "team_id"),
-)
+CREATE TABLE "team_members" (
+  "user_id" UUID REFERENCES "users"("id") NOT NULL,
+  "team_id" UUID REFERENCES "teams"("id") NOT NULL,
+  "team_role_id" UUID REFERENCES "team_roles"("id") NOT NULL,
+  PRIMARY KEY ("user_id", "team_id")
+);
