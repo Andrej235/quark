@@ -24,7 +24,7 @@ impl CreateUserDTO {
             self.name.is_empty()        == true ||
             self.last_name.is_empty()   == true ||
             self.email.is_empty()       == true ||
-            self.password.is_empty()       == true
+            self.password.is_empty()    == true
         {
             return  false;
         }        

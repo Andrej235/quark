@@ -1,37 +1,50 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
+use crate::models::claims::Claims;
+use crate::models::dtos::login_result::LogInResult;
+use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::sroute_error::SRouteError;
 use crate::{
-    entity::refresh_tokens::{ActiveModel as RefreshTokenActiveModel, Model as RefreshToken},
+    entity::refresh_tokens::{
+        ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
+        Entity as RefreshTokenEntity, Model as RefreshToken,
+    },
     entity::users::{
         ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, Model as User,
     },
-    models::create_user_dto::CreateUserDTO,
+    models::dtos::create_user_dto::CreateUserDTO,
 };
+use actix_web::web::{Data, Json};
 use actix_web::*;
+use argon2::PasswordHash;
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHasher,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
+    QueryFilter,
+};
 use uuid::Uuid;
 
 // ------------------------------------------------------------------------------------
 // CONSTANTS
 // ------------------------------------------------------------------------------------
-const REFRESH_TOKEN_EXPIRATION_DAY_OFFSET: i64 = 7;
+const REFRESH_TOKEN_EXPIRATION_DAY_OFFSET: i64 = 1;
+const JWT_TOKEN_EXPIRATION_MINUTE_OFFSET: i64 = 15;
 
 // ------------------------------------------------------------------------------------
 // ROUTES
 // ------------------------------------------------------------------------------------
-#[get("/auth/signUp")]
+#[post("/auth/signUp")]
 #[rustfmt::skip]
 async fn sign_up(
-    db: web::Data<DatabaseConnection>,
-    user_data_json: web::Json<CreateUserDTO>
+    db: Data<DatabaseConnection>,
+    user_data_json: Json<CreateUserDTO>
 ) -> impl Responder {
 
     // Get ownership of user data from json
@@ -106,9 +119,165 @@ async fn sign_up(
     }
 }
 
+#[post("/auth/logIn")]
+#[rustfmt::skip]
+async fn log_in(    
+    db: Data<DatabaseConnection>,
+    user_data_json: Json<LoginUserDTO>
+) -> impl Responder {
+
+    // --------->
+    // Base checks
+    // --------->
+    // Get ownership of user data from json
+    let mut user_data: LoginUserDTO = user_data_json.into_inner();
+    
+    // Trim all strings
+    user_data.trim_strings();
+
+    // Check for string emptiness
+    let are_all_strings_not_empty: bool = user_data.check_if_all_strings_are_not_empty();
+    if are_all_strings_not_empty == false {
+        return  HttpResponse::BadRequest().body("One of fields is empty.");
+    }
+
+    // --------->
+    // Main execution
+    // --------->
+    // Check if user already exists in database
+    println!("{:?}", user_data);
+    let existing_user: Option<User>  = match UserEntity::find()
+        .filter(UserColumn::Email.eq(&user_data.email))
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user,
+            Err(err) => {
+                println!("-> log_in errored (tried to find user): {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+    println!("{:?}", existing_user);
+
+        
+    if existing_user.is_some() { // User exists in database
+        let user: User = existing_user.unwrap();
+        
+        // Has provided password 
+        let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
+            Ok(password_hash) => password_hash,
+            Err(err) => {
+                println!("-> log_in errored (tried to hash password): {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+
+        // Check if password is same as in database
+        if provided_password_hash != user.hashed_password {
+            return  HttpResponse::BadRequest().json(SRouteError { message: "Wrong password." });
+        }
+
+        // Try to get refresh token from database
+        let existing_refresh_token_result: Option<RefreshToken> = match RefreshTokenEntity::find()
+            .filter(RefreshTokenColumn::UserId.eq(user.id))
+            .one(db.get_ref())
+            .await {
+                Ok(refresh_token) => refresh_token,
+                Err(err) => {
+                    println!("-> log_in errored (tried to find refresh token): {:?}", err);
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
+
+        // If refresh token exists create new jwt token based on it
+        // Otherwise create new refresh token and jwt token
+        if existing_refresh_token_result.is_some() == true {
+            
+            let mut refresh_token: RefreshToken = existing_refresh_token_result.unwrap();
+
+            // If refresh token is expired recycle it
+            if refresh_token.expire_time < Utc::now().naive_utc() {
+
+                let refresh_token_recycle_resutl: Result<RefreshToken, DbErr> = recycle_refresh_token(refresh_token.id, user.id, db).await;
+                match refresh_token_recycle_resutl {
+                    Ok(token) => refresh_token = token,
+                    Err(err) => {
+                        println!("-> log_in errored (tried to delete refresh token and create new one): {:?}", err);
+                        return HttpResponse::InternalServerError().finish();
+                    }
+                };
+            }
+
+            // Create new jwt token
+            let jwt_token: String = create_jwt_token(&refresh_token, user.id);
+
+            return HttpResponse::Ok().json(LogInResult {
+                jwt_token: jwt_token,
+                refresh_token_id: refresh_token.id
+            });
+        }
+        else {
+            
+            // Try to create and add new refresh token to database
+            let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user.id);
+            let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
+
+            let refresh_token = match add_refresh_token_result {
+                Ok(token) => token,
+                Err(err) => {
+                    println!("-> log_in errored (tried to create and add new refresh token to database): {:?}", err);
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
+
+            // Create new jwt token
+            let jwt_token: String = create_jwt_token(&refresh_token, user.id);
+
+            return HttpResponse::Ok().json(LogInResult {
+                jwt_token: jwt_token,
+                refresh_token_id: refresh_token.id
+            });
+        }
+    }
+    else { // User doesnt exist
+        return  HttpResponse::BadRequest().json(SRouteError {
+            message: "User doesn't exist."
+        });
+    }
+}
+
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------
+#[rustfmt::skip]
+/// Tries to delete old refresh token and create new one <br/>
+/// Returns new **refresh token** or **error**
+async fn recycle_refresh_token(refresh_token_id: Uuid, user_id: Uuid, db: Data<DatabaseConnection>) -> Result<RefreshToken, DbErr> {
+
+    // Try to delete refresh token
+    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await;
+    match delete_refresh_token_result {
+        Ok(_) => (),
+        Err(err) => {
+            println!("-> log_in errored (tried to delete refresh token): {:?}", err);
+            return Err(err);
+        }
+    };
+
+    // Try to create and add new refresh token to database
+    let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user_id);
+    let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
+    
+    let token = match add_refresh_token_result {
+        Ok(token) => Ok(token),
+        Err(err) => {
+            println!("-> log_in errored (tried to create and add new refresh token to database): {:?}", err);
+            return Err(err);
+        }
+    };
+
+    return token;
+}
+
 #[rustfmt::skip]
 /// Hashes plain password using salt (argon2) <br/>
 /// Returns string tuple where first string is **Salt**, and second string is **Hashed Password**
@@ -119,7 +288,7 @@ fn hash_password(password: &str) -> Result<(String, String), Box<argon2::passwor
     let argon2:     Argon2<'_> = Argon2::default();
 
     // Use argon2 function to hash password
-    let password_hash: argon2::PasswordHash<'_> = match argon2.hash_password(password.as_bytes(), &salt) {
+    let password_hash: PasswordHash<'_> = match argon2.hash_password(password.as_bytes(), &salt) {
         Ok(password_hash) => password_hash,
         Err(err) => return Err(Box::new(err)),
     };
@@ -128,16 +297,45 @@ fn hash_password(password: &str) -> Result<(String, String), Box<argon2::passwor
 }
 
 #[rustfmt::skip]
-fn create_jwt_token(refresh_token: RefreshToken) {
+/// Hashes plain password using provided salt string
+/// Returns **hashed password** or **error**
+fn hash_password_with_salt(salt_str: &str, password: &str) -> Result<String, Box<argon2::password_hash::Error>> {
+
+    // Create argon2 instance and salt string instance
+    let argon2:         Argon2<'_> = Argon2::default();
+    let salt:    SaltString = SaltString::from_b64(salt_str).unwrap();
+
+    // Use argon2 function to hash password
+    let password_hash: PasswordHash<'_> = match argon2.hash_password(password.as_bytes(), &salt) {
+        Ok(password_hash) => password_hash,
+        Err(err) => return Err(Box::new(err)),
+    };
+
+    return Ok(password_hash.to_string());
+}
+
+#[rustfmt::skip]
+fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> String {
     
     let jwt_secret: String = std::env::var("JWT_SECRET").unwrap();
+
+    let claims: Claims = Claims { 
+        user_id: user_id, 
+        expire_time: Utc::now().naive_utc() + Duration::minutes(JWT_TOKEN_EXPIRATION_MINUTE_OFFSET), 
+        jit: refresh_token.jit
+    };
+
+    let access_token = encode(&Header::default(), &claims, &EncodingKey::from_secret(jwt_secret.as_ref()))
+        .expect("JWT encoding failed");
+
+    return access_token;
 }
 
 #[rustfmt::skip]
 fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 
     let refresh_token_id: Uuid = Uuid::now_v7();
-    let refresh_token_expiration_time: NaiveDateTime = Utc::now().naive_utc() + Duration::days(REFRESH_TOKEN_EXPIRATION_DAY_OFFSET);
+    let refresh_token_expiration_time: NaiveDateTime = Utc::now().naive_utc() + Duration::seconds(REFRESH_TOKEN_EXPIRATION_DAY_OFFSET);
     let refresh_token_jit: Uuid = Uuid::now_v7();
 
     return RefreshTokenActiveModel {

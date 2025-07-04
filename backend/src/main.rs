@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::routes::auth_routs::sign_up;
+use crate::routes::auth_routs::{log_in, sign_up};
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection};
@@ -24,7 +24,7 @@ pub mod routes;
 */
 fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(sign_up);
-    //cfg.service(get_user);
+    cfg.service(log_in);
 }
 
 #[actix_web::main]
