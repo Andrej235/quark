@@ -1,7 +1,8 @@
+import React from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
-function Authentication() {
+export default function Login() {
   return (
     <div className="bg-background z-10 flex h-screen w-full flex-col items-center justify-center gap-20">
       <div className="bg-secondary h-xl w-md shadow-muted border-muted rounded-xl border-2 shadow-lg">
@@ -20,19 +21,19 @@ function Authentication() {
           />
           <a
             href="/forgot-password"
-            className="text-xs text-foreground ml-auto mt-2"
+            className="text-foreground ml-auto mt-2 text-xs"
           >
             Forgot password?
           </a>
           <Button
             type="submit"
-            className="bg-input hover:bg-primary-dark h-12 w-full rounded-2xl p-2 text-white transition-colors cursor-pointer" 
+            className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
           >
             Log in
           </Button>
           <Button
             type="submit"
-            className="bg-input hover:bg-primary-dark h-12 w-full rounded-2xl p-2 text-white transition-colors cursor-pointer"
+            className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
           >
             <img
               className="h-5 w-5"
@@ -41,11 +42,9 @@ function Authentication() {
             />
             <span className="font-medium text-white">Login with Google</span>
           </Button>
-          
+
           <div className="ml-auto mt-5 flex w-full flex-row items-center justify-center gap-3">
-            <p className="text-xs text-primary">
-              Don&apos;t have an account?
-            </p>
+            <p className="text-primary text-xs">Don&apos;t have an account?</p>
             <a
               type="button"
               className="bg-secondary text-foreground text-xs"
@@ -59,5 +58,3 @@ function Authentication() {
     </div>
   );
 }
-
-export default Authentication;
