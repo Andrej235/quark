@@ -21,7 +21,7 @@ pub enum Relation {
         from = "Column::TeamId",
         to = "super::teams::Column::Id",
         on_update = "NoAction",
-        on_delete = "NoAction"
+        on_delete = "Cascade"
     )]
     Teams,
 }
