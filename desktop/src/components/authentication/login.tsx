@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -11,7 +12,7 @@ export default function Login() {
           <p className="mb-5">Ready for new day?</p>
           <Input
             type="text"
-            placeholder="Username/Email"
+            placeholder="Email"
             className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
           />
           <Input
@@ -28,8 +29,9 @@ export default function Login() {
           <Button
             type="submit"
             className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
+            asChild
           >
-            Log in
+            <Link to={"/home"}>Log in</Link>
           </Button>
           <Button
             type="submit"
