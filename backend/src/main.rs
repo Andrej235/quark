@@ -1,15 +1,20 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::routes::auth_routs::{log_in, log_out, sign_up};
+use crate::{
+    api_doc::ApiDoc,
+    routes::auth_routs::{log_in, log_out, sign_up},
+};
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use sea_orm::{Database, DatabaseConnection};
-use std::env;
+use std::{env, fs::File, io::Write};
+use utoipa::OpenApi;
 
 // ------------------------------------------------------------------------------------
 // MODS
 // ------------------------------------------------------------------------------------
+pub mod api_doc;
 pub mod entity;
 pub mod extensions;
 pub mod models;
@@ -28,12 +33,25 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(log_out);
 }
 
+fn write_openapi_file() -> std::io::Result<()> {
+    let openapi = ApiDoc::openapi();
+    let json = serde_json::to_string_pretty(&openapi).expect("Failed to serialize OpenAPI spec");
+
+    let mut file = File::create("openapi.json")?;
+    file.write_all(json.as_bytes())?;
+
+    println!("OpenAPI spec saved to openapi.json");
+
+    Ok(())
+}
+
 #[actix_web::main]
 #[rustfmt::skip]
 async fn main() -> std::io::Result<()> {
 
     dotenv().ok(); // Makes sure that .env file exists
 
+    write_openapi_file().expect("Failed to write OpenAPI spec file"); // Write OpenAPI endpoint map to a file
 
     // Check if all required .env variables are set
     if env::var("JWT_SECRET").is_err() { panic!("JWT_SECRET not set."); }

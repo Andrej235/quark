@@ -2,7 +2,7 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::models::claims::Claims;
-use crate::models::dtos::login_result::LogInResult;
+use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::sroute_error::SRouteError;
 use crate::{
@@ -40,9 +40,21 @@ const JWT_TOKEN_EXPIRATION_MINUTE_OFFSET: i64 = 15;
 // ------------------------------------------------------------------------------------
 // ROUTES
 // ------------------------------------------------------------------------------------
+/*
+    signUp
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/signUp",
+    request_body = CreateUserDTO,
+    responses(
+        (status = 200, description = "User created."),
+        (status = 400, description = "Possible errors: One of fields is empty, User already exists.", body = SRouteError),
+    )
+)]
 #[post("/auth/signUp")]
 #[rustfmt::skip]
-async fn sign_up(
+pub async fn sign_up(
     db: Data<DatabaseConnection>,
     user_data_json: Json<CreateUserDTO>
 ) -> impl Responder {
@@ -56,7 +68,7 @@ async fn sign_up(
     // Check for string emptiness
     let is_any_string_empty: bool = user_data.check_if_all_strings_are_not_empty();
     if is_any_string_empty == false {
-        return  HttpResponse::BadRequest().body("One of fields is empty.");
+        return  HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." });
     }
 
     // Check if user already exists
@@ -78,9 +90,7 @@ async fn sign_up(
             
         // If user exists return message that user already exists
         Some(_) => {
-            return HttpResponse::BadRequest().json(SRouteError {
-                message: "User already exists."
-            });            
+            return HttpResponse::BadRequest().json(SRouteError { message: "User already exists." });            
         },
             
         // Otherwise if it doesnt exist add it to database and return JWT token
@@ -119,6 +129,18 @@ async fn sign_up(
     }
 }
 
+/*
+    logIn
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/logIn",
+    request_body = LoginUserDTO,
+    responses(
+        (status = 200, description = "User logged in.", body = LogInResultDTO),
+        (status = 400, description = "Possible errors: One of fields is empty, Wrong password, User not found.", body = SRouteError),
+    )
+)]
 #[post("/auth/logIn")]
 #[rustfmt::skip]
 async fn log_in(    
@@ -138,7 +160,7 @@ async fn log_in(
     // Check for string emptiness
     let are_all_strings_not_empty: bool = user_data.check_if_all_strings_are_not_empty();
     if are_all_strings_not_empty == false {
-        return  HttpResponse::BadRequest().body("One of fields is empty.");
+        return  HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." });
     }
 
     // --------->
@@ -156,9 +178,7 @@ async fn log_in(
                 return HttpResponse::InternalServerError().finish();
             }
         };
-    println!("{:?}", existing_user);
 
-        
     if existing_user.is_some() { // User exists in database
         let user: User = existing_user.unwrap();
         
@@ -210,7 +230,7 @@ async fn log_in(
             // Create new jwt token
             let jwt_token: String = create_jwt_token(&refresh_token, user.id);
 
-            return HttpResponse::Ok().json(LogInResult {
+            return HttpResponse::Ok().json(LogInResultDTO {
                 jwt_token: jwt_token,
                 refresh_token_id: refresh_token.id
             });
@@ -232,19 +252,30 @@ async fn log_in(
             // Create new jwt token
             let jwt_token: String = create_jwt_token(&refresh_token, user.id);
 
-            return HttpResponse::Ok().json(LogInResult {
+            return HttpResponse::Ok().json(LogInResultDTO {
                 jwt_token: jwt_token,
                 refresh_token_id: refresh_token.id
             });
         }
     }
     else { // User doesnt exist
-        return  HttpResponse::BadRequest().json(SRouteError {
-            message: "User doesn't exist."
-        });
+        return  HttpResponse::BadRequest().json(SRouteError { message: "User not found." });
     }
 }
 
+/*
+    logOut
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/logOut/{refresh_token_id}",
+    params(
+        ("refresh_token_id" = uuid::Uuid, Path, description = "Refresh token id")
+    ),
+    responses(
+        (status = 200, description = "User logged out."),
+    )
+)]
 #[post("/auth/logOut/{refresh_token_id}")]
 #[rustfmt::skip]
 async fn log_out(    
