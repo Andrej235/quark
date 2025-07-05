@@ -15,7 +15,7 @@ use crate::{
     },
     models::dtos::create_user_dto::CreateUserDTO,
 };
-use actix_web::web::{Data, Json};
+use actix_web::web::{Data, Json, Path};
 use actix_web::*;
 use argon2::PasswordHash;
 use argon2::{
@@ -34,7 +34,7 @@ use uuid::Uuid;
 // ------------------------------------------------------------------------------------
 // CONSTANTS
 // ------------------------------------------------------------------------------------
-const REFRESH_TOKEN_EXPIRATION_DAY_OFFSET: i64 = 1;
+const REFRESH_TOKEN_EXPIRATION_DAY_OFFSET: i64 = 7;
 const JWT_TOKEN_EXPIRATION_MINUTE_OFFSET: i64 = 15;
 
 // ------------------------------------------------------------------------------------
@@ -245,6 +245,29 @@ async fn log_in(
     }
 }
 
+#[post("/auth/logOut/{refresh_token_id}")]
+#[rustfmt::skip]
+async fn log_out(    
+    db: Data<DatabaseConnection>,
+    path: Path<Uuid>
+) -> impl Responder {
+
+    // Get refresh token id from path
+    let refresh_token_id = path.into_inner();
+
+    // Try to delete refresh token
+    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await;
+    match delete_refresh_token_result {
+        Ok(_) => (),
+        Err(err) => {
+            println!("-> log_out errored (tried to delete refresh token): {:?}", err);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    return HttpResponse::Ok().finish();
+}
+
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------
@@ -335,7 +358,7 @@ fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> String {
 fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 
     let refresh_token_id: Uuid = Uuid::now_v7();
-    let refresh_token_expiration_time: NaiveDateTime = Utc::now().naive_utc() + Duration::seconds(REFRESH_TOKEN_EXPIRATION_DAY_OFFSET);
+    let refresh_token_expiration_time: NaiveDateTime = Utc::now().naive_utc() + Duration::days(REFRESH_TOKEN_EXPIRATION_DAY_OFFSET);
     let refresh_token_jit: Uuid = Uuid::now_v7();
 
     return RefreshTokenActiveModel {
