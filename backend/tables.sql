@@ -14,3 +14,21 @@ CREATE TABLE "refresh_tokens" (
   "jit" UUID NOT NULL,
   "user_id" UUID NOT NULL REFERENCES "users"("id")
 );
+
+CREATE TABLE "teams" (
+  "id" UUID PRIMARY KEY NOT NULL,
+  "name" TEXT NOT NULL
+);
+
+CREATE TABLE "team_roles" (
+  "id" UUID PRIMARY KEY NOT NULL,
+  "team_id" UUID REFERENCES "teams"("id") NOT NULL,
+  "name" TEXT NOT NULL
+);
+
+CREATE TABLE "team_members" (
+  "user_id" UUID REFERENCES "users"("id") NOT NULL,
+  "team_id" UUID REFERENCES "teams"("id") NOT NULL,
+  "team_role_id" UUID REFERENCES "team_roles"("id") NOT NULL,
+  PRIMARY KEY ("user_id", "team_id")
+);

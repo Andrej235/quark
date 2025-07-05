@@ -1,6 +1,6 @@
 #[derive(Debug, PartialEq)]
 pub struct RouteError {
-    message: String,
+    pub message: String,
 }
 
 #[rustfmt::skip]
