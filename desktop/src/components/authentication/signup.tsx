@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link } from 'react-router-dom';
 export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -151,13 +152,13 @@ export default function Signup() {
 
           <div className="ml-auto mt-5 flex w-full flex-row items-center justify-center gap-3">
             <p className="text-primary text-xs">Already have an account?</p>
-            <a
+            <Link
               type="button"
               className="bg-secondary text-foreground text-xs"
-              href="/login"
+              to="/login"
             >
               Log in
-            </a>
+            </Link>
           </div>
         </form>
       </div>

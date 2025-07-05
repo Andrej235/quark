@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import React from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -20,12 +20,12 @@ export default function Login() {
             placeholder="Password"
             className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
           />
-          <a
-            href="/forgot-password"
-            className="text-foreground ml-auto mt-2 text-xs"
-          >
-            Forgot password?
-          </a>
+            <Link
+              to="/forgot-password"
+              className="text-foreground ml-auto mt-2 text-xs"
+            >
+              Forgot password?
+            </Link>
           <Button
             type="submit"
             className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
@@ -36,24 +36,30 @@ export default function Login() {
           <Button
             type="submit"
             className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
+            asChild
           >
-            <img
-              className="h-5 w-5"
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              alt="Google logo"
-            />
-            <span className="font-medium text-white">Login with Google</span>
+            <Link
+              to={"/auth/google"}
+              className="flex items-center justify-center gap-2"
+            >
+              <img
+                className="h-5 w-5"
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google logo"
+              />
+              <span className="font-medium text-white">Login with Google</span>
+            </Link>
           </Button>
 
           <div className="ml-auto mt-5 flex w-full flex-row items-center justify-center gap-3">
             <p className="text-primary text-xs">Don&apos;t have an account?</p>
-            <a
+            <Link
               type="button"
               className="bg-secondary text-foreground text-xs"
-              href="/signup"
+              to="/signup"
             >
               Sign up
-            </a>
+            </Link>
           </div>
         </form>
       </div>
