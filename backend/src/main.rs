@@ -33,14 +33,20 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(log_out);
 }
 
+/*
+    This function is used to write OpenAPI endpoint map to a file.
+    Its run at every server instance start.
+*/
 fn write_openapi_file() -> std::io::Result<()> {
-    let openapi = ApiDoc::openapi();
-    let json = serde_json::to_string_pretty(&openapi).expect("Failed to serialize OpenAPI spec");
+    let openapi: utoipa::openapi::OpenApi = ApiDoc::openapi();
 
-    let mut file = File::create("openapi.json")?;
+    let json: String =
+        serde_json::to_string_pretty(&openapi).expect("Failed to serialize OpenAPI spec");
+
+    let mut file: File = File::create("openapi.json")?;
     file.write_all(json.as_bytes())?;
 
-    println!("OpenAPI spec saved to openapi.json");
+    println!("OpenAPI endpoint map saved to openapi.json");
 
     Ok(())
 }
@@ -49,14 +55,15 @@ fn write_openapi_file() -> std::io::Result<()> {
 #[rustfmt::skip]
 async fn main() -> std::io::Result<()> {
 
-    dotenv().ok(); // Makes sure that .env file exists
+    // Makes sure that .env file exists
+    dotenv().ok();
 
-    write_openapi_file().expect("Failed to write OpenAPI spec file"); // Write OpenAPI endpoint map to a file
+    // Write OpenAPI endpoint map to a file
+    write_openapi_file().expect("Failed to write OpenAPI spec file");
 
     // Check if all required .env variables are set
     if env::var("JWT_SECRET").is_err() { panic!("JWT_SECRET not set."); }
     if env::var("DATABASE_URL").is_err() { panic!("DATABASE_URL not set."); }
-
 
     // Create database connection
     let database_url: String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
@@ -64,13 +71,13 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
-
     // Start actix server
     println!("Starting server...");
 
     HttpServer::new(move || {
-        App::new().app_data(web::Data::new(database_connection.clone())) // Inject database into app state
-        .configure(routes) // Register endpoints
+        App::new()
+            .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
+            .configure(routes) // Register endpoints
     })
     .bind(("127.0.0.1", 8080))?
     .run()
