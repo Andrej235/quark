@@ -49,8 +49,8 @@ const JWT_TOKEN_EXPIRATION_MINUTE_OFFSET: i64 = 15;
     path = "/auth/signUp",
     request_body = CreateUserDTO,
     responses(
-        (status = 200, description = "User created."),
-        (status = 400, description = "Possible errors: One of fields is empty, User already exists.", body = SRouteError),
+        (status = 200, description = "User created"),
+        (status = 400, description = "Possible errors: Validation failed, User already exists", body = SRouteError),
     )
 )]
 #[post("/auth/signUp")]
@@ -67,14 +67,14 @@ pub async fn sign_up(
     let mut user_data: CreateUserDTO = user_data_json.into_inner();
 
     // Run incoming data validation
-    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." }); }
+    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
 
 
     // --------->
     // Main execution
     // --------->
     // Check if user already exists
-    let existing_user: Option<User> = match UserEntity::find()
+    let existing_user_fetch_result: Option<User> = match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
         .filter(UserColumn::Name.eq(&user_data.name))
         .filter(UserColumn::LastName.eq(&user_data.last_name))
@@ -88,12 +88,10 @@ pub async fn sign_up(
             }
         };
 
-    match existing_user {
+    match existing_user_fetch_result {
             
         // If user exists return message that user already exists
-        Some(_) => {
-            return HttpResponse::BadRequest().json(SRouteError { message: "User already exists." });            
-        },
+        Some(_) => { return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" }); },
             
         // Otherwise if it doesnt exist add it to database and return JWT token
         None => {
@@ -108,17 +106,17 @@ pub async fn sign_up(
             };
 
             // Create user
-            let user_creation_result: Result<User, DbErr> = UserActiveModel {
-                id: Set(Uuid::now_v7()),
-                username: Set(user_data.username.clone()),
-                name: Set(user_data.name),
-                last_name: Set(user_data.last_name),
-                email: Set(user_data.email),
-                hashed_password: Set(password_hash),
-                salt: Set(salt),
+            let user_insertion_result: Result<User, DbErr> = UserActiveModel {
+                id:                 Set(Uuid::now_v7()),
+                username:           Set(user_data.username.clone()),
+                name:               Set(user_data.name),
+                last_name:          Set(user_data.last_name),
+                email:              Set(user_data.email),
+                hashed_password:    Set(password_hash),
+                salt:               Set(salt),
             }.insert(db.get_ref()).await;
 
-            match user_creation_result {
+            match user_insertion_result {
                 Ok(_) => (),
                 Err(err) => {
                     println!("-> sign_up errored (tried to create user): {:?}", err);
@@ -126,7 +124,7 @@ pub async fn sign_up(
                 }
             };
 
-            return HttpResponse::Ok().body("User created.");
+            return HttpResponse::Ok().finish();
         }
     }
 }
@@ -139,8 +137,8 @@ pub async fn sign_up(
     path = "/auth/logIn",
     request_body = LoginUserDTO,
     responses(
-        (status = 200, description = "User logged in.", body = LogInResultDTO),
-        (status = 400, description = "Possible errors: One of fields is empty, Wrong password, User not found.", body = SRouteError),
+        (status = 200, description = "User logged in", body = LogInResultDTO),
+        (status = 400, description = "Possible errors: Validation failed, Wrong password, User not found", body = SRouteError),
     )
 )]
 #[post("/auth/logIn")]
@@ -157,14 +155,13 @@ async fn log_in(
     let mut user_data: LoginUserDTO = user_data_json.into_inner();
     
     // Run incoming data validation
-    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." }); }
+    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
 
 
     // --------->
     // Main execution
     // --------->
     // Check if user already exists in database
-    println!("{:?}", user_data);
     let existing_user: Option<User>  = match UserEntity::find()
         .filter(UserColumn::Email.eq(&user_data.email))
         .one(db.get_ref())
@@ -176,87 +173,88 @@ async fn log_in(
             }
         };
 
-    if existing_user.is_some() { // User exists in database
-        let user: User = existing_user.unwrap();
+    match existing_user {
+
+        None => { return HttpResponse::BadRequest().json(SRouteError { message: "User not found" }); },
         
-        // Has provided password 
-        let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
-            Ok(password_hash) => password_hash,
-            Err(err) => {
-                println!("-> log_in errored (tried to hash password): {:?}", err);
-                return HttpResponse::InternalServerError().finish();
-            }
-        };
-
-        // Check if password is same as in database
-        if provided_password_hash != user.hashed_password {
-            return  HttpResponse::BadRequest().json(SRouteError { message: "Wrong password." });
-        }
-
-        // Try to get refresh token from database
-        let existing_refresh_token_result: Option<RefreshToken> = match RefreshTokenEntity::find()
-            .filter(RefreshTokenColumn::UserId.eq(user.id))
-            .one(db.get_ref())
-            .await {
-                Ok(refresh_token) => refresh_token,
+        Some(user) => {
+            // Hash provided password 
+            let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
+                Ok(password_hash) => password_hash,
                 Err(err) => {
-                    println!("-> log_in errored (tried to find refresh token): {:?}", err);
+                    println!("-> log_in errored (tried to hash password): {:?}", err);
                     return HttpResponse::InternalServerError().finish();
                 }
             };
 
-        // If refresh token exists create new jwt token based on it
-        // Otherwise create new refresh token and jwt token
-        if existing_refresh_token_result.is_some() == true {
-            
-            let mut refresh_token: RefreshToken = existing_refresh_token_result.unwrap();
+            // Check if password is same as in database
+            if provided_password_hash != user.hashed_password {
+                return  HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
+            }
 
-            // If refresh token is expired recycle it
-            if refresh_token.expire_time < Utc::now().naive_utc() {
-
-                let refresh_token_recycle_resutl: Result<RefreshToken, DbErr> = recycle_refresh_token(refresh_token.id, user.id, db).await;
-                match refresh_token_recycle_resutl {
-                    Ok(token) => refresh_token = token,
+            // Try to get refresh token from database
+            let existing_refresh_token_result: Option<RefreshToken> = match RefreshTokenEntity::find()
+                .filter(RefreshTokenColumn::UserId.eq(user.id))
+                .one(db.get_ref())
+                .await {
+                    Ok(refresh_token) => refresh_token,
                     Err(err) => {
-                        println!("-> log_in errored (tried to delete refresh token and create new one): {:?}", err);
+                        println!("-> log_in errored (tried to find refresh token): {:?}", err);
                         return HttpResponse::InternalServerError().finish();
                     }
                 };
-            }
 
-            // Create new jwt token
-            let jwt_token: String = create_jwt_token(&refresh_token, user.id);
+            match existing_refresh_token_result {
+                
+                // Create JWT token if refresh token exists
+                Some(mut refresh_token) => {
 
-            return HttpResponse::Ok().json(LogInResultDTO {
-                jwt_token: jwt_token,
-                refresh_token_id: refresh_token.id
-            });
-        }
-        else {
-            
-            // Try to create and add new refresh token to database
-            let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user.id);
-            let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
+                    // If refresh token is expired recycle it
+                    if refresh_token.expire_time < Utc::now().naive_utc() {
 
-            let refresh_token = match add_refresh_token_result {
-                Ok(token) => token,
-                Err(err) => {
-                    println!("-> log_in errored (tried to create and add new refresh token to database): {:?}", err);
-                    return HttpResponse::InternalServerError().finish();
+                        let refresh_token_recycle_resutl: Result<RefreshToken, DbErr> = recycle_refresh_token(refresh_token.id, user.id, db).await;
+                        match refresh_token_recycle_resutl {
+                            Ok(token) => refresh_token = token,
+                            Err(err) => {
+                                println!("-> log_in errored (tried to delete refresh token and create new one): {:?}", err);
+                                return HttpResponse::InternalServerError().finish();
+                            }
+                        };
+                    }
+
+                    // Create new jwt token
+                    let jwt_token: String = create_jwt_token(&refresh_token, user.id);
+
+                    return HttpResponse::Ok().json(LogInResultDTO {
+                        jwt_token: jwt_token,
+                        refresh_token_id: refresh_token.id
+                    });
+                },
+
+                // If refresh token doesn't exist create new refresh token and JWT token
+                None => {
+                    // Try to create and add new refresh token to database
+                    let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user.id);
+                    let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
+
+                    let refresh_token = match add_refresh_token_result {
+                        Ok(token) => token,
+                        Err(err) => {
+                            println!("-> log_in errored (tried to create and add new refresh token to database): {:?}", err);
+                            return HttpResponse::InternalServerError().finish();
+                        }
+                    };
+
+                    // Create new jwt token
+                    let jwt_token: String = create_jwt_token(&refresh_token, user.id);
+
+                    return HttpResponse::Ok().json(LogInResultDTO {
+                        jwt_token: jwt_token,
+                        refresh_token_id: refresh_token.id
+                    });
                 }
-            };
-
-            // Create new jwt token
-            let jwt_token: String = create_jwt_token(&refresh_token, user.id);
-
-            return HttpResponse::Ok().json(LogInResultDTO {
-                jwt_token: jwt_token,
-                refresh_token_id: refresh_token.id
-            });
+            }
         }
-    }
-    else { // User doesnt exist
-        return  HttpResponse::BadRequest().json(SRouteError { message: "User not found." });
     }
 }
 
@@ -270,7 +268,7 @@ async fn log_in(
         ("refresh_token_id" = uuid::Uuid, Path, description = "Refresh token id")
     ),
     responses(
-        (status = 200, description = "User logged out."),
+        (status = 200, description = "User logged out"),
     )
 )]
 #[post("/auth/logOut/{refresh_token_id}")]
@@ -284,7 +282,10 @@ async fn log_out(
     let refresh_token_id = path.into_inner();
 
     // Try to delete refresh token
-    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await;
+    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id)
+        .exec(db.get_ref())
+        .await;
+    
     match delete_refresh_token_result {
         Ok(_) => (),
         Err(err) => {
