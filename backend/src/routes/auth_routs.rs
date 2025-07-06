@@ -1,7 +1,7 @@
-use crate::models::authenticated_user::AuthenticatedUser;
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
+use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::claims::Claims;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
@@ -299,6 +299,24 @@ async fn log_out(
     return HttpResponse::Ok().finish();
 }
 
+/*
+    check
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/check",
+    responses(
+        (status = 200, description = "User logged in"),
+        (status = 401, description = "User not logged in"),
+    )
+)]
+#[get("/auth/check")]
+#[rustfmt::skip]
+async fn check(
+    _user: AuthenticatedUser    
+) -> impl Responder {
+    HttpResponse::Ok().finish()
+}
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------

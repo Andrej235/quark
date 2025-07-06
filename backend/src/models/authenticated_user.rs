@@ -27,7 +27,6 @@ impl FromRequest for AuthenticatedUser {
         let result = (|| {
             let auth_header: &str = req.headers().get(header::AUTHORIZATION)?.to_str().ok()?;
             let token: &str = auth_header.strip_prefix("Bearer ")?;
-            println!("-> token: {}", token);
             let token_data: TokenData<Claims> = verify_jwt(token).ok()?;
 
             Some(AuthenticatedUser {
@@ -38,9 +37,7 @@ impl FromRequest for AuthenticatedUser {
 
         match result {
             Some(user) => ready(Ok(user)),
-            None => ready(Err(actix_web::error::ErrorUnauthorized(
-                "Invalid or missing token",
-            ))),
+            None => ready(Err(actix_web::error::ErrorUnauthorized("Unauthorized"))),
         }
     }
 }
