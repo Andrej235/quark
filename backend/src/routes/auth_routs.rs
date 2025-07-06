@@ -44,18 +44,18 @@ const JWT_TOKEN_EXPIRATION_MINUTE_OFFSET: i64 = 15;
 // ROUTES
 // ------------------------------------------------------------------------------------
 /*
-    signUp
+    signup
 */
 #[utoipa::path(
     post,
-    path = "/auth/signUp",
+    path = "/auth/signup",
     request_body = CreateUserDTO,
     responses(
         (status = 200, description = "User created"),
         (status = 400, description = "Possible errors: Validation failed, User already exists", body = SRouteError),
     )
 )]
-#[post("/auth/signUp")]
+#[post("/auth/signup")]
 #[rustfmt::skip]
 pub async fn sign_up(
     db: Data<DatabaseConnection>,
@@ -132,18 +132,18 @@ pub async fn sign_up(
 }
 
 /*
-    logIn
+    login
 */
 #[utoipa::path(
     post,
-    path = "/auth/logIn",
+    path = "/auth/login",
     request_body = LoginUserDTO,
     responses(
         (status = 200, description = "User logged in", body = LogInResultDTO),
         (status = 400, description = "Possible errors: Validation failed, Wrong password, User not found", body = SRouteError),
     )
 )]
-#[post("/auth/logIn")]
+#[post("/auth/login")]
 #[rustfmt::skip]
 async fn log_in(    
     db: Data<DatabaseConnection>,
@@ -261,11 +261,11 @@ async fn log_in(
 }
 
 /*
-    logOut
+    logout
 */
 #[utoipa::path(
     post,
-    path = "/auth/logOut/{refresh_token_id}",
+    path = "/auth/logout/{refresh_token_id}",
     params(
         ("refresh_token_id" = uuid::Uuid, Path, description = "Refresh token id")
     ),
@@ -273,7 +273,7 @@ async fn log_in(
         (status = 200, description = "User logged out"),
     )
 )]
-#[post("/auth/logOut/{refresh_token_id}")]
+#[post("/auth/logout/{refresh_token_id}")]
 #[rustfmt::skip]
 async fn log_out(    
     db: Data<DatabaseConnection>,
