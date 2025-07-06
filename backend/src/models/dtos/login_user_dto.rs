@@ -1,11 +1,39 @@
+// ------------------------------------------------------------------------------------
+// IMPORTS
+// ------------------------------------------------------------------------------------
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+
+// ------------------------------------------------------------------------------------
+// STRUCT
+// ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct LoginUserDTO {
     pub email: String,
     pub password: String,
+}
+
+// ------------------------------------------------------------------------------------
+// IMPLEMENTATIONS
+// ------------------------------------------------------------------------------------
+#[rustfmt::skip]
+impl EndpointJsonBodyData for LoginUserDTO {
+    fn validate(&mut self) -> bool {
+
+        // Trim all strings
+        self.trim_strings();
+
+        // Check for string emptiness
+        let is_any_string_empty: bool = self.check_if_all_strings_are_not_empty();
+        if is_any_string_empty == false {
+            return false;
+        }
+
+        return true;
+    }
 }
 
 #[rustfmt::skip]

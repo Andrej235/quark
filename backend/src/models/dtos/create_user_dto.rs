@@ -1,6 +1,13 @@
+// ------------------------------------------------------------------------------------
+// IMPORTS
+// ------------------------------------------------------------------------------------
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+// ------------------------------------------------------------------------------------
+// STRUCT
+// ------------------------------------------------------------------------------------
 #[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 #[rustfmt::skip]
 pub struct CreateUserDTO {
@@ -9,6 +16,26 @@ pub struct CreateUserDTO {
     pub last_name:  String,
     pub email:      String,
     pub password:   String,
+}
+
+// ------------------------------------------------------------------------------------
+// IMPLEMENTATIONS
+// ------------------------------------------------------------------------------------
+#[rustfmt::skip]
+impl EndpointJsonBodyData for CreateUserDTO {
+    fn validate(&mut self) -> bool {
+
+        // Trim all strings
+        self.trim_strings();
+
+        // Check for string emptiness
+        let is_any_string_empty: bool = self.check_if_all_strings_are_not_empty();
+        if is_any_string_empty == false {
+            return false;
+        }
+
+        return true;
+    }
 }
 
 #[rustfmt::skip]

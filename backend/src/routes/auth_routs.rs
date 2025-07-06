@@ -5,6 +5,7 @@ use crate::models::claims::Claims;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::sroute_error::SRouteError;
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -59,20 +60,21 @@ pub async fn sign_up(
     user_data_json: Json<CreateUserDTO>
 ) -> impl Responder {
 
-    // Get ownership of user data from json
+    // --------->
+    // Base checks
+    // --------->
+    // Get ownership of incoming data
     let mut user_data: CreateUserDTO = user_data_json.into_inner();
 
-    // Trim all strings
-    user_data.trim_strings();
+    // Run incoming data validation
+    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." }); }
 
-    // Check for string emptiness
-    let is_any_string_empty: bool = user_data.check_if_all_strings_are_not_empty();
-    if is_any_string_empty == false {
-        return  HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." });
-    }
 
+    // --------->
+    // Main execution
+    // --------->
     // Check if user already exists
-    let existing_user: Option<User>  = match UserEntity::find()
+    let existing_user: Option<User> = match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
         .filter(UserColumn::Name.eq(&user_data.name))
         .filter(UserColumn::LastName.eq(&user_data.last_name))
@@ -151,17 +153,12 @@ async fn log_in(
     // --------->
     // Base checks
     // --------->
-    // Get ownership of user data from json
+    // Get ownership of incoming data
     let mut user_data: LoginUserDTO = user_data_json.into_inner();
     
-    // Trim all strings
-    user_data.trim_strings();
+    // Run incoming data validation
+    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." }); }
 
-    // Check for string emptiness
-    let are_all_strings_not_empty: bool = user_data.check_if_all_strings_are_not_empty();
-    if are_all_strings_not_empty == false {
-        return  HttpResponse::BadRequest().json(SRouteError { message: "One of fields is empty." });
-    }
 
     // --------->
     // Main execution
