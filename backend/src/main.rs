@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
-    routes::auth_routs::{log_in, log_out, sign_up},
+    routes::auth_routs::{log_in, log_out, sign_up, test},
 };
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
@@ -38,6 +38,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(sign_up);
     cfg.service(log_in);
     cfg.service(log_out);
+    cfg.service(test);
 }
 
 /*
@@ -84,7 +85,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
-        
+
     // Start actix server
     println!("Starting server...");
 
