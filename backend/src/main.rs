@@ -7,9 +7,15 @@ use crate::{
 };
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
+use once_cell::sync::OnceCell;
 use sea_orm::{Database, DatabaseConnection};
 use std::{env, fs::File, io::Write};
 use utoipa::OpenApi;
+
+// ------------------------------------------------------------------------------------
+// PUBLIC VARIABLES
+// ------------------------------------------------------------------------------------
+pub static JWT_SECRET: OnceCell<String> = OnceCell::new();
 
 // ------------------------------------------------------------------------------------
 // MODS
@@ -59,19 +65,26 @@ async fn main() -> std::io::Result<()> {
     // Makes sure that .env file exists
     dotenv().ok();
 
+    
     // Write OpenAPI endpoint map to a file
-    write_openapi_file().expect("Failed to write OpenAPI spec file");
+    write_openapi_file().expect("Failed to write OpenAPI endpoint map.");
 
-    // Check if all required .env variables are set
-    if env::var("JWT_SECRET").is_err() { panic!("JWT_SECRET not set."); }
-    if env::var("DATABASE_URL").is_err() { panic!("DATABASE_URL not set."); }
+
+    // Get and check if all required .env variables are set
+    let jwt_secret: String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
+    let database_url: String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
+
+
+    // Update public static variables
+    JWT_SECRET.set(jwt_secret).unwrap();
+
 
     // Create database connection
-    let database_url: String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
     let database_connection: DatabaseConnection = Database::connect(database_url)
         .await
         .expect("Failed to connect to database");
 
+        
     // Start actix server
     println!("Starting server...");
 

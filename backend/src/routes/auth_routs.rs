@@ -6,6 +6,7 @@ use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::sroute_error::SRouteError;
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::JWT_SECRET;
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -369,7 +370,7 @@ fn hash_password_with_salt(salt_str: &str, password: &str) -> Result<String, Box
 #[rustfmt::skip]
 fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> String {
     
-    let jwt_secret: String = std::env::var("JWT_SECRET").unwrap();
+    let jwt_secret: &String = JWT_SECRET.get().unwrap();
 
     let claims: Claims = Claims { 
         user_id: user_id, 

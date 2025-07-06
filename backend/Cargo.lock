@@ -2015,6 +2015,7 @@ dependencies = [
  "chrono",
  "dotenv",
  "jsonwebtoken",
+ "once_cell",
  "rand 0.9.1",
  "sea-orm",
  "sea-orm-migration",
