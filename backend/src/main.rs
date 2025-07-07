@@ -3,7 +3,10 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
-    routes::auth_routs::{check, log_in, log_out, refresh, sign_up},
+    routes::{
+        auth_routs::{check, log_in, log_out, refresh, sign_up},
+        team_routs::team_create,
+    },
 };
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
@@ -40,6 +43,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(log_out);
     cfg.service(check);
     cfg.service(refresh);
+    cfg.service(team_create);
 }
 
 /*
@@ -67,7 +71,7 @@ async fn main() -> std::io::Result<()> {
     // Makes sure that .env file exists
     dotenv().ok();
 
-    
+
     // Write OpenAPI endpoint map to a file
     write_openapi_file().expect("Failed to write OpenAPI endpoint map.");
 
