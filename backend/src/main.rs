@@ -27,6 +27,7 @@ pub mod extensions;
 pub mod models;
 pub mod routes;
 pub mod traits;
+pub mod utils;
 
 // ------------------------------------------------------------------------------------
 // FUNCTIONS

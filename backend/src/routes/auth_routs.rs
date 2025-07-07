@@ -23,18 +23,20 @@ use actix_web::web::{Data, Json, Path};
 use actix_web::*;
 use argon2::PasswordHash;
 use argon2::{
-    password_hash::{rand_core::OsRng, SaltString},
+    password_hash::{rand_core::OsRng, Error as Argon2Error, SaltString},
     Argon2, PasswordHasher,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use jsonwebtoken::{
-    decode, encode, errors::Error, DecodingKey, EncodingKey, Header, TokenData, Validation,
+    decode, encode, errors::Error as JWTTokenError, DecodingKey, EncodingKey, Header, TokenData,
+    Validation,
 };
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
     QueryFilter,
 };
+use tracing::error;
 use uuid::Uuid;
 
 // ------------------------------------------------------------------------------------
@@ -88,7 +90,7 @@ pub async fn sign_up(
         .await {
             Ok(user) => user,
             Err(err) => {
-                println!("-> sign_up errored (tried to find user): {:?}", err);
+                error!("Finding user with filterting failed: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };
@@ -105,7 +107,7 @@ pub async fn sign_up(
             let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
                 Ok((salt, password_hash)) => (salt, password_hash),
                 Err(err) => {
-                    println!("-> sign_up errored (tried to hash password): {:?}", err);
+                    error!("Password hashing failed: {:?}", err);
                     return HttpResponse::InternalServerError().finish();
                 }
             };
@@ -124,7 +126,7 @@ pub async fn sign_up(
             match user_insertion_result {
                 Ok(_) => (),
                 Err(err) => {
-                    println!("-> sign_up errored (tried to create user): {:?}", err);
+                    error!("Creating user failed: {:?}", err);
                     return HttpResponse::InternalServerError().finish();
                 }
             };
@@ -152,7 +154,7 @@ async fn log_in(
     db: Data<DatabaseConnection>,
     user_data_json: Json<LoginUserDTO>
 ) -> impl Responder {
-
+    
     // --------->
     // Base checks
     // --------->
@@ -173,7 +175,7 @@ async fn log_in(
         .await {
             Ok(user) => user,
             Err(err) => {
-                println!("-> log_in errored (tried to find user): {:?}", err);
+                error!("Finding user with filtering failed: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };
@@ -187,7 +189,7 @@ async fn log_in(
             let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
                 Ok(password_hash) => password_hash,
                 Err(err) => {
-                    println!("-> log_in errored (tried to hash password): {:?}", err);
+                    error!("Hashing password failed: {:?}", err);
                     return HttpResponse::InternalServerError().finish();
                 }
             };
@@ -204,7 +206,7 @@ async fn log_in(
                 .await {
                     Ok(refresh_token) => refresh_token,
                     Err(err) => {
-                        println!("-> log_in errored (tried to find refresh token): {:?}", err);
+                        error!("Finding refresh token with filtering failed: {:?}", err);
                         return HttpResponse::InternalServerError().finish();
                     }
                 };
@@ -217,23 +219,28 @@ async fn log_in(
                     // If refresh token is expired recycle it
                     if refresh_token.expire_time < Utc::now().naive_utc() {
 
-                        let refresh_token_recycle_resutl: Result<RefreshToken, DbErr> = recycle_refresh_token(refresh_token.id, user.id, db).await;
-                        match refresh_token_recycle_resutl {
+                        match recycle_refresh_token(refresh_token.id, user.id, db).await {
                             Ok(token) => refresh_token = token,
                             Err(err) => {
-                                println!("-> log_in errored (tried to delete refresh token and create new one): {:?}", err);
+                                error!("Recycling refresh token failed: {:?}", err);
                                 return HttpResponse::InternalServerError().finish();
                             }
                         };
                     }
 
-                    // Create new jwt token
-                    let jwt_token: String = create_jwt_token(&refresh_token, user.id);
-
-                    return HttpResponse::Ok().json(LogInResultDTO {
-                        jwt_token: jwt_token,
-                        refresh_token_id: refresh_token.id
-                    });
+                    // Create and return new jwt token
+                    match create_jwt_token(&refresh_token, user.id) {
+                        Ok(token) => {
+                            return HttpResponse::Ok().json(LogInResultDTO {
+                                jwt_token: token,
+                                refresh_token_id: refresh_token.id
+                            });
+                        },
+                        Err(err) => {
+                            error!("Creating JWT token failed: {:?}", err);
+                            return HttpResponse::InternalServerError().finish();
+                        }
+                    };
                 },
 
                 // If refresh token doesn't exist create new refresh token and JWT token
@@ -250,13 +257,19 @@ async fn log_in(
                         }
                     };
 
-                    // Create new jwt token
-                    let jwt_token: String = create_jwt_token(&refresh_token, user.id);
-
-                    return HttpResponse::Ok().json(LogInResultDTO {
-                        jwt_token: jwt_token,
-                        refresh_token_id: refresh_token.id
-                    });
+                    // Create and return new jwt token
+                    match create_jwt_token(&refresh_token, user.id) {
+                        Ok(token) => {
+                            return HttpResponse::Ok().json(LogInResultDTO {
+                                jwt_token: token,
+                                refresh_token_id: refresh_token.id
+                            });
+                        },
+                        Err(err) => {
+                            error!("Creating JWT token failed: {:?}", err);
+                            return HttpResponse::InternalServerError().finish();
+                        }
+                    };
                 }
             }
         }
@@ -294,7 +307,7 @@ async fn log_out(
     match delete_refresh_token_result {
         Ok(_) => (),
         Err(err) => {
-            println!("-> log_out errored (tried to delete refresh token): {:?}", err);
+            error!("Deleting refresh token failed: {:?}", err);
             return HttpResponse::InternalServerError().finish();
         }
     };
@@ -350,12 +363,10 @@ async fn refresh(
     let token_pair: JWTRefreshTokenPairDTO = token_pair.into_inner();
 
     // Get claims object from jwt string
-    let decode_jwt_string_result: Result<TokenData<Claims>, Error> = decode_jwt_string(&token_pair.jwt_token, false);
-
-    let claims: Claims = match decode_jwt_string_result {
+    let claims: Claims = match decode_jwt_string(&token_pair.jwt_token, false) {
         Ok(token_data) => token_data.claims,
         Err(err) => {
-            println!("-> refresh errored (tried to decode jwt token): {:?}", err);
+            error!("JWT string decode failed: {:?}", err);
             return HttpResponse::InternalServerError().finish();
         }
     };
@@ -372,7 +383,7 @@ async fn refresh(
                 if user.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "Invalid JWT token" }); }
             },
             Err(err) => {
-                println!("-> auth refresh errored (tried to find user): {:?}", err);
+                error!("Finding user by id failed: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };
@@ -386,7 +397,7 @@ async fn refresh(
                 token.unwrap()
             },
             Err(err) => {
-                println!("-> auth refresh errored (tried to find refresh token): {:?}", err);
+                error!("Finding refresh token by id failed: {:?}", err);
                 return HttpResponse::InternalServerError().finish();
             }
         };
@@ -414,18 +425,22 @@ async fn refresh(
     let new_refresh_token: RefreshToken = match recycle_refresh_token(refresh_token.id, claims.user_id, db).await {
         Ok(token) => token,
         Err(err) => {
-            println!("-> auth refresh errored (tried to recycle refresh token): {:?}", err);
+            error!("Recycle refresh token failed: {:?}", err);
             return HttpResponse::InternalServerError().finish();
         }
     };
 
-    // Create new JWT Token
-    let new_jwt_token: String = create_jwt_token(&new_refresh_token, claims.user_id);
-
-    return HttpResponse::Ok().json(JWTRefreshTokenPairDTO {
-        jwt_token: new_jwt_token,
-        refresh_token_id: new_refresh_token.id
-    });
+    // Return new JWT Token
+    return match create_jwt_token(&new_refresh_token, claims.user_id) {
+        Ok(token) => HttpResponse::Ok().json(JWTRefreshTokenPairDTO {
+            jwt_token: token,
+            refresh_token_id: new_refresh_token.id
+        }),
+        Err(err) => {
+            error!("Creating JWT token failed: {:?}", err);
+            HttpResponse::InternalServerError().finish()
+        }
+    };
 }
 
 // ------------------------------------------------------------------------------------
@@ -484,36 +499,39 @@ fn hash_password(password: &str) -> Result<(String, String), Box<argon2::passwor
 #[rustfmt::skip]
 /// Hashes plain password using provided salt string
 /// Returns **hashed password** or **error**
-fn hash_password_with_salt(salt_str: &str, password: &str) -> Result<String, Box<argon2::password_hash::Error>> {
+fn hash_password_with_salt(salt_str: &str, password: &str) -> Result<String, Argon2Error> {
 
     // Create argon2 instance and salt string instance
-    let argon2:         Argon2<'_> = Argon2::default();
-    let salt:    SaltString = SaltString::from_b64(salt_str).unwrap();
+    let argon2:     Argon2<'_> = Argon2::default();
+    let salt:       SaltString = SaltString::from_b64(salt_str).map_err(|err| err)?;
 
     // Use argon2 function to hash password
     let password_hash: PasswordHash<'_> = match argon2.hash_password(password.as_bytes(), &salt) {
         Ok(password_hash) => password_hash,
-        Err(err) => return Err(Box::new(err)),
+        Err(err) => return Err(err),
     };
 
     return Ok(password_hash.to_string());
 }
 
 #[rustfmt::skip]
-fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> String {
-    
+fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> Result<String, JWTTokenError> {
+
+    // Get JWT secret
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
 
+    // Create claims
     let claims: Claims = Claims { 
         user_id: user_id, 
         expire_time: Utc::now().naive_utc() + Duration::minutes(JWT_TOKEN_EXPIRATION_MINUTE_OFFSET), 
         jit: refresh_token.jit
     };
 
-    let access_token = encode(&Header::default(), &claims, &EncodingKey::from_secret(jwt_secret.as_ref()))
-        .expect("JWT encoding failed");
-
-    return access_token;
+    return encode(
+        &Header::default(), 
+        &claims, 
+        &EncodingKey::from_secret(jwt_secret.as_ref())
+    );
 }
 
 #[rustfmt::skip]
@@ -532,7 +550,7 @@ fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 }
 
 #[rustfmt::skip]
-fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> core::result::Result<TokenData<Claims>, Error> {
+fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> core::result::Result<TokenData<Claims>, JWTTokenError> {
 
     // Get jwt secret
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
