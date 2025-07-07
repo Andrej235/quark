@@ -3,6 +3,7 @@
 // ------------------------------------------------------------------------------------
 use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::claims::Claims;
+use crate::models::dtos::jwt_refresh_token_pair::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::sroute_error::SRouteError;
@@ -26,7 +27,9 @@ use argon2::{
     Argon2, PasswordHasher,
 };
 use chrono::{Duration, NaiveDateTime, Utc};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{
+    decode, encode, errors::Error, DecodingKey, EncodingKey, Header, TokenData, Validation,
+};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
@@ -317,16 +320,126 @@ async fn check(
 ) -> impl Responder {
     HttpResponse::Ok().finish()
 }
+
+/*
+    refresh
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/refresh",
+    responses(
+        (status = 200, description = "Token pair refreshed", body = JWTRefreshTokenPairDTO),
+        (status = 401, description = "Possible messages: Invalid JWT token, 
+                                                         Invalid Refresh token, 
+                                                         Expired Refresh token,
+                                                         Mismatched user and refresh token,
+                                                         Mismatched claim and refresh token", body = SRouteError),
+    )
+)]
+#[post("/auth/refresh")]
+#[rustfmt::skip]
+async fn refresh(
+    db: Data<DatabaseConnection>,
+    token_pair: Json<JWTRefreshTokenPairDTO>  
+) -> impl Responder {
+
+    // --------->
+    // Data prep
+    // --------->
+    // Get ownership of incoming data
+    let token_pair: JWTRefreshTokenPairDTO = token_pair.into_inner();
+
+    // Get claims object from jwt string
+    let decode_jwt_string_result: Result<TokenData<Claims>, Error> = decode_jwt_string(&token_pair.jwt_token, false);
+
+    let claims: Claims = match decode_jwt_string_result {
+        Ok(token_data) => token_data.claims,
+        Err(err) => {
+            println!("-> refresh errored (tried to decode jwt token): {:?}", err);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+
+    // ------------------>
+    // Token validation
+    // ------------------>
+    // Return unauthorized response if user is not found
+    match UserEntity::find_by_id(claims.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => {
+                if user.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "Invalid JWT token" }); }
+            },
+            Err(err) => {
+                println!("-> auth refresh errored (tried to find user): {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+
+    // Return unauthorized response if refresh token is not found
+    let refresh_token: RefreshToken = match RefreshTokenEntity::find_by_id(token_pair.refresh_token_id)
+        .one(db.get_ref())
+        .await {
+            Ok(token) => {
+                if token.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "Invalid Refresh token" }); }
+                token.unwrap()
+            },
+            Err(err) => {
+                println!("-> auth refresh errored (tried to find refresh token): {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+
+    // Return unauthorized response if user id from claim does not match user id from refresh token
+    if claims.user_id != refresh_token.user_id {
+        return HttpResponse::Unauthorized().json(SRouteError { message: "Mismatched user and refresh token" });
+    }
+
+    // Return unauthorized response if jit from claim does not match jit from refresh token
+    if claims.jit != refresh_token.jit {
+        return HttpResponse::Unauthorized().json(SRouteError { message: "Mismatched claim and refresh token" });
+    }
+
+    // Return unauthorized response if refresh token is expired
+    if refresh_token.expire_time < Utc::now().naive_utc() {
+        return HttpResponse::Unauthorized().json(SRouteError { message: "Expired Refresh token" });
+    }
+
+
+    // -------------------->
+    // New token creation
+    // -------------------->
+    // Delete old refresh token and create new one
+    let new_refresh_token: RefreshToken = match recycle_refresh_token(refresh_token.id, claims.user_id, db).await {
+        Ok(token) => token,
+        Err(err) => {
+            println!("-> auth refresh errored (tried to recycle refresh token): {:?}", err);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    // Create new JWT Token
+    let new_jwt_token: String = create_jwt_token(&new_refresh_token, claims.user_id);
+
+    return HttpResponse::Ok().json(JWTRefreshTokenPairDTO {
+        jwt_token: new_jwt_token,
+        refresh_token_id: new_refresh_token.id
+    });
+}
+
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 /// Tries to delete old refresh token and create new one <br/>
+/// Error logging is handled but this function <br/>
 /// Returns new **refresh token** or **error**
 async fn recycle_refresh_token(refresh_token_id: Uuid, user_id: Uuid, db: Data<DatabaseConnection>) -> Result<RefreshToken, DbErr> {
 
     // Try to delete refresh token
     let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await;
+    
     match delete_refresh_token_result {
         Ok(_) => (),
         Err(err) => {
@@ -416,4 +529,22 @@ fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
         expire_time: Set(refresh_token_expiration_time),
         jit: Set(refresh_token_jit),
     };
+}
+
+#[rustfmt::skip]
+fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> core::result::Result<TokenData<Claims>, Error> {
+
+    // Get jwt secret
+    let jwt_secret: &String = JWT_SECRET.get().unwrap();
+
+    // Apply custom decode validation
+    let mut validation = Validation::default();
+    validation.validate_exp = validate_expire_time;
+
+    // Decode jwt string
+    return decode::<Claims>(
+        jwt_string,
+        &DecodingKey::from_secret(jwt_secret.as_bytes()),
+        &validation,
+    );
 }

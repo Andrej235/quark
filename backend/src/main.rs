@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
-    routes::auth_routs::{check, log_in, log_out, sign_up},
+    routes::auth_routs::{check, log_in, log_out, refresh, sign_up},
 };
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
@@ -39,6 +39,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(log_in);
     cfg.service(log_out);
     cfg.service(check);
+    cfg.service(refresh);
 }
 
 /*
