@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-/// This is same as normal RouteError but its more optimized and should be used when possible
+#[derive(Debug, PartialEq, Serialize, Deserialize, ToSchema)]
+/// This is used when BadRequest or InternalServerError is returned from api endpoint
 pub struct SRouteError {
     pub message: &'static str,
 }
