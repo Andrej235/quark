@@ -10,6 +10,7 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use sea_orm::{Database, DatabaseConnection};
 use std::{env, fs::File, io::Write};
+use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 
 // ------------------------------------------------------------------------------------
@@ -55,8 +56,6 @@ fn write_openapi_file() -> std::io::Result<()> {
     let mut file: File = File::create("openapi.json")?;
     file.write_all(json.as_bytes())?;
 
-    println!("OpenAPI endpoint map saved to openapi.json");
-
     Ok(())
 }
 
@@ -66,6 +65,15 @@ async fn main() -> std::io::Result<()> {
 
     // Makes sure that .env file exists
     dotenv().ok();
+
+
+    // Initialize logger
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env()) // set with RUST_LOG
+        .with_target(false)
+        .with_level(true)
+        .compact()
+        .init();
 
     
     // Write OpenAPI endpoint map to a file
@@ -88,13 +96,12 @@ async fn main() -> std::io::Result<()> {
 
 
     // Start actix server
-    println!("Starting server...");
-
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
             .configure(routes) // Register endpoints
     })
+    // .workers(16) // In production set this to number of threads that are available for server
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
