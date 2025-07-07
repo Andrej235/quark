@@ -43,7 +43,7 @@ pub async fn team_create(
     let team_insertion_result: Result<Team, DbErr> = TeamActiveModel {
         id: Set(Uuid::now_v7()),
         name: Set(team_data.name),
-        description: Set(Some(team_data.description)),
+        description: Set(team_data.description),
     }
     .insert(db.get_ref())
     .await;

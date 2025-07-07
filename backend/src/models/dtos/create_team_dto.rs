@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 #[rustfmt::skip]
 pub struct CreateTeamDTO {
     pub name:           String,
-    pub description:    String
+    pub description:    Option<String>
 }
 
 // ------------------------------------------------------------------------------------
@@ -58,7 +58,9 @@ impl CreateTeamDTO {
     */
     /// Removes empty spaces from start and end of strings
     pub fn trim_strings(&mut self) {
-        self.name           = self.name.trim().to_string();
-        self.description    = self.description.trim().to_string();
+        self.name = self.name.trim().to_string();
+        if self.description.is_some() {
+            self.description = Some(self.description.clone().unwrap().trim().to_string());
+        }
     }
 }
