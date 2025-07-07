@@ -43,3 +43,5 @@ guide/build/
 /codecov.json
 
 .env
+
+openapi.json
