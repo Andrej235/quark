@@ -2,13 +2,16 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::models::authenticated_user::AuthenticatedUser;
+use crate::models::brevo_email::BrevoEmail;
+use crate::models::brevo_sender::BrevoSender;
+use crate::models::brevo_to_recipient::BrevoToRecipient;
 use crate::models::claims::Claims;
 use crate::models::dtos::jwt_refresh_token_pair::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
+use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
-use crate::JWT_SECRET;
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -19,6 +22,7 @@ use crate::{
     },
     models::dtos::create_user_dto::CreateUserDTO,
 };
+use crate::{BREVO_CLIENT, BREVO_EMAIL, BREVO_SEND_EMAIL_ENDPOINT_URL, JWT_SECRET};
 use actix_web::web::{Data, Json, Path};
 use actix_web::*;
 use argon2::PasswordHash;
@@ -31,25 +35,27 @@ use jsonwebtoken::{
     decode, encode, errors::Error as JWTTokenError, DecodingKey, EncodingKey, Header, TokenData,
     Validation,
 };
+use reqwest::{Client, Error as ReqwestError, Response};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
     QueryFilter,
 };
-use tracing::error;
+use tracing::{error, info};
 use uuid::Uuid;
 
 // ------------------------------------------------------------------------------------
 // CONSTANTS
 // ------------------------------------------------------------------------------------
-const REFRESH_TOKEN_EXPIRATION_DAY_OFFSET: i64 = 7;
-const JWT_TOKEN_EXPIRATION_MINUTE_OFFSET: i64 = 15;
+const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
+const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
+const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 
 // ------------------------------------------------------------------------------------
 // ROUTES
 // ------------------------------------------------------------------------------------
 /*
-    signup
+**  signup
 */
 #[utoipa::path(
     post,
@@ -123,13 +129,24 @@ pub async fn sign_up(
                 salt:               Set(salt),
             }.insert(db.get_ref()).await;
 
-            match user_insertion_result {
-                Ok(_) => (),
+            let user: User = match user_insertion_result {
+                Ok(user) => user,
                 Err(err) => {
                     error!("Creating user failed: {:?}", err);
                     return HttpResponse::InternalServerError().finish();
                 }
             };
+
+            // Send email verification
+            let email_verification_token: String = match create_email_verification_token(user.id) {
+                Ok(token) => token,
+                Err(err) => {
+                    error!("Creating email verification token failed: {:?}", err);
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
+
+            _ = send_verification_email(&user.name, &user.email, &email_verification_token).await;
 
             return HttpResponse::Ok().finish();
         }
@@ -137,7 +154,7 @@ pub async fn sign_up(
 }
 
 /*
-    login
+**  login
 */
 #[utoipa::path(
     post,
@@ -277,7 +294,7 @@ async fn log_in(
 }
 
 /*
-    logout
+**  logout
 */
 #[utoipa::path(
     post,
@@ -316,26 +333,7 @@ async fn log_out(
 }
 
 /*
-    check
-*/
-#[utoipa::path(
-    post,
-    path = "/auth/check",
-    responses(
-        (status = 200, description = "User logged in"),
-        (status = 401, description = "User not logged in"),
-    )
-)]
-#[get("/auth/check")]
-#[rustfmt::skip]
-async fn check(
-    _user: AuthenticatedUser    
-) -> impl Responder {
-    HttpResponse::Ok().finish()
-}
-
-/*
-    refresh
+**  refresh
 */
 #[utoipa::path(
     post,
@@ -443,6 +441,43 @@ async fn refresh(
     };
 }
 
+/*
+**  check
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/email-verification/{token}",
+    responses(
+        //(status = 200, description = "User logged in"),
+    )
+)]
+#[get("/auth/email-verification/{token}")]
+#[rustfmt::skip]
+async fn email_verification(
+    token: Path<String> 
+) -> impl Responder {
+    return HttpResponse::Ok().body("Verified.");
+}
+
+/*
+**  check
+*/
+#[utoipa::path(
+    post,
+    path = "/auth/check",
+    responses(
+        (status = 200, description = "User logged in"),
+        (status = 401, description = "User not logged in"),
+    )
+)]
+#[get("/auth/check")]
+#[rustfmt::skip]
+async fn check(
+    _user: AuthenticatedUser    
+) -> impl Responder {
+    HttpResponse::Ok().finish()
+}
+
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------
@@ -523,7 +558,7 @@ fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> Result<Strin
     // Create claims
     let claims: Claims = Claims { 
         user_id: user_id, 
-        expire_time: Utc::now().naive_utc() + Duration::minutes(JWT_TOKEN_EXPIRATION_MINUTE_OFFSET), 
+        expire_time: Utc::now().naive_utc() + Duration::minutes(JWT_TOKEN_EXPIRATION_OFFSET), 
         jit: refresh_token.jit
     };
 
@@ -538,7 +573,7 @@ fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> Result<Strin
 fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 
     let refresh_token_id: Uuid = Uuid::now_v7();
-    let refresh_token_expiration_time: NaiveDateTime = Utc::now().naive_utc() + Duration::days(REFRESH_TOKEN_EXPIRATION_DAY_OFFSET);
+    let refresh_token_expiration_time: NaiveDateTime = Utc::now().naive_utc() + Duration::days(REFRESH_TOKEN_EXPIRATION_OFFSET);
     let refresh_token_jit: Uuid = Uuid::now_v7();
 
     return RefreshTokenActiveModel {
@@ -565,4 +600,70 @@ fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> core::resu
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
         &validation,
     );
+}
+
+#[rustfmt::skip]
+fn create_email_verification_token(user_id: Uuid) -> Result<String, JWTTokenError> {
+    
+    // Get JWT secret
+    let jwt_secret: &String = JWT_SECRET.get().unwrap();
+    
+    // Create claims
+    let claims: EmailVerifyClaims = EmailVerifyClaims { 
+        user_id: user_id, 
+        expire_time: Utc::now().naive_utc() + Duration::minutes(EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET), 
+    };
+
+    return encode(
+        &Header::default(), 
+        &claims, 
+        &EncodingKey::from_secret(jwt_secret.as_ref())
+    );
+}
+
+#[rustfmt::skip]
+async fn send_verification_email(user_name: &str, user_email: &str, token: &str) -> Result<(), ReqwestError> {
+
+    // Get brevo api key and email
+    let email: &String = BREVO_EMAIL.get().unwrap();
+    let client: &Client = BREVO_CLIENT.get().unwrap();
+
+    // Create email object
+    let html_content: String = format!("<p><a href='http://127.0.0.1:8080/auth/email-verification?token={}'>Verify</a></p>", token); 
+
+    let email: BrevoEmail = BrevoEmail {
+        sender: BrevoSender {
+            name: "Quark".to_string(),
+            email: email.to_string(),
+        },
+        to: vec![BrevoToRecipient {
+            email: user_email.to_string(),
+            name: user_name.to_string(),
+        }],
+        subject: "Please verify your email",
+        textContent: "asd",
+        htmlContent: &html_content.as_str(),
+        //attachments: vec![],
+    };
+
+    // Send email
+    let response: Result<Response, ReqwestError> = client
+        .post(BREVO_SEND_EMAIL_ENDPOINT_URL)
+        .json(&email)
+        .send()
+        .await;
+
+    match response {
+        Ok(asd) => {
+
+            info!("{}", asd.status());
+
+            if asd.status().is_success() == false{
+                println!("{}", asd.text().await.unwrap_or_default());
+            }
+
+            return Ok(());
+        },
+        Err(err) => return Err(err),
+    }
 }
