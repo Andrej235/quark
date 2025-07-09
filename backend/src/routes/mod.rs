@@ -1,2 +1,2 @@
-pub mod auth_routs;
 pub mod team_routs;
+pub mod user_routs;

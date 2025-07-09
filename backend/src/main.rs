@@ -4,21 +4,29 @@
 use crate::{
     api_doc::ApiDoc,
     routes::{
-        auth_routs::{check, log_in, log_out, refresh, sign_up},
         team_routs::team_create,
+        user_routs::{
+            check, log_in, log_out, refresh, send_email_verification, sign_up, verify_email,
+        },
     },
 };
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;
+use resend_rs::Resend;
 use sea_orm::{Database, DatabaseConnection};
 use std::{env, fs::File, io::Write};
+use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 
 // ------------------------------------------------------------------------------------
 // PUBLIC VARIABLES
 // ------------------------------------------------------------------------------------
 pub static JWT_SECRET: OnceCell<String> = OnceCell::new();
+pub static RESEND_API_KEY: OnceCell<String> = OnceCell::new();
+pub static RESEND_EMAIL: OnceCell<String> = OnceCell::new();
+
+pub static RESEND_INSTANCE: OnceCell<Resend> = OnceCell::new();
 
 // ------------------------------------------------------------------------------------
 // MODS
@@ -29,6 +37,7 @@ pub mod extensions;
 pub mod models;
 pub mod routes;
 pub mod traits;
+pub mod utils;
 
 // ------------------------------------------------------------------------------------
 // FUNCTIONS
@@ -42,6 +51,8 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(log_in);
     cfg.service(log_out);
     cfg.service(check);
+    cfg.service(verify_email);
+    cfg.service(send_email_verification);
     cfg.service(refresh);
     cfg.service(team_create);
 }
@@ -59,8 +70,6 @@ fn write_openapi_file() -> std::io::Result<()> {
     let mut file: File = File::create("openapi.json")?;
     file.write_all(json.as_bytes())?;
 
-    println!("OpenAPI endpoint map saved to openapi.json");
-
     Ok(())
 }
 
@@ -72,17 +81,36 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
 
+    // Initialize logger
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env()) // set with RUST_LOG
+        .with_target(false)
+        .with_level(true)
+        .compact()
+        .init();
+
+
     // Write OpenAPI endpoint map to a file
     write_openapi_file().expect("Failed to write OpenAPI endpoint map.");
 
 
     // Get and check if all required .env variables are set
-    let jwt_secret: String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
-    let database_url: String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
+    let jwt_secret:     String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
+    let database_url:   String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
+    let resend_api_key:  String = env::var("RESEND_API_KEY").expect("RESEND_API_KEY not set.");
+    let resend_email:    String = env::var("RESEND_EMAIL").expect("RESEND_EMAIL not set.");
 
 
     // Update public static variables
     JWT_SECRET.set(jwt_secret).unwrap();
+    RESEND_API_KEY.set(resend_api_key).unwrap();
+    RESEND_EMAIL.set(resend_email).unwrap();
+
+
+    // Create resend instance
+    // Its used for sending emails
+    let resend: Resend = Resend::new(RESEND_API_KEY.get().unwrap());
+    RESEND_INSTANCE.set(resend).unwrap();
 
 
     // Create database connection
@@ -92,13 +120,12 @@ async fn main() -> std::io::Result<()> {
 
 
     // Start actix server
-    println!("Starting server...");
-
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
             .configure(routes) // Register endpoints
     })
+    // .workers(16) // In production set this to number of threads that are available for server
     .bind(("127.0.0.1", 8080))?
     .run()
     .await

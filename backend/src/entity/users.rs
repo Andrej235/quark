@@ -13,6 +13,7 @@ pub struct Model {
     pub name: String,
     #[sea_orm(column_type = "Text")]
     pub last_name: String,
+    pub is_email_verified: bool,
     #[sea_orm(column_type = "Text")]
     pub email: String,
     #[sea_orm(column_type = "Text")]
