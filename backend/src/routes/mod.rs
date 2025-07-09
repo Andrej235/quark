@@ -1,1 +1,1 @@
-pub mod auth_routs;
+pub mod user_routs;

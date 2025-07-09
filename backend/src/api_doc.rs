@@ -1,7 +1,7 @@
 use crate::models::dtos::jwt_refresh_token_pair::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::{dtos::create_user_dto::CreateUserDTO, sroute_error::SRouteError};
-use crate::routes::auth_routs::{
+use crate::routes::user_routs::{
     __path_check, __path_log_in, __path_log_out, __path_refresh, __path_send_email_verification,
     __path_sign_up, __path_verify_email,
 };

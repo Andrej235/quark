@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
-    routes::auth_routs::{
+    routes::user_routs::{
         check, log_in, log_out, refresh, send_email_verification, sign_up, verify_email,
     },
 };

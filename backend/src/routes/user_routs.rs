@@ -51,13 +51,13 @@ const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
 const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 
-const SIGN_UP_ROUTE_PATH: &'static str = "/auth/signup";
-const LOG_IN_ROUTE_PATH: &'static str = "/auth/login";
-const LOG_OUT_ROUTE_PATH: &'static str = "/auth/logout/{refresh_token_id}";
-const REFRESH_ROUTE_PATH: &'static str = "/auth/refresh";
-const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/auth/verify-email/{token}";
-const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/auth/send-email-verification";
-const CHECK_ROUTE_PATH: &'static str = "/auth/check";
+const SIGN_UP_ROUTE_PATH: &'static str = "/user/signup";
+const LOG_IN_ROUTE_PATH: &'static str = "/user/login";
+const LOG_OUT_ROUTE_PATH: &'static str = "/user/logout/{refresh_token_id}";
+const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
+const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/verify-email/{token}";
+const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/send-email-verification";
+const CHECK_ROUTE_PATH: &'static str = "/user/check";
 
 // ------------------------------------------------------------------------------------
 // ROUTES
@@ -74,7 +74,7 @@ const CHECK_ROUTE_PATH: &'static str = "/auth/check";
         (status = 400, description = "Possible errors: Validation failed, User already exists", body = SRouteError),
     )
 )]
-#[post("/auth/signup")]
+#[post("/user/signup")]
 #[rustfmt::skip]
 pub async fn sign_up(
     db: Data<DatabaseConnection>,
@@ -154,7 +154,7 @@ pub async fn sign_up(
         (status = 400, description = "Possible errors: Validation failed, Wrong password, User not found", body = SRouteError),
     )
 )]
-#[post("/auth/login")]
+#[post("/user/login")]
 #[rustfmt::skip]
 async fn log_in(    
     db: Data<DatabaseConnection>,
@@ -282,7 +282,7 @@ async fn log_in(
         (status = 200, description = "User logged out"),
     )
 )]
-#[post("/auth/logout/{refresh_token_id}")]
+#[post("/user/logout/{refresh_token_id}")]
 #[rustfmt::skip]
 async fn log_out(    
     db: Data<DatabaseConnection>,
@@ -322,7 +322,7 @@ async fn log_out(
                                                          Mismatched claim and refresh token", body = SRouteError),
     )
 )]
-#[post("/auth/refresh")]
+#[post("/user/refresh")]
 #[rustfmt::skip]
 async fn refresh(
     db: Data<DatabaseConnection>,
@@ -417,7 +417,7 @@ async fn refresh(
         (status = 401, description = "Possible messages: User not found", body = SRouteError),
     )
 )]
-#[get("/auth/verify-email/{token}")]
+#[get("/user/verify-email/{token}")]
 #[rustfmt::skip]
 async fn verify_email(
     db: Data<DatabaseConnection>,
@@ -478,7 +478,7 @@ async fn verify_email(
         (status = 400, description = "Possible messages: User already verified", body = SRouteError),
     )
 )]
-#[get("/auth/send-email-verification")]
+#[get("/user/send-email-verification")]
 #[rustfmt::skip]
 async fn send_email_verification(
     db: Data<DatabaseConnection>,
@@ -531,7 +531,7 @@ async fn send_email_verification(
         (status = 401, description = "User not logged in"),
     )
 )]
-#[get("/auth/check")]
+#[get("/user/check")]
 #[rustfmt::skip]
 async fn check(
     _user: AuthenticatedUser    
@@ -668,7 +668,7 @@ async fn send_verification_email(user_username: &str, user_email: &str, token: &
 
     // Create email option instance
     let email = CreateEmailBaseOptions::new(&from, to, subject)
-        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/auth/verify-email/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
+        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/verify-email/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
 
     // Send email
     match resend_instance.emails.send(email).await {
