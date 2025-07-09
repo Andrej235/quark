@@ -1,7 +1,5 @@
-// ------------------------------------------------------------------------------------
-// IMPORTS
-// ------------------------------------------------------------------------------------
 use crate::entity::teams::{ActiveModel as TeamActiveModel, Model as Team};
+use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
     models::{dtos::create_team_dto::CreateTeamDTO, sroute_error::SRouteError},
     traits::endpoint_json_body_data::EndpointJsonBodyData,
@@ -15,9 +13,8 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr};
 use uuid::Uuid;
 
-// ------------------------------------------------------------------------------------
-// ROUTES
-// ------------------------------------------------------------------------------------
+const TEAM_CREATE_ROUTE_PATH: &'static str = "/team/create";
+
 #[post("/team/create")]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
@@ -51,8 +48,11 @@ pub async fn team_create(
     match team_insertion_result {
         Ok(_) => (),
         Err(err) => {
-            println!("-> team_create errored (tried to create team): {:?}", err);
-            return HttpResponse::InternalServerError().finish();
+            return endpoint_internal_server_error(
+                TEAM_CREATE_ROUTE_PATH,
+                "Creating new team",
+                Box::new(err),
+            );
         }
     }
 
