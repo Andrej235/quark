@@ -37,7 +37,7 @@ use resend_rs::{Error as ResendError, Resend};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
-    QueryFilter,
+    IntoActiveModel, QueryFilter,
 };
 use tracing::error;
 use uuid::Uuid;
@@ -125,6 +125,7 @@ pub async fn sign_up(
                 email:              Set(user_data.email),
                 hashed_password:    Set(password_hash),
                 salt:               Set(salt),
+                is_email_verified:  Set(false),
             }.insert(db.get_ref()).await;
 
             let user: User = match user_insertion_result {
@@ -452,16 +453,62 @@ async fn refresh(
 */
 #[utoipa::path(
     post,
-    path = "/auth/email-verification/{token}",
+    path = "/auth/verify-email/{token}",
     responses(
         (status = 200, description = "Email verified"),
+        (status = 401, description = "Possible messages: User not found", body = SRouteError),
     )
 )]
-#[get("/auth/email-verification/{token}")]
+#[get("/auth/verify-email/{token}")]
 #[rustfmt::skip]
-async fn email_verification(
-    _token: Path<String> 
+async fn verify_email(
+    db: Data<DatabaseConnection>,
+    path_token: Path<String> 
 ) -> impl Responder {
+
+    // Get ownership of incoming data
+    let token: String = path_token.into_inner();
+
+    // Try to decode token
+    let email_verification_claims: EmailVerifyClaims = match decode_email_verification_token(&token, false) {
+        Ok(token_data) => token_data.claims,
+        Err(err) => {
+            error!("Email verification token decode failed: {:?}", err);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    // Check if token is expired
+    if email_verification_claims.expire_time < Utc::now().naive_utc() {
+        return HttpResponse::Unauthorized().body("Token expired.");
+    }
+
+    // Try to find user by id
+    let user_model: User = match UserEntity::find_by_id(email_verification_claims.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => {
+                if user.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "User not found" }); }
+                user.unwrap()
+            },
+            Err(err) => {
+                error!("Finding user by id failed: {:?}", err);
+                return HttpResponse::InternalServerError().finish();
+            }
+        };
+        
+    // Update email verified property of user
+    let mut user_active_model: UserActiveModel = user_model.into();
+    user_active_model.is_email_verified = Set(true);
+    
+    match user_active_model.update(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => {
+            error!("Updating user failed: {:?}", err);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
     return HttpResponse::Ok().body("Verified.");
 }
 
@@ -578,6 +625,26 @@ fn create_email_verification_token(user_id: Uuid) -> Result<String, JWTTokenErro
 }
 
 #[rustfmt::skip]
+/// Decodes email verification token <br/>
+/// Returns **token data** or **error**
+fn decode_email_verification_token(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<EmailVerifyClaims>, JWTTokenError> {
+    
+    // Get jwt secret
+    let jwt_secret: &String = JWT_SECRET.get().unwrap();
+
+    // Apply custom decode validation
+    let mut validation = Validation::default();
+    validation.validate_exp = validate_expire_time;
+
+    // Decode jwt string
+    return decode::<EmailVerifyClaims>(
+        jwt_string,
+        &DecodingKey::from_secret(jwt_secret.as_bytes()),
+        &validation,
+    );
+}
+
+#[rustfmt::skip]
 /// Sends email verification email <br/>
 /// Uses Resend API with custom domain to send verification email
 /// Returns **Ok** or **error**
@@ -593,7 +660,7 @@ async fn send_verification_email(user_username: &str, user_email: &str, token: &
 
     // Create email option instance
     let email = CreateEmailBaseOptions::new(&from, to, subject)
-        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/auth/email-verification/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
+        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/auth/verify-email/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
 
     // Send email
     match resend_instance.emails.send(email).await {
@@ -638,7 +705,7 @@ fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 }
 
 #[rustfmt::skip]
-fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> core::result::Result<TokenData<Claims>, JWTTokenError> {
+fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<Claims>, JWTTokenError> {
 
     // Get jwt secret
     let jwt_secret: &String = JWT_SECRET.get().unwrap();

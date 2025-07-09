@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
-    routes::auth_routs::{check, email_verification, log_in, log_out, refresh, sign_up},
+    routes::auth_routs::{check, verify_email, log_in, log_out, refresh, sign_up},
 };
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
@@ -47,7 +47,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(log_out);
     cfg.service(check);
     cfg.service(refresh);
-    cfg.service(email_verification);
+    cfg.service(verify_email);
 }
 
 /*
