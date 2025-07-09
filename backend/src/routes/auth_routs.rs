@@ -1,6 +1,3 @@
-use std::error::Error;
-use std::sync::atomic::AtomicBool;
-
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
@@ -43,6 +40,7 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
     QueryFilter,
 };
+use std::error::Error;
 use tracing::error;
 use uuid::Uuid;
 
@@ -477,6 +475,7 @@ async fn verify_email(
     path = SEND_VERIFICATION_EMAIL_ROUTE_PATH,
     responses(
         (status = 200, description = "Email sent"),
+        (status = 400, description = "Possible messages: User already verified", body = SRouteError),
     )
 )]
 #[get("/auth/send-email-verification")]
@@ -495,6 +494,11 @@ async fn send_email_verification(
                 return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Finding user by id", Box::new(err));
             }
         };
+
+    // Check if user is already verified
+    if user.is_email_verified == true {
+        return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
+    }
 
     // Generate email verification token
     // Its used to verify user email
