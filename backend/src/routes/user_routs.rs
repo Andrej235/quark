@@ -412,7 +412,7 @@ async fn refresh(
 **  verify-email
 */
 #[utoipa::path(
-    post,
+    get,
     path = VERIFY_EMAIL_ROUTE_PATH,
     responses(
         (status = 200, description = "Email verified"),
@@ -479,7 +479,7 @@ async fn verify_email(
 **  send-email-verification
 */
 #[utoipa::path(
-    post,
+    get,
     path = SEND_VERIFICATION_EMAIL_ROUTE_PATH,
     responses(
         (status = 200, description = "Email sent"),
@@ -603,7 +603,7 @@ async fn reset_password(
 **  check
 */
 #[utoipa::path(
-    post,
+    get,
     path = CHECK_ROUTE_PATH,
     responses(
         (status = 200, description = "User logged in"),

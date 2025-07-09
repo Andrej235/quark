@@ -14,6 +14,15 @@ use crate::{
 
 const TEAM_ROLE_CREATE_ROUTE_PATH: &'static str = "/team-role/create";
 
+#[utoipa::path(
+    post,
+    path = TEAM_ROLE_CREATE_ROUTE_PATH,
+    request_body = CreateTeamRoleDTO,
+    responses(
+        (status = 200, description = "Team role created"),
+        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
+    )
+)]
 #[post("/team-role/create")]
 pub async fn team_role_create(
     db: Data<DatabaseConnection>,

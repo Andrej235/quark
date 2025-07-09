@@ -15,6 +15,15 @@ use uuid::Uuid;
 
 const TEAM_CREATE_ROUTE_PATH: &'static str = "/team/create";
 
+#[utoipa::path(
+    post,
+    path = TEAM_CREATE_ROUTE_PATH,
+    request_body = CreateTeamDTO,
+    responses(
+        (status = 200, description = "Team created"),
+        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
+    )
+)]
 #[post("/team/create")]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
