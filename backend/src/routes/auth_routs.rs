@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::atomic::AtomicBool;
 
 // ------------------------------------------------------------------------------------
 // IMPORTS
@@ -57,6 +58,7 @@ const LOG_IN_ROUTE_PATH: &'static str = "/auth/login";
 const LOG_OUT_ROUTE_PATH: &'static str = "/auth/logout/{refresh_token_id}";
 const REFRESH_ROUTE_PATH: &'static str = "/auth/refresh";
 const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/auth/verify-email/{token}";
+const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/auth/send-email-verification";
 const CHECK_ROUTE_PATH: &'static str = "/auth/check";
 
 // ------------------------------------------------------------------------------------
@@ -130,27 +132,10 @@ pub async fn sign_up(
                 is_email_verified:  Set(false),
             }.insert(db.get_ref()).await;
 
-            let user: User = match user_insertion_result {
-                Ok(user) => user,
+            match user_insertion_result {
+                Ok(_) => (),
                 Err(err) => {
                     return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
-                }
-            };
-
-            // Generate email verification token
-            // Its used to verify user email
-            let email_verification_token: String = match create_email_verification_token(user.id) {
-                Ok(token) => token,
-                Err(err) => {
-                    return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Creating email verification token", Box::new(err));
-                }
-            };
-
-            // Send verification email to user
-            match send_verification_email(&user.username, &user.email, &email_verification_token).await {
-                Ok(_) => {},
-                Err(err) => {
-                    return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Sending verification email", Box::new(err));
                 }
             };
 
@@ -424,7 +409,7 @@ async fn refresh(
 }
 
 /*
-**  email-verification
+**  verify-email
 */
 #[utoipa::path(
     post,
@@ -482,6 +467,53 @@ async fn verify_email(
     };
 
     return HttpResponse::Ok().body("Verified.");
+}
+
+/*
+**  send-email-verification
+*/
+#[utoipa::path(
+    post,
+    path = SEND_VERIFICATION_EMAIL_ROUTE_PATH,
+    responses(
+        (status = 200, description = "Email sent"),
+    )
+)]
+#[get("/auth/send-email-verification")]
+#[rustfmt::skip]
+async fn send_email_verification(
+    db: Data<DatabaseConnection>,
+    authenticated_user: AuthenticatedUser
+) -> impl Responder {
+
+    // Try to find user
+    let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(), // This is not safe to do because user can be None but i think its impossible to be authorized with invalid id
+            Err(err) => {
+                return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+
+    // Generate email verification token
+    // Its used to verify user email
+    let email_verification_token: String = match create_email_verification_token(user.id) {
+        Ok(token) => token,
+        Err(err) => {
+            return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Creating email verification token", Box::new(err));
+        }
+    };
+
+    // Send verification email to user
+    match send_verification_email(&user.username, &user.email, &email_verification_token).await {
+        Ok(_) => {},
+        Err(err) => {
+            return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
+        }
+    };
+
+    return HttpResponse::Ok().finish();
 }
 
 /*
