@@ -13,6 +13,7 @@ pub struct Model {
     pub name: String,
     #[sea_orm(column_type = "Text")]
     pub last_name: String,
+    pub is_email_verified: bool,
     #[sea_orm(column_type = "Text")]
     pub email: String,
     #[sea_orm(column_type = "Text")]
@@ -25,11 +26,19 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::refresh_tokens::Entity")]
     RefreshTokens,
+    #[sea_orm(has_many = "super::team_members::Entity")]
+    TeamMembers,
 }
 
 impl Related<super::refresh_tokens::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RefreshTokens.def()
+    }
+}
+
+impl Related<super::team_members::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TeamMembers.def()
     }
 }
 
