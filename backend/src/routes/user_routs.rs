@@ -414,6 +414,7 @@ async fn refresh(
     path = VERIFY_EMAIL_ROUTE_PATH,
     responses(
         (status = 200, description = "Email verified"),
+        (status = 400, description = "Possible messages: User already verified", body = SRouteError),
         (status = 401, description = "Possible messages: User not found", body = SRouteError),
     )
 )]
@@ -452,6 +453,11 @@ async fn verify_email(
                 return endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Finding user by id", Box::new(err));
             }
         };
+
+    // Check if user is already verified
+    if user_model.is_email_verified == true {
+        return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
+    }
         
     // Update email verified property of user
     let mut user_active_model: UserActiveModel = user_model.into();
