@@ -1,7 +1,10 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::{
+    traits::endpoint_json_body_data::EndpointJsonBodyData,
+    utils::string_helper::are_all_strings_full,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -21,46 +24,24 @@ pub struct CreateTeamDTO {
 #[rustfmt::skip]
 impl EndpointJsonBodyData for CreateTeamDTO {
     fn validate(&mut self) -> bool {
-
         // Trim all strings
-        self.trim_strings();
+        self.name = self.name.trim().to_string();
+
+       if let Some(desc) = &self.description {
+            let trimmed = desc.trim().to_string();
+            // If after trimming, it's empty, treat as invalid
+            if trimmed.is_empty() {
+                return false;
+            }
+            self.description = Some(trimmed);
+        }
 
         // Check for string emptiness
-        let is_any_string_empty: bool = self.check_if_all_strings_are_not_empty();
+        let is_any_string_empty: bool = are_all_strings_full(&[&self.name]);
         if is_any_string_empty == false {
             return false;
         }
 
         return true;
-    }
-}
-
-#[rustfmt::skip]
-impl CreateTeamDTO {
-
-    /*
-        If any new strings are added to this struct make sure to add new check in function below
-    */
-    /// Makes sure that all strings in struct are not empty <br/>
-    /// Returns true if all strings are not empty, otherwise returns false
-    pub fn check_if_all_strings_are_not_empty(&self) -> bool {
-
-        if  self.name.is_empty() == true
-        {
-            return  false;
-        }
-
-        return true;
-    }
-
-    /*
-        If any new strings need to be trimmed in this struct (on function call) add them in function below
-    */
-    /// Removes empty spaces from start and end of strings
-    pub fn trim_strings(&mut self) {
-        self.name = self.name.trim().to_string();
-        if self.description.is_some() {
-            self.description = Some(self.description.clone().unwrap().trim().to_string());
-        }
     }
 }

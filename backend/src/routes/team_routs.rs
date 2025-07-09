@@ -18,13 +18,10 @@ const TEAM_CREATE_ROUTE_PATH: &'static str = "/team/create";
 #[post("/team/create")]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
-    team_data_json: Json<CreateTeamDTO>,
+    team_json: Json<CreateTeamDTO>,
 ) -> impl Responder {
-    // --------->
-    // Base checks
-    // --------->
     // Get ownership of incoming data
-    let mut team_data: CreateTeamDTO = team_data_json.into_inner();
+    let mut team_data: CreateTeamDTO = team_json.into_inner();
 
     // Run incoming data validation
     if team_data.validate() == false {
@@ -33,9 +30,6 @@ pub async fn team_create(
         });
     }
 
-    // --------->
-    // Main execution
-    // --------->
     // Create team
     let team_insertion_result: Result<Team, DbErr> = TeamActiveModel {
         id: Set(Uuid::now_v7()),
@@ -50,7 +44,7 @@ pub async fn team_create(
         Err(err) => {
             return endpoint_internal_server_error(
                 TEAM_CREATE_ROUTE_PATH,
-                "Creating new team",
+                "Inserting new team",
                 Box::new(err),
             );
         }
