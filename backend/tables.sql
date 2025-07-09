@@ -23,7 +23,7 @@ CREATE TABLE "teams" (
 );
 
 CREATE TABLE "team_roles" (
-  "id" UUID PRIMARY KEY NOT NULL,
+  "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY NOT NULL,
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
   "name" TEXT NOT NULL
 );
@@ -31,6 +31,6 @@ CREATE TABLE "team_roles" (
 CREATE TABLE "team_members" (
   "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
-  "team_role_id" UUID NOT NULL REFERENCES "team_roles"("id"),
+  "team_role_id" BIGINT NOT NULL REFERENCES "team_roles"("id"),
   PRIMARY KEY ("user_id", "team_id")
 );

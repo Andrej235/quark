@@ -3,8 +3,16 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
+<<<<<<< HEAD
     routes::user_routs::{
         check, log_in, log_out, refresh, reset_password, send_email_verification, sign_up, verify_email
+=======
+    routes::{
+        team_routs::team_create,
+        user_routs::{
+            check, log_in, log_out, refresh, send_email_verification, sign_up, verify_email,
+        },
+>>>>>>> team
     },
 };
 use actix_web::{web, App, HttpServer};
@@ -52,6 +60,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(send_email_verification);
     cfg.service(reset_password);
     cfg.service(refresh);
+    cfg.service(team_create);
 }
 
 /*
@@ -86,7 +95,7 @@ async fn main() -> std::io::Result<()> {
         .compact()
         .init();
 
-    
+
     // Write OpenAPI endpoint map to a file
     write_openapi_file().expect("Failed to write OpenAPI endpoint map.");
 
@@ -109,7 +118,7 @@ async fn main() -> std::io::Result<()> {
     let resend: Resend = Resend::new(RESEND_API_KEY.get().unwrap());
     RESEND_INSTANCE.set(resend).unwrap();
 
-    
+
     // Create database connection
     let database_connection: DatabaseConnection = Database::connect(database_url)
         .await
