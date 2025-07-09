@@ -3,16 +3,11 @@
 // ------------------------------------------------------------------------------------
 use crate::{
     api_doc::ApiDoc,
-<<<<<<< HEAD
-    routes::user_routs::{
-        check, log_in, log_out, refresh, reset_password, send_email_verification, sign_up, verify_email
-=======
     routes::{
         team_routs::team_create,
         user_routs::{
             check, log_in, log_out, refresh, send_email_verification, sign_up, verify_email,
         },
->>>>>>> team
     },
 };
 use actix_web::{web, App, HttpServer};
