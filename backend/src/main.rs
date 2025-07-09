@@ -4,7 +4,7 @@
 use crate::{
     api_doc::ApiDoc,
     routes::user_routs::{
-        check, log_in, log_out, refresh, send_email_verification, sign_up, verify_email,
+        check, log_in, log_out, refresh, reset_password, send_email_verification, sign_up, verify_email
     },
 };
 use actix_web::{web, App, HttpServer};
@@ -50,6 +50,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(check);
     cfg.service(verify_email);
     cfg.service(send_email_verification);
+    cfg.service(reset_password);
     cfg.service(refresh);
 }
 

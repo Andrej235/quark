@@ -6,6 +6,7 @@ use crate::models::claims::Claims;
 use crate::models::dtos::jwt_refresh_token_pair::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
+use crate::models::dtos::password_reset_dto::PasswordResetDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
@@ -57,6 +58,7 @@ const LOG_OUT_ROUTE_PATH: &'static str = "/user/logout/{refresh_token_id}";
 const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
 const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/verify-email/{token}";
 const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/send-email-verification";
+const RESET_PASSWORD_ROUTE_PATH: &'static str = "/user/reset-password";
 const CHECK_ROUTE_PATH: &'static str = "/user/check";
 
 // ------------------------------------------------------------------------------------
@@ -520,6 +522,77 @@ async fn send_email_verification(
         Ok(_) => {},
         Err(err) => {
             return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
+        }
+    };
+
+    return HttpResponse::Ok().finish();
+}
+
+/*
+**  reset-password
+*/
+#[utoipa::path(
+    post,
+    path = RESET_PASSWORD_ROUTE_PATH,
+    responses(
+        (status = 200, description = "Password reset"),
+        (status = 400, description = "Possible messages: Validation failed, Wrong password", body = SRouteError),
+    )
+)]
+#[post("/user/reset-password")]
+#[rustfmt::skip]
+async fn reset_password(
+    db: Data<DatabaseConnection>,
+    authenticated_user: AuthenticatedUser,
+    reset_password_json: Json<PasswordResetDTO>
+) -> impl Responder {
+
+    // Get ownership of incoming data
+    let mut reset_password_data: PasswordResetDTO = reset_password_json.into_inner();    
+
+    // Validate incoming data
+    if reset_password_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
+
+    // Try to find user
+    let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(),
+            Err(err) => {
+                return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+
+    // Hash old password
+    let old_password_hash: String = match hash_password_with_salt(&user.salt, &reset_password_data.old_password) {
+        Ok(hash) => hash,
+        Err(err) => {
+            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
+        }
+    };
+
+    // Check if old password is correct
+    if user.hashed_password != old_password_hash {
+        return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
+    }
+
+    // Hash new password
+    let (new_salt, new_password_hash): (String, String) = match hash_password(&reset_password_data.new_password) {
+        Ok(hash) => hash,
+        Err(err) => {
+            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
+        }
+    };
+
+    // Update password
+    let mut user_active_model: UserActiveModel = user.into();
+    user_active_model.hashed_password = Set(new_password_hash);
+    user_active_model.salt = Set(new_salt);
+    
+    match user_active_model.update(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => {
+            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
         }
     };
 

@@ -8,8 +8,8 @@ use utoipa::ToSchema;
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 #[rustfmt::skip]
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct CreateUserDTO {
     pub username:   String,
     pub name:       String,
