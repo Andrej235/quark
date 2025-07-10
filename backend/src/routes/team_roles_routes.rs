@@ -1,18 +1,21 @@
 use actix_web::{
-    post,
-    web::{Data, Json},
+    delete, post,
+    web::{Data, Json, Path},
     HttpResponse, Responder,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, EntityTrait};
 
 use crate::{
-    entity::team_roles::{ActiveModel as TeamRoleActiveModel, Model as TeamRole},
+    entity::team_roles::{
+        ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
+    },
     models::{dtos::create_team_role_dto::CreateTeamRoleDTO, sroute_error::SRouteError},
     traits::endpoint_json_body_data::EndpointJsonBodyData,
     utils::http_helper::endpoint_internal_server_error,
 };
 
 const TEAM_ROLE_CREATE_ROUTE_PATH: &'static str = "/team-role/create";
+const TEAM_ROLE_DELETE_ROUTE_PATH: &'static str = "/team-role/delete/{team_role_id}";
 
 #[utoipa::path(
     post,
@@ -56,4 +59,34 @@ pub async fn team_role_create(
     }
 
     return HttpResponse::Ok().finish();
+}
+
+#[utoipa::path(
+    delete,
+    path = TEAM_ROLE_DELETE_ROUTE_PATH,
+    params(
+        ("team_role_id" = i64, Path, description = "ID of the team role to delete"),
+    ),
+    responses(
+        (status = 200, description = "Team role deleted"),
+        (status = 400, description = "Internal server error", body = SRouteError),
+    )
+)]
+#[delete("/team-role/delete/{team_role_id}")]
+pub async fn team_role_delete(
+    db: Data<DatabaseConnection>,
+    team_role_id: Path<i64>,
+) -> impl Responder {
+    let id = team_role_id.into_inner();
+
+    let delete_result = TeamRoleEntity::delete_by_id(id).exec(db.get_ref()).await;
+
+    match delete_result {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(err) => endpoint_internal_server_error(
+            TEAM_ROLE_DELETE_ROUTE_PATH,
+            "Deleting team role",
+            Box::new(err),
+        ),
+    }
 }
