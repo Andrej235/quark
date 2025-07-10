@@ -38,11 +38,6 @@ use utoipa::OpenApi;
         CreateTeamDTO,
     
         // team role routes
-        CreateTeamRoleDTO)),
-    tags(
-        (name = "user", description = "User endpoints"),
-        (name = "team", description = "Team endpoints"),
-        (name = "team/roles", description = "Team roles endpoints"),
-    )
+        CreateTeamRoleDTO))
 )]
 pub struct ApiDoc;

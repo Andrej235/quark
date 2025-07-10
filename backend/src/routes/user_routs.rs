@@ -56,10 +56,11 @@ const SIGN_UP_ROUTE_PATH: &'static str = "/user/signup";
 const LOG_IN_ROUTE_PATH: &'static str = "/user/login";
 const LOG_OUT_ROUTE_PATH: &'static str = "/user/logout/{refresh_token_id}";
 const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
-const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/verify-email/{token}";
-const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/send-email-verification";
 const RESET_PASSWORD_ROUTE_PATH: &'static str = "/user/reset-password";
 const CHECK_ROUTE_PATH: &'static str = "/user/check";
+
+const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/email/verify/{token}";
+const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/email/send-verification";
 
 // ------------------------------------------------------------------------------------
 // ROUTES
@@ -420,7 +421,7 @@ async fn refresh(
         (status = 401, description = "Possible messages: User not found", body = SRouteError),
     )
 )]
-#[get("/user/verify-email/{token}")]
+#[get("/user/email/verify/{token}")]
 #[rustfmt::skip]
 async fn verify_email(
     db: Data<DatabaseConnection>,
@@ -486,7 +487,7 @@ async fn verify_email(
         (status = 400, description = "Possible messages: User already verified", body = SRouteError),
     )
 )]
-#[get("/user/send-email-verification")]
+#[get("/user/email/send-verification")]
 #[rustfmt::skip]
 async fn send_email_verification(
     db: Data<DatabaseConnection>,
@@ -747,7 +748,7 @@ async fn send_verification_email(user_username: &str, user_email: &str, token: &
 
     // Create email option instance
     let email = CreateEmailBaseOptions::new(&from, to, subject)
-        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/verify-email/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
+        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/email/verify/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
 
     // Send email
     match resend_instance.emails.send(email).await {
