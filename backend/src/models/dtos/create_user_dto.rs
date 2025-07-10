@@ -1,7 +1,9 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::{
+    traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -25,50 +27,23 @@ pub struct CreateUserDTO {
 impl EndpointJsonBodyData for CreateUserDTO {
     fn validate(&mut self) -> bool {
 
-        // Trim all strings
-        self.trim_strings();
+        // Trim strings
+        let mut string_vec: Vec<&mut String> = vec![
+            &mut self.username,
+            &mut self.name,
+            &mut self.last_name,
+            &mut self.email,
+            &mut self.password
+        ];
+
+        StringHelper::trim_all_strings(&mut string_vec);
 
         // Check for string emptiness
-        let is_any_string_empty: bool = self.check_if_all_strings_are_not_empty();
+        let is_any_string_empty: bool = StringHelper::are_all_strings_full(string_vec);
         if is_any_string_empty == false {
             return false;
         }
 
         return true;
-    }
-}
-
-#[rustfmt::skip]
-impl CreateUserDTO {
-
-    /*
-        If any new strings are added to this struct make sure to add new check in function below
-    */
-    /// Makes sure that all strings in struct are not empty <br/>
-    /// Returns true if all strings are not empty, otherwise returns false
-    pub fn check_if_all_strings_are_not_empty(&self) -> bool {
-        
-        if  self.username.is_empty()    == true ||
-            self.name.is_empty()        == true ||
-            self.last_name.is_empty()   == true ||
-            self.email.is_empty()       == true ||
-            self.password.is_empty()    == true
-        {
-            return  false;
-        }        
-
-        return true;
-    }
-
-    /*
-        If any new strings need to be trimmed in this struct (on function call) add them in function below
-    */
-    /// Removes empty spaces from start and end of strings
-    pub fn trim_strings(&mut self) {
-        self.username   = self.username.trim().to_string();
-        self.name       = self.name.trim().to_string();
-        self.last_name  = self.last_name.trim().to_string();
-        self.email      = self.email.trim().to_string();
-        self.password   = self.password.trim().to_string();
     }
 }

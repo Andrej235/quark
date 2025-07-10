@@ -1,36 +1,34 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
-};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use uuid::Uuid;
+
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 #[rustfmt::skip]
-pub struct CreateTeamDTO {
-    pub name:           String,
-    pub description:    Option<String>
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct JWTRefreshTokenPairDTO {
+    pub jwt_token:          String,
+    pub refresh_token_id:   Uuid,
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATIONS
+// IMPLEMENTATION
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-impl EndpointJsonBodyData for CreateTeamDTO {
+impl EndpointJsonBodyData for JWTRefreshTokenPairDTO {
     fn validate(&mut self) -> bool {
 
         // Trim strings
-        self.name = self.name.trim().to_string();
-
-        StringHelper::trim_string_if_some(&mut self.description);
+        self.jwt_token = self.jwt_token.trim().to_string();
 
         // Make sure that all strings are not empty
-        let is_any_string_empty: bool = self.name.is_empty() && StringHelper::is_some_and_not_empty(self.description.clone());
+        let is_any_string_empty: bool = self.jwt_token.is_empty();
         if is_any_string_empty == false { return false; }
 
         return true;

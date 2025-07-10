@@ -1,6 +1,6 @@
 use crate::models::dtos::create_team_dto::CreateTeamDTO;
 use crate::models::dtos::create_team_role_dto::CreateTeamRoleDTO;
-use crate::models::dtos::jwt_refresh_token_pair::JWTRefreshTokenPairDTO;
+use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
 use crate::models::{dtos::create_user_dto::CreateUserDTO, sroute_error::SRouteError};

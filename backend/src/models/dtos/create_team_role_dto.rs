@@ -1,10 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData,
-    utils::string_helper::are_all_strings_full,
-};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -29,10 +26,8 @@ impl EndpointJsonBodyData for CreateTeamRoleDTO {
         self.name = self.name.trim().to_string();
 
         // Check for string emptiness
-        let is_any_string_empty: bool = are_all_strings_full(&[&self.name]);
-        if is_any_string_empty == false {
-            return false;
-        }
+        let is_any_string_empty: bool = self.name.is_empty();
+        if is_any_string_empty == false { return false; }
 
         return true;
     }
