@@ -5,7 +5,7 @@ use crate::{
     api_doc::ApiDoc,
     routes::{
         team_roles_routes::team_role_create,
-        team_routs::team_create,
+        team_routs::{team_create, team_delete},
         user_routs::{
             check, log_in, log_out, refresh, reset_password, send_email_verification, sign_up,
             verify_email,
@@ -59,6 +59,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(refresh);
 
     cfg.service(team_create);
+    cfg.service(team_delete);
 
     cfg.service(team_role_create);
 }

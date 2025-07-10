@@ -1,19 +1,23 @@
-use crate::entity::teams::{ActiveModel as TeamActiveModel, Model as Team};
+use crate::entity::teams::{ActiveModel as TeamActiveModel, Entity as TeamEntity, Model as Team};
+use crate::models::authenticated_user::AuthenticatedUser;
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
     models::{dtos::create_team_dto::CreateTeamDTO, sroute_error::SRouteError},
     traits::endpoint_json_body_data::EndpointJsonBodyData,
 };
+use actix_web::delete;
+use actix_web::web::Path;
 use actix_web::{
     post,
     web::{Data, Json},
     HttpResponse, Responder,
 };
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
 use uuid::Uuid;
 
 const TEAM_CREATE_ROUTE_PATH: &'static str = "/team/create";
+const TEAM_DELETE_ROUTE_PATH: &'static str = "/team/delete/{team_id}";
 
 #[utoipa::path(
     post,
@@ -27,6 +31,7 @@ const TEAM_CREATE_ROUTE_PATH: &'static str = "/team/create";
 #[post("/team/create")]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
+    _user: AuthenticatedUser,
     team_json: Json<CreateTeamDTO>,
 ) -> impl Responder {
     // Get ownership of incoming data
@@ -54,6 +59,41 @@ pub async fn team_create(
             return endpoint_internal_server_error(
                 TEAM_CREATE_ROUTE_PATH,
                 "Inserting new team",
+                Box::new(err),
+            );
+        }
+    }
+
+    return HttpResponse::Ok().finish();
+}
+
+#[utoipa::path(
+    delete,
+    path = TEAM_DELETE_ROUTE_PATH,
+    params(
+        ("team_id" = Uuid, Path, description = "ID of the team to delete"),
+    ),
+    responses(
+        (status = 200, description = "Team delete"),
+        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
+    )
+)]
+#[delete("/team/delete/{team_id}")]
+pub async fn team_delete(
+    db: Data<DatabaseConnection>,
+    _user: AuthenticatedUser,
+    team_id: Path<Uuid>,
+) -> impl Responder {
+    let id = team_id.into_inner();
+
+    let delete_result = TeamEntity::delete_by_id(id).exec(db.get_ref()).await;
+
+    match delete_result {
+        Ok(_) => (),
+        Err(err) => {
+            return endpoint_internal_server_error(
+                TEAM_DELETE_ROUTE_PATH,
+                "Deleting team",
                 Box::new(err),
             );
         }
