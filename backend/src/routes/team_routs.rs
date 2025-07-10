@@ -89,7 +89,7 @@ pub async fn team_delete(
     let delete_result = TeamEntity::delete_by_id(id).exec(db.get_ref()).await;
 
     match delete_result {
-        Ok(_) => (),
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(err) => {
             return endpoint_internal_server_error(
                 TEAM_DELETE_ROUTE_PATH,
@@ -98,6 +98,4 @@ pub async fn team_delete(
             );
         }
     }
-
-    return HttpResponse::Ok().finish();
 }

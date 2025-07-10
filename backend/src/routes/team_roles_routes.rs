@@ -48,7 +48,7 @@ pub async fn team_role_create(
     .await;
 
     match team_role_insertion_result {
-        Ok(_) => (),
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(err) => {
             return endpoint_internal_server_error(
                 TEAM_ROLE_CREATE_ROUTE_PATH,
@@ -57,8 +57,6 @@ pub async fn team_role_create(
             );
         }
     }
-
-    return HttpResponse::Ok().finish();
 }
 
 #[utoipa::path(
