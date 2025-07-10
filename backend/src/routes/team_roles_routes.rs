@@ -9,7 +9,10 @@ use crate::{
     entity::team_roles::{
         ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
     },
-    models::{dtos::create_team_role_dto::CreateTeamRoleDTO, sroute_error::SRouteError},
+    models::{
+        authenticated_user::AuthenticatedUser, dtos::create_team_role_dto::CreateTeamRoleDTO,
+        sroute_error::SRouteError,
+    },
     traits::endpoint_json_body_data::EndpointJsonBodyData,
     utils::http_helper::endpoint_internal_server_error,
 };
@@ -29,6 +32,7 @@ const TEAM_ROLE_DELETE_ROUTE_PATH: &'static str = "/team-role/delete/{team_role_
 #[post("/team-role/create")]
 pub async fn team_role_create(
     db: Data<DatabaseConnection>,
+    _user: AuthenticatedUser,
     team_role_json: Json<CreateTeamRoleDTO>,
 ) -> impl Responder {
     let mut team_role_data: CreateTeamRoleDTO = team_role_json.into_inner();
@@ -73,6 +77,7 @@ pub async fn team_role_create(
 #[delete("/team-role/delete/{team_role_id}")]
 pub async fn team_role_delete(
     db: Data<DatabaseConnection>,
+    _user: AuthenticatedUser,
     team_role_id: Path<i64>,
 ) -> impl Responder {
     let id = team_role_id.into_inner();
