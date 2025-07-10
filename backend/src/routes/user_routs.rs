@@ -2,13 +2,13 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::models::authenticated_user::AuthenticatedUser;
-use crate::models::claims::Claims;
 use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
+use crate::models::user_claims::UserClaims;
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
@@ -336,7 +336,7 @@ async fn refresh(
     let token_pair: JWTRefreshTokenPairDTO = token_pair.into_inner();
 
     // Get claims object from jwt string
-    let claims: Claims = match decode_jwt_string(&token_pair.jwt_token, false) {
+    let claims: UserClaims = match decode_jwt_string(&token_pair.jwt_token, false) {
         Ok(token_data) => token_data.claims,
         Err(err) => {
             error!("JWT string decode failed: {:?}", err);
@@ -764,7 +764,7 @@ fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> Result<Strin
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
 
     // Create claims
-    let claims: Claims = Claims { 
+    let claims: UserClaims = UserClaims { 
         user_id: user_id, 
         expire_time: Utc::now().naive_utc() + Duration::minutes(JWT_TOKEN_EXPIRATION_OFFSET), 
         jit: refresh_token.jit
@@ -793,7 +793,7 @@ fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 }
 
 #[rustfmt::skip]
-fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<Claims>, JWTTokenError> {
+fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<UserClaims>, JWTTokenError> {
 
     // Get jwt secret
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
@@ -803,7 +803,7 @@ fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<Tok
     validation.validate_exp = validate_expire_time;
 
     // Decode jwt string
-    return decode::<Claims>(
+    return decode::<UserClaims>(
         jwt_string,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
         &validation,

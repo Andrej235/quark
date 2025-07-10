@@ -12,7 +12,6 @@ use crate::{
         },
     },
 };
-use actix_limitation::Limiter;
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;
@@ -103,10 +102,11 @@ async fn main() -> std::io::Result<()> {
 
 
     // Get and check if all required .env variables are set
-    let jwt_secret:     String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
-    let database_url:   String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
-    let resend_api_key:  String = env::var("RESEND_API_KEY").expect("RESEND_API_KEY not set.");
-    let resend_email:    String = env::var("RESEND_EMAIL").expect("RESEND_EMAIL not set.");
+    let jwt_secret:         String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
+    let database_url:       String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
+    let resend_api_key:     String = env::var("RESEND_API_KEY").expect("RESEND_API_KEY not set.");
+    let resend_email:       String = env::var("RESEND_EMAIL").expect("RESEND_EMAIL not set.");
+    let worker_threads:     String = env::var("WORKER_THREADS").expect("WORKER_THREADS not set.");
 
 
     // Update public static variables
@@ -133,7 +133,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
             .configure(routes) // Register endpoints
     })
-    // .workers(16) // In production set this to number of threads that are available for server
+    .workers(worker_threads.parse::<usize>().unwrap())
     .bind(("127.0.0.1", 8080))?
     .run()
     .await

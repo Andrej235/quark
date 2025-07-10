@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{models::claims::Claims, JWT_SECRET};
+use crate::{models::user_claims::UserClaims, JWT_SECRET};
 use actix_web::{dev::Payload, Error as ActixError, FromRequest, HttpRequest};
 use futures::future::{ready, Ready};
 use jsonwebtoken::{decode, errors::Error, DecodingKey, TokenData, Validation};
@@ -11,7 +11,7 @@ use jsonwebtoken::{decode, errors::Error, DecodingKey, TokenData, Validation};
 // ------------------------------------------------------------------------------------
 pub struct AuthenticatedUser {
     pub user_id: uuid::Uuid,
-    pub claims: Claims,
+    pub claims: UserClaims,
 }
 
 // ------------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ impl FromRequest for AuthenticatedUser {
         let result = (|| {
             let auth_header: &str = req.headers().get(header::AUTHORIZATION)?.to_str().ok()?;
             let token: &str = auth_header.strip_prefix("Bearer ")?;
-            let token_data: TokenData<Claims> = verify_jwt(token).ok()?;
+            let token_data: TokenData<UserClaims> = verify_jwt(token).ok()?;
 
             Some(AuthenticatedUser {
                 user_id: token_data.claims.user_id,
@@ -45,10 +45,10 @@ impl FromRequest for AuthenticatedUser {
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------
-pub fn verify_jwt(token: &str) -> Result<TokenData<Claims>, Error> {
+pub fn verify_jwt(token: &str) -> Result<TokenData<UserClaims>, Error> {
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
 
-    decode::<Claims>(
+    decode::<UserClaims>(
         token,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
         &Validation::default(),

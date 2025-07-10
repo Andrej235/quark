@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[rustfmt::skip]
-#[derive(Debug, Serialize, Deserialize)]pub struct Claims {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserClaims {
     #[serde(with = "uuid::serde::compact")]
     pub user_id: Uuid,
 
