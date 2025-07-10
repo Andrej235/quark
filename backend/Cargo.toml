@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+actix-limitation = "0.5.1"
 actix-web = "4.11"
 argon2 = "0.5.3"
 base64 = "0.22.1"

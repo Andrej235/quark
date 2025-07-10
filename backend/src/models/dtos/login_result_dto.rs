@@ -27,7 +27,7 @@ impl EndpointJsonBodyData for LogInResultDTO {
         self.jwt_token = self.jwt_token.trim().to_string();
 
         // Make sure that all strings are not empty
-        let is_any_string_empty: bool = self.jwt_token.is_empty();
+        let is_any_string_empty: bool = !self.jwt_token.is_empty();
         if is_any_string_empty == false { return false; }
 
         return true;

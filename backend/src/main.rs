@@ -12,6 +12,7 @@ use crate::{
         },
     },
 };
+use actix_limitation::Limiter;
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;

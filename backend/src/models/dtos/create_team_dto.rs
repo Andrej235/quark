@@ -30,7 +30,7 @@ impl EndpointJsonBodyData for CreateTeamDTO {
         StringHelper::trim_string_if_some(&mut self.description);
 
         // Make sure that all strings are not empty
-        let is_any_string_empty: bool = self.name.is_empty() && StringHelper::is_some_and_not_empty(self.description.clone());
+        let is_any_string_empty: bool = !self.name.is_empty() && StringHelper::is_some_and_not_empty(self.description.clone());
         if is_any_string_empty == false { return false; }
 
         return true;

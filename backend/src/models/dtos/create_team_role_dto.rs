@@ -26,7 +26,7 @@ impl EndpointJsonBodyData for CreateTeamRoleDTO {
         self.name = self.name.trim().to_string();
 
         // Check for string emptiness
-        let is_any_string_empty: bool = self.name.is_empty();
+        let is_any_string_empty: bool = !self.name.is_empty();
         if is_any_string_empty == false { return false; }
 
         return true;

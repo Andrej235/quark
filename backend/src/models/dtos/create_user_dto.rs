@@ -40,9 +40,7 @@ impl EndpointJsonBodyData for CreateUserDTO {
 
         // Check for string emptiness
         let is_any_string_empty: bool = StringHelper::are_all_strings_full(string_vec);
-        if is_any_string_empty == false {
-            return false;
-        }
+        if is_any_string_empty == false { return false; }
 
         return true;
     }
