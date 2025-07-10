@@ -75,7 +75,6 @@ pub async fn team_create(
     ),
     responses(
         (status = 200, description = "Team delete"),
-        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
     )
 )]
 #[delete("/team/delete/{team_id}")]
@@ -84,8 +83,10 @@ pub async fn team_delete(
     _user: AuthenticatedUser,
     team_id: Path<Uuid>,
 ) -> impl Responder {
+    // Get ownership of incoming data
     let id = team_id.into_inner();
 
+    // Delete team
     let delete_result = TeamEntity::delete_by_id(id).exec(db.get_ref()).await;
 
     match delete_result {

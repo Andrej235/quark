@@ -28,14 +28,17 @@ pub async fn team_role_create(
     db: Data<DatabaseConnection>,
     team_role_json: Json<CreateTeamRoleDTO>,
 ) -> impl Responder {
+    // Get ownership of incoming data
     let mut team_role_data: CreateTeamRoleDTO = team_role_json.into_inner();
 
+    // Run incoming data validation
     if team_role_data.validate() == false {
         return HttpResponse::BadRequest().json(SRouteError {
             message: "Validation failed",
         });
     }
 
+    // Create team
     let team_role_insertion_result: Result<TeamRole, DbErr> = TeamRoleActiveModel {
         name: Set(team_role_data.name),
         team_id: Set(team_role_data.team_id),
