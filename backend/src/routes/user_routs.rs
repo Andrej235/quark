@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::claims::Claims;
-use crate::models::dtos::jwt_refresh_token_pair::JWTRefreshTokenPairDTO;
+use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
