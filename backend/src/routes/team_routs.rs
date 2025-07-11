@@ -1,5 +1,6 @@
 use crate::entity::teams::{ActiveModel as TeamActiveModel, Entity as TeamEntity, Model as Team};
 use crate::models::authenticated_user::AuthenticatedUser;
+use crate::utils::constants::{TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH};
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
     models::{dtos::create_team_dto::CreateTeamDTO, sroute_error::SRouteError},
@@ -15,9 +16,6 @@ use actix_web::{
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection, DbErr, EntityTrait};
 use uuid::Uuid;
-
-const TEAM_CREATE_ROUTE_PATH: &'static str = "/team/create";
-const TEAM_DELETE_ROUTE_PATH: &'static str = "/team/delete/{team_id}";
 
 #[utoipa::path(
     post,

@@ -9,10 +9,8 @@ use crate::{
     entity::team_roles::{ActiveModel as TeamRoleActiveModel, Model as TeamRole},
     models::{dtos::create_team_role_dto::CreateTeamRoleDTO, sroute_error::SRouteError},
     traits::endpoint_json_body_data::EndpointJsonBodyData,
-    utils::http_helper::endpoint_internal_server_error,
+    utils::{constants::TEAM_ROLE_CREATE_ROUTE_PATH, http_helper::endpoint_internal_server_error},
 };
-
-const TEAM_ROLE_CREATE_ROUTE_PATH: &'static str = "/team-role/create";
 
 #[utoipa::path(
     post,

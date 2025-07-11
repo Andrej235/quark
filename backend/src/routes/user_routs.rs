@@ -10,6 +10,12 @@ use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::utils::constants::{
+    CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, JWT_TOKEN_EXPIRATION_OFFSET,
+    LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH, REFRESH_TOKEN_EXPIRATION_OFFSET,
+    RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH, SIGN_UP_ROUTE_PATH,
+    VERIFY_EMAIL_ROUTE_PATH,
+};
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
     entity::refresh_tokens::{
@@ -44,23 +50,6 @@ use sea_orm::{
 use std::error::Error;
 use tracing::error;
 use uuid::Uuid;
-
-// ------------------------------------------------------------------------------------
-// CONSTANTS
-// ------------------------------------------------------------------------------------
-const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
-const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
-const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
-
-const SIGN_UP_ROUTE_PATH: &'static str = "/user/signup";
-const LOG_IN_ROUTE_PATH: &'static str = "/user/login";
-const LOG_OUT_ROUTE_PATH: &'static str = "/user/logout/{refresh_token_id}";
-const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
-const RESET_PASSWORD_ROUTE_PATH: &'static str = "/user/reset-password";
-const CHECK_ROUTE_PATH: &'static str = "/user/check";
-
-const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/email/verify/{token}";
-const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/email/send-verification";
 
 // ------------------------------------------------------------------------------------
 // ROUTES
