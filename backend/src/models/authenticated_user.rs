@@ -1,10 +1,14 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
+use crate::entity::refresh_tokens::{Column as RefreshTokenColumn, Entity as RefreshTokenEntity};
 use crate::{models::user_claims::UserClaims, JWT_SECRET};
 use actix_web::{dev::Payload, Error as ActixError, FromRequest, HttpRequest};
-use futures::future::{ready, Ready};
+use chrono::Utc;
+use futures::future::LocalBoxFuture;
 use jsonwebtoken::{decode, errors::Error as JWTTokenError, DecodingKey, TokenData, Validation};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use uuid::Uuid;
 
 // ------------------------------------------------------------------------------------
 // STRUCT
@@ -17,28 +21,70 @@ pub struct AuthenticatedUser {
 // ------------------------------------------------------------------------------------
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
+#[rustfmt::skip]
 impl FromRequest for AuthenticatedUser {
     type Error = ActixError;
-    type Future = Ready<Result<Self, Self::Error>>;
+    type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        use actix_web::http::header;
 
-        let result = (|| {
-            let auth_header: &str = req.headers().get(header::AUTHORIZATION)?.to_str().ok()?;
-            let token: &str = auth_header.strip_prefix("Bearer ")?;
-            let token_data: TokenData<UserClaims> = verify_jwt(token).ok()?;
+        // Get database connection
+        let db= req
+            .app_data::<actix_web::web::Data<DatabaseConnection>>()
+            .cloned()
+            .expect("DB not in app state, AuthenticatedUser");
 
-            Some(AuthenticatedUser {
-                user_id: token_data.claims.user_id,
-                claims: token_data.claims,
+        // Get jwt token
+        let token_option = req
+            .headers()
+            .get("Authorization")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.strip_prefix("Bearer ")
+            .map(|s| s.to_string()));
+
+        Box::pin(async move {
+
+            // Unwrap token
+            if token_option.is_none() {
+                return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+            }
+
+            let token = token_option.unwrap();
+
+
+            // Verify and get claims
+            let claims = verify_jwt(token.as_str())
+                .map_err(|_| actix_web::error::ErrorUnauthorized("Unauthorized"))?
+                .claims;
+
+
+            // Verify jit
+            _ = match RefreshTokenEntity::find()
+                .filter(RefreshTokenColumn::Jit.eq(claims.jit))
+                .one(db.get_ref())
+                .await {
+                    Ok(Some(refresh_token)) => {
+                        
+                        // Make sure that user id in refresh token is the same as in claims
+                        // and that refresh token is not expired
+                        if refresh_token.user_id != claims.user_id || 
+                            refresh_token.expire_time < Utc::now().naive_utc() {
+                            
+                            return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+                        }
+                        
+                        refresh_token
+                    },
+                    Ok(None) => return Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+                    Err(err) => return Err(actix_web::error::ErrorInternalServerError(err))
+                }; 
+
+                
+            Ok(AuthenticatedUser {
+                user_id: claims.user_id,
+                claims: claims,
             })
-        })();   
-
-        match result {
-            Some(user) => ready(Ok(user)),
-            None => ready(Err(actix_web::error::ErrorUnauthorized("Unauthorized"))),
-        }
+        })
     }
 }
 
