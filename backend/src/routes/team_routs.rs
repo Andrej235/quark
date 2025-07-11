@@ -1,9 +1,10 @@
 use crate::entity::teams::{ActiveModel as TeamActiveModel, Entity as TeamEntity, Model as Team};
 use crate::models::authenticated_user::AuthenticatedUser;
+use crate::models::dtos::validatio_error_dto::ValidationErrorDTO;
 use crate::utils::constants::{TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH};
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
-    models::{dtos::create_team_dto::CreateTeamDTO, sroute_error::SRouteError},
+    models::dtos::create_team_dto::CreateTeamDTO,
     traits::endpoint_json_body_data::EndpointJsonBodyData,
 };
 use actix_web::delete;
@@ -23,7 +24,7 @@ use uuid::Uuid;
     request_body = CreateTeamDTO,
     responses(
         (status = 200, description = "Team created"),
-        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/team/create")]
@@ -36,10 +37,8 @@ pub async fn team_create(
     let mut team_data: CreateTeamDTO = team_json.into_inner();
 
     // Run incoming data validation
-    if team_data.validate() == false {
-        return HttpResponse::BadRequest().json(SRouteError {
-            message: "Validation failed",
-        });
+    if let Err(err) = team_data.validate_data() {
+        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
     }
 
     // Create team

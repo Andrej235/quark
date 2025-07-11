@@ -26,3 +26,4 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 utoipa = { version = "5.4.0", features = ["actix_extras", "macros", "uuid"] }
 utoipa-swagger-ui = "9.0.2"
 uuid = { version = "1.17.0", features = ["v4", "v7"] }
+validator = { version = "0.20.0", features = ["derive"] }

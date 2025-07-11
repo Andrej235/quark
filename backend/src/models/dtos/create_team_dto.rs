@@ -1,19 +1,21 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
-};
-use serde::{Deserialize, Serialize};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use serde::Deserialize;
 use utoipa::ToSchema;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
 #[rustfmt::skip]
 pub struct CreateTeamDTO {
+
+    #[validate(length(min = 1, max = 150))]
     pub name:           String,
+
     pub description:    Option<String>
 }
 
@@ -22,17 +24,12 @@ pub struct CreateTeamDTO {
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 impl EndpointJsonBodyData for CreateTeamDTO {
-    fn validate(&mut self) -> bool {
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
         self.name = self.name.trim().to_string();
 
-        StringHelper::trim_string_if_some(&mut self.description);
-
-        // Make sure that all strings are not empty
-        let is_any_string_empty: bool = !self.name.is_empty() && StringHelper::is_some_and_not_empty(self.description.clone());
-        if is_any_string_empty == false { return false; }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

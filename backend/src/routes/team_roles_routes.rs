@@ -7,7 +7,9 @@ use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr};
 
 use crate::{
     entity::team_roles::{ActiveModel as TeamRoleActiveModel, Model as TeamRole},
-    models::{dtos::create_team_role_dto::CreateTeamRoleDTO, sroute_error::SRouteError},
+    models::dtos::{
+        create_team_role_dto::CreateTeamRoleDTO, validatio_error_dto::ValidationErrorDTO,
+    },
     traits::endpoint_json_body_data::EndpointJsonBodyData,
     utils::{constants::TEAM_ROLE_CREATE_ROUTE_PATH, http_helper::endpoint_internal_server_error},
 };
@@ -18,7 +20,7 @@ use crate::{
     request_body = CreateTeamRoleDTO,
     responses(
         (status = 200, description = "Team role created"),
-        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/team-role/create")]
@@ -30,10 +32,8 @@ pub async fn team_role_create(
     let mut team_role_data: CreateTeamRoleDTO = team_role_json.into_inner();
 
     // Run incoming data validation
-    if team_role_data.validate() == false {
-        return HttpResponse::BadRequest().json(SRouteError {
-            message: "Validation failed",
-        });
+    if let Err(err) = team_role_data.validate_data() {
+        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
     }
 
     // Create team

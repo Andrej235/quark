@@ -6,6 +6,7 @@ use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
+use crate::models::dtos::validatio_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
@@ -63,7 +64,8 @@ use uuid::Uuid;
     request_body = CreateUserDTO,
     responses(
         (status = 200, description = "User created"),
-        (status = 400, description = "Possible errors: Validation failed, User already exists", body = SRouteError),
+        (status = 400, description = "Possible errors: User already exists", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/signup")]
@@ -77,7 +79,9 @@ pub async fn sign_up(
     let mut user_data: CreateUserDTO = user_data_json.into_inner();
 
     // Run incoming data validation
-    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
+    if let Err(err) = user_data.validate_data() {
+        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
+    }
 
     
     // Check if user already exists
@@ -143,7 +147,8 @@ pub async fn sign_up(
     request_body = LoginUserDTO,
     responses(
         (status = 200, description = "User logged in", body = LogInResultDTO),
-        (status = 400, description = "Possible errors: Validation failed, Wrong password, User not found", body = SRouteError),
+        (status = 400, description = "Possible errors: Wrong password, User not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/login")]
@@ -157,7 +162,9 @@ async fn log_in(
     let mut user_data: LoginUserDTO = user_data_json.into_inner();
     
     // Run incoming data validation
-    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
+    if let Err(err) = user_data.validate_data() {
+        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
+    }
 
 
     // Check if user already exists in database
@@ -526,7 +533,8 @@ async fn send_email_verification(
     path = RESET_PASSWORD_ROUTE_PATH,
     responses(
         (status = 200, description = "Password reset"),
-        (status = 400, description = "Possible messages: Validation failed, Wrong password", body = SRouteError),
+        (status = 400, description = "Possible messages: Wrong password", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/reset-password")]
@@ -540,8 +548,10 @@ async fn reset_password(
     // Get ownership of incoming data
     let mut reset_password_data: PasswordResetDTO = reset_password_json.into_inner();    
 
-    // Validate incoming data
-    if reset_password_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
+    // Run incoming data validation
+    if let Err(err) = reset_password_data.validate_data() {
+        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
+    }
 
     // Try to find user
     let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
