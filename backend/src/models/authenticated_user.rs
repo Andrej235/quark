@@ -4,7 +4,7 @@
 use crate::{models::user_claims::UserClaims, JWT_SECRET};
 use actix_web::{dev::Payload, Error as ActixError, FromRequest, HttpRequest};
 use futures::future::{ready, Ready};
-use jsonwebtoken::{decode, errors::Error, DecodingKey, TokenData, Validation};
+use jsonwebtoken::{decode, errors::Error as JWTTokenError, DecodingKey, TokenData, Validation};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
@@ -33,7 +33,7 @@ impl FromRequest for AuthenticatedUser {
                 user_id: token_data.claims.user_id,
                 claims: token_data.claims,
             })
-        })();
+        })();   
 
         match result {
             Some(user) => ready(Ok(user)),
@@ -45,7 +45,7 @@ impl FromRequest for AuthenticatedUser {
 // ------------------------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ------------------------------------------------------------------------------------
-pub fn verify_jwt(token: &str) -> Result<TokenData<UserClaims>, Error> {
+pub fn verify_jwt(token: &str) -> Result<TokenData<UserClaims>, JWTTokenError> {
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
 
     decode::<UserClaims>(
