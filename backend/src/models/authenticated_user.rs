@@ -8,7 +8,6 @@ use chrono::Utc;
 use futures::future::LocalBoxFuture;
 use jsonwebtoken::{decode, errors::Error as JWTTokenError, DecodingKey, TokenData, Validation};
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
-use uuid::Uuid;
 
 // ------------------------------------------------------------------------------------
 // STRUCT

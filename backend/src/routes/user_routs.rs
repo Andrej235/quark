@@ -10,7 +10,7 @@ use crate::models::dtos::validatio_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::models::validated_json::ValidatedJson;
 use crate::utils::constants::{
     CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, JWT_TOKEN_EXPIRATION_OFFSET,
     LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH, REFRESH_TOKEN_EXPIRATION_OFFSET,
@@ -29,7 +29,7 @@ use crate::{
     models::dtos::create_user_dto::CreateUserDTO,
 };
 use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
-use actix_web::web::{Data, Json, Path};
+use actix_web::web::{Data, Path};
 use actix_web::*;
 use argon2::PasswordHash;
 use argon2::{
@@ -72,18 +72,12 @@ use uuid::Uuid;
 #[rustfmt::skip]
 pub async fn sign_up(
     db: Data<DatabaseConnection>,
-    user_data_json: Json<CreateUserDTO>
+    json_data: ValidatedJson<CreateUserDTO>
 ) -> impl Responder {
 
-    // Get ownership of incoming data
-    let mut user_data: CreateUserDTO = user_data_json.into_inner();
+    // Get json data
+    let user_data: &CreateUserDTO = json_data.get_data();
 
-    // Run incoming data validation
-    if let Err(err) = user_data.validate_data() {
-        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
-    }
-
-    
     // Check if user already exists
     let existing_user_fetch_result: Option<User> = match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
@@ -118,9 +112,9 @@ pub async fn sign_up(
             let user_insertion_result: Result<User, DbErr> = UserActiveModel {
                 id:                 Set(Uuid::now_v7()),
                 username:           Set(user_data.username.clone()),
-                name:               Set(user_data.name),
-                last_name:          Set(user_data.last_name),
-                email:              Set(user_data.email),
+                name:               Set(user_data.name.clone()),
+                last_name:          Set(user_data.last_name.clone()),
+                email:              Set(user_data.email.clone()),
                 hashed_password:    Set(password_hash),
                 salt:               Set(salt),
                 is_email_verified:  Set(false),
@@ -155,18 +149,12 @@ pub async fn sign_up(
 #[rustfmt::skip]
 async fn log_in(    
     db: Data<DatabaseConnection>,
-    user_data_json: Json<LoginUserDTO>
+    json_data: ValidatedJson<LoginUserDTO>
 ) -> impl Responder {
     
-    // Get ownership of incoming data
-    let mut user_data: LoginUserDTO = user_data_json.into_inner();
+    // Get json data
+    let user_data: &LoginUserDTO = json_data.get_data();
     
-    // Run incoming data validation
-    if let Err(err) = user_data.validate_data() {
-        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
-    }
-
-
     // Check if user already exists in database
     let existing_user: Option<User>  = match UserEntity::find()
         .filter(UserColumn::Email.eq(&user_data.email))
@@ -319,17 +307,18 @@ async fn log_out(
                                                          Expired Refresh token,
                                                          Mismatched user and refresh token,
                                                          Mismatched claim and refresh token", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/refresh")]
 #[rustfmt::skip]
 async fn refresh(
     db: Data<DatabaseConnection>,
-    token_pair: Json<JWTRefreshTokenPairDTO>  
+    json_data: ValidatedJson<JWTRefreshTokenPairDTO>  
 ) -> impl Responder {
 
-    // Get ownership of incoming data
-    let token_pair: JWTRefreshTokenPairDTO = token_pair.into_inner();
+    // Get json data
+    let token_pair: &JWTRefreshTokenPairDTO = json_data.get_data();
 
     // Get claims object from jwt string
     let claims: UserClaims = match decode_jwt_string(&token_pair.jwt_token, false) {
@@ -487,11 +476,11 @@ async fn verify_email(
 #[rustfmt::skip]
 async fn send_email_verification(
     db: Data<DatabaseConnection>,
-    authenticated_user: AuthenticatedUser
+    auth_user: AuthenticatedUser
 ) -> impl Responder {
 
     // Try to find user
-    let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
         .one(db.get_ref())
         .await {
             Ok(user) => user.unwrap(), // This is not safe to do because user can be None but i think its impossible to be authorized with invalid id
@@ -541,20 +530,15 @@ async fn send_email_verification(
 #[rustfmt::skip]
 async fn reset_password(
     db: Data<DatabaseConnection>,
-    authenticated_user: AuthenticatedUser,
-    reset_password_json: Json<PasswordResetDTO>
+    auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<PasswordResetDTO>
 ) -> impl Responder {
 
-    // Get ownership of incoming data
-    let mut reset_password_data: PasswordResetDTO = reset_password_json.into_inner();    
-
-    // Run incoming data validation
-    if let Err(err) = reset_password_data.validate_data() {
-        return HttpResponse::UnprocessableEntity().json(ValidationErrorDTO::from(err));
-    }
+    // Get json data
+    let reset_password_data: &PasswordResetDTO = json_data.get_data();
 
     // Try to find user
-    let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
         .one(db.get_ref())
         .await {
             Ok(user) => user.unwrap(),
@@ -613,7 +597,7 @@ async fn reset_password(
 #[get("/user/check")]
 #[rustfmt::skip]
 async fn check(
-    _user: AuthenticatedUser    
+    _auth_user: AuthenticatedUser    
 ) -> impl Responder {
     HttpResponse::Ok().finish()
 }

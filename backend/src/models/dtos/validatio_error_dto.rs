@@ -3,7 +3,7 @@
 // ------------------------------------------------------------------------------------
 use serde::Serialize;
 use serde_json::Value;
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::HashMap, fmt::Display};
 use utoipa::ToSchema;
 use validator::{ValidationErrors, ValidationErrorsKind};
 
@@ -13,12 +13,12 @@ use validator::{ValidationErrors, ValidationErrorsKind};
 #[rustfmt::skip]
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ValidationErrorDTO<'a> {
-    pub errors: Vec<ValidationErrorInfo<'a>>
+    pub errors: Vec<FieldErrorInfo<'a>>
 }
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, Serialize, ToSchema)]
-pub struct ValidationErrorInfo<'a> {
+pub struct FieldErrorInfo<'a> {
     pub field: Cow<'a, str>,
     pub errors_info: Vec<ErrorInfo<'a>>
 }
@@ -32,7 +32,7 @@ pub struct ErrorInfo<'a> {
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATION
+// IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 impl<'a> ValidationErrorDTO<'a> {
@@ -40,7 +40,7 @@ impl<'a> ValidationErrorDTO<'a> {
     pub fn from(validation_error: ValidationErrors) -> Self {
         
         // Create vector that will store all validation errors
-        let mut errors: Vec<ValidationErrorInfo> = vec![];
+        let mut errors: Vec<FieldErrorInfo> = vec![];
 
         // Map validation errors
         for error_info in validation_error.errors().iter() {
@@ -68,7 +68,7 @@ impl<'a> ValidationErrorDTO<'a> {
                 ValidationErrorsKind::Struct(_) => { panic!("Struct validation errors are not supported") },
             }
 
-            let validation_error_info: ValidationErrorInfo = ValidationErrorInfo {
+            let validation_error_info: FieldErrorInfo = FieldErrorInfo {
                 field: field_name.clone(), // This does not clone underlying data only reference
                 errors_info: errors_info
             };
@@ -77,5 +77,15 @@ impl<'a> ValidationErrorDTO<'a> {
         }
 
         return ValidationErrorDTO { errors };
+    }
+}
+
+#[rustfmt::skip]
+impl Display for ValidationErrorDTO<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "{}", json),
+            Err(_) => write!(f, "Invalid request body"),
+        }
     }
 }
