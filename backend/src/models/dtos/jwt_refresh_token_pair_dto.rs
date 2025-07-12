@@ -1,19 +1,22 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, Validate)]
 pub struct JWTRefreshTokenPairDTO {
+
+    #[validate(length(min = 200))]
     pub jwt_token:          String,
+
     pub refresh_token_id:   Uuid,
 }
 
@@ -22,15 +25,12 @@ pub struct JWTRefreshTokenPairDTO {
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 impl EndpointJsonBodyData for JWTRefreshTokenPairDTO {
-    fn validate(&mut self) -> bool {
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
         self.jwt_token = self.jwt_token.trim().to_string();
 
-        // Make sure that all strings are not empty
-        let is_any_string_empty: bool = self.jwt_token.is_empty();
-        if is_any_string_empty == false { return false; }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

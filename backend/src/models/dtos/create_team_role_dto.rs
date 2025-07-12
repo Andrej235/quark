@@ -2,17 +2,21 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 #[rustfmt::skip]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
 pub struct CreateTeamRoleDTO {
+
+    #[validate(length(min = 1, max = 50))]
     pub name:       String,
+
     pub team_id:    Uuid,
 }
 
@@ -21,14 +25,11 @@ pub struct CreateTeamRoleDTO {
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 impl EndpointJsonBodyData for CreateTeamRoleDTO {
-    fn validate(&mut self) -> bool {
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         // Trim all strings
         self.name = self.name.trim().to_string();
 
-        // Check for string emptiness
-        let is_any_string_empty: bool = self.name.is_empty();
-        if is_any_string_empty == true { return false; }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

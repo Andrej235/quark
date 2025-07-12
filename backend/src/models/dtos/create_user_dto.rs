@@ -4,29 +4,40 @@
 use crate::{
     traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::ToSchema;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
 pub struct CreateUserDTO {
+
+    #[validate(length(min = 1, max = 50))]
     pub username:   String,
+
+    #[validate(length(min = 1, max = 40))]
     pub name:       String,
+    
+    #[validate(length(min = 1, max = 40))]
     pub last_name:  String,
+    
+    #[validate(email)]
     pub email:      String,
+    
+    #[validate(length(min = 8))]
     pub password:   String,
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATIONS
+// IMPLEMENTATION
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 impl EndpointJsonBodyData for CreateUserDTO {
-    fn validate(&mut self) -> bool {
-
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
+        
         // Trim strings
         let mut string_vec: Vec<&mut String> = vec![
             &mut self.username,
@@ -38,12 +49,7 @@ impl EndpointJsonBodyData for CreateUserDTO {
 
         StringHelper::trim_all_strings(&mut string_vec);
 
-        // Check for string emptiness
-        let is_any_string_empty: bool = StringHelper::are_all_strings_full(string_vec);
-        if is_any_string_empty == false {
-            return false;
-        }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

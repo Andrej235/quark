@@ -4,16 +4,21 @@
 use crate::{
     traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::ToSchema;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
 pub struct PasswordResetDTO {
+
+    #[validate(length(min = 8))]
     pub old_password: String,
+
+    #[validate(length(min = 8))]
     pub new_password: String,
 }
 
@@ -22,7 +27,7 @@ pub struct PasswordResetDTO {
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 impl EndpointJsonBodyData for PasswordResetDTO {
-    fn validate(&mut self) -> bool {
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
         let mut string_vec: Vec<&mut String> = vec![
@@ -32,10 +37,7 @@ impl EndpointJsonBodyData for PasswordResetDTO {
 
         StringHelper::trim_all_strings(&mut string_vec);
 
-        // Make sure that all strings are not empty
-        let is_any_string_empty: bool = StringHelper::are_all_strings_full(string_vec);
-        if is_any_string_empty == false { return false; }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

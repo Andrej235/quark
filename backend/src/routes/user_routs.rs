@@ -2,14 +2,21 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::models::authenticated_user::AuthenticatedUser;
-use crate::models::claims::Claims;
 use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
+use crate::models::dtos::validatio_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::models::user_claims::UserClaims;
+use crate::models::validated_json::ValidatedJson;
+use crate::utils::constants::{
+    CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, JWT_TOKEN_EXPIRATION_OFFSET,
+    LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH, REFRESH_TOKEN_EXPIRATION_OFFSET,
+    RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH, SIGN_UP_ROUTE_PATH,
+    VERIFY_EMAIL_ROUTE_PATH,
+};
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
     entity::refresh_tokens::{
@@ -22,7 +29,7 @@ use crate::{
     models::dtos::create_user_dto::CreateUserDTO,
 };
 use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
-use actix_web::web::{Data, Json, Path};
+use actix_web::web::{Data, Path};
 use actix_web::*;
 use argon2::PasswordHash;
 use argon2::{
@@ -46,22 +53,6 @@ use tracing::error;
 use uuid::Uuid;
 
 // ------------------------------------------------------------------------------------
-// CONSTANTS
-// ------------------------------------------------------------------------------------
-const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
-const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
-const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
-
-const SIGN_UP_ROUTE_PATH: &'static str = "/user/signup";
-const LOG_IN_ROUTE_PATH: &'static str = "/user/login";
-const LOG_OUT_ROUTE_PATH: &'static str = "/user/logout/{refresh_token_id}";
-const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
-const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/verify-email/{token}";
-const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/send-email-verification";
-const RESET_PASSWORD_ROUTE_PATH: &'static str = "/user/reset-password";
-const CHECK_ROUTE_PATH: &'static str = "/user/check";
-
-// ------------------------------------------------------------------------------------
 // ROUTES
 // ------------------------------------------------------------------------------------
 /*
@@ -73,23 +64,20 @@ const CHECK_ROUTE_PATH: &'static str = "/user/check";
     request_body = CreateUserDTO,
     responses(
         (status = 200, description = "User created"),
-        (status = 400, description = "Possible errors: Validation failed, User already exists", body = SRouteError),
+        (status = 400, description = "Possible errors: User already exists", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/signup")]
 #[rustfmt::skip]
 pub async fn sign_up(
     db: Data<DatabaseConnection>,
-    user_data_json: Json<CreateUserDTO>
+    json_data: ValidatedJson<CreateUserDTO>
 ) -> impl Responder {
 
-    // Get ownership of incoming data
-    let mut user_data: CreateUserDTO = user_data_json.into_inner();
+    // Get json data
+    let user_data: &CreateUserDTO = json_data.get_data();
 
-    // Run incoming data validation
-    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
-
-    
     // Check if user already exists
     let existing_user_fetch_result: Option<User> = match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
@@ -106,10 +94,9 @@ pub async fn sign_up(
 
     match existing_user_fetch_result {
             
-        // If user exists return message that user already exists
         Some(_) => { return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" }); },
             
-        // Otherwise if it doesnt exist add it to database and return JWT token
+        // Create new user if it doesn't exist
         None => {
 
             // Hash password
@@ -124,20 +111,17 @@ pub async fn sign_up(
             let user_insertion_result: Result<User, DbErr> = UserActiveModel {
                 id:                 Set(Uuid::now_v7()),
                 username:           Set(user_data.username.clone()),
-                name:               Set(user_data.name),
-                last_name:          Set(user_data.last_name),
-                email:              Set(user_data.email),
+                name:               Set(user_data.name.clone()),
+                last_name:          Set(user_data.last_name.clone()),
+                email:              Set(user_data.email.clone()),
                 hashed_password:    Set(password_hash),
                 salt:               Set(salt),
                 is_email_verified:  Set(false),
             }.insert(db.get_ref()).await;
 
-            match user_insertion_result {
-                Ok(_) => (),
-                Err(err) => {
-                    return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
-                }
-            };
+            if let Err(err) = user_insertion_result {
+                return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
+            }
 
             return HttpResponse::Ok().finish();
         }
@@ -153,23 +137,20 @@ pub async fn sign_up(
     request_body = LoginUserDTO,
     responses(
         (status = 200, description = "User logged in", body = LogInResultDTO),
-        (status = 400, description = "Possible errors: Validation failed, Wrong password, User not found", body = SRouteError),
+        (status = 400, description = "Possible errors: Wrong password, User not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/login")]
 #[rustfmt::skip]
 async fn log_in(    
     db: Data<DatabaseConnection>,
-    user_data_json: Json<LoginUserDTO>
+    json_data: ValidatedJson<LoginUserDTO>
 ) -> impl Responder {
     
-    // Get ownership of incoming data
-    let mut user_data: LoginUserDTO = user_data_json.into_inner();
+    // Get json data
+    let user_data: &LoginUserDTO = json_data.get_data();
     
-    // Run incoming data validation
-    if user_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
-
-
     // Check if user already exists in database
     let existing_user: Option<User>  = match UserEntity::find()
         .filter(UserColumn::Email.eq(&user_data.email))
@@ -322,20 +303,21 @@ async fn log_out(
                                                          Expired Refresh token,
                                                          Mismatched user and refresh token,
                                                          Mismatched claim and refresh token", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/refresh")]
 #[rustfmt::skip]
 async fn refresh(
     db: Data<DatabaseConnection>,
-    token_pair: Json<JWTRefreshTokenPairDTO>  
+    json_data: ValidatedJson<JWTRefreshTokenPairDTO>  
 ) -> impl Responder {
 
-    // Get ownership of incoming data
-    let token_pair: JWTRefreshTokenPairDTO = token_pair.into_inner();
+    // Get json data
+    let token_pair: &JWTRefreshTokenPairDTO = json_data.get_data();
 
     // Get claims object from jwt string
-    let claims: Claims = match decode_jwt_string(&token_pair.jwt_token, false) {
+    let claims: UserClaims = match decode_jwt_string(&token_pair.jwt_token, false) {
         Ok(token_data) => token_data.claims,
         Err(err) => {
             error!("JWT string decode failed: {:?}", err);
@@ -420,7 +402,7 @@ async fn refresh(
         (status = 401, description = "Possible messages: User not found", body = SRouteError),
     )
 )]
-#[get("/user/verify-email/{token}")]
+#[get("/user/email/verify/{token}")]
 #[rustfmt::skip]
 async fn verify_email(
     db: Data<DatabaseConnection>,
@@ -486,15 +468,15 @@ async fn verify_email(
         (status = 400, description = "Possible messages: User already verified", body = SRouteError),
     )
 )]
-#[get("/user/send-email-verification")]
+#[get("/user/email/send-verification")]
 #[rustfmt::skip]
 async fn send_email_verification(
     db: Data<DatabaseConnection>,
-    authenticated_user: AuthenticatedUser
+    auth_user: AuthenticatedUser
 ) -> impl Responder {
 
     // Try to find user
-    let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
         .one(db.get_ref())
         .await {
             Ok(user) => user.unwrap(), // This is not safe to do because user can be None but i think its impossible to be authorized with invalid id
@@ -536,25 +518,23 @@ async fn send_email_verification(
     path = RESET_PASSWORD_ROUTE_PATH,
     responses(
         (status = 200, description = "Password reset"),
-        (status = 400, description = "Possible messages: Validation failed, Wrong password", body = SRouteError),
+        (status = 400, description = "Possible messages: Wrong password", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/user/reset-password")]
 #[rustfmt::skip]
 async fn reset_password(
     db: Data<DatabaseConnection>,
-    authenticated_user: AuthenticatedUser,
-    reset_password_json: Json<PasswordResetDTO>
+    auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<PasswordResetDTO>
 ) -> impl Responder {
 
-    // Get ownership of incoming data
-    let mut reset_password_data: PasswordResetDTO = reset_password_json.into_inner();    
-
-    // Validate incoming data
-    if reset_password_data.validate() == false { return HttpResponse::BadRequest().json(SRouteError { message: "Validation failed" }); }
+    // Get json data
+    let reset_password_data: &PasswordResetDTO = json_data.get_data();
 
     // Try to find user
-    let user: User = match UserEntity::find_by_id(authenticated_user.user_id)
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
         .one(db.get_ref())
         .await {
             Ok(user) => user.unwrap(),
@@ -613,7 +593,7 @@ async fn reset_password(
 #[get("/user/check")]
 #[rustfmt::skip]
 async fn check(
-    _user: AuthenticatedUser    
+    _auth_user: AuthenticatedUser    
 ) -> impl Responder {
     HttpResponse::Ok().finish()
 }
@@ -747,7 +727,7 @@ async fn send_verification_email(user_username: &str, user_email: &str, token: &
 
     // Create email option instance
     let email = CreateEmailBaseOptions::new(&from, to, subject)
-        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/verify-email/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
+        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/email/verify/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
 
     // Send email
     match resend_instance.emails.send(email).await {
@@ -763,7 +743,7 @@ fn create_jwt_token(refresh_token: &RefreshToken, user_id: Uuid) -> Result<Strin
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
 
     // Create claims
-    let claims: Claims = Claims { 
+    let claims: UserClaims = UserClaims { 
         user_id: user_id, 
         expire_time: Utc::now().naive_utc() + Duration::minutes(JWT_TOKEN_EXPIRATION_OFFSET), 
         jit: refresh_token.jit
@@ -792,7 +772,7 @@ fn create_refresh_token(user_id: Uuid) -> RefreshTokenActiveModel {
 }
 
 #[rustfmt::skip]
-fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<Claims>, JWTTokenError> {
+fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<UserClaims>, JWTTokenError> {
 
     // Get jwt secret
     let jwt_secret: &String = JWT_SECRET.get().unwrap();
@@ -802,7 +782,7 @@ fn decode_jwt_string(jwt_string: &str, validate_expire_time: bool) -> Result<Tok
     validation.validate_exp = validate_expire_time;
 
     // Decode jwt string
-    return decode::<Claims>(
+    return decode::<UserClaims>(
         jwt_string,
         &DecodingKey::from_secret(jwt_secret.as_bytes()),
         &validation,

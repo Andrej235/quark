@@ -1,6 +1,6 @@
 use actix_web::{
     delete, post,
-    web::{Data, Json, Path},
+    web::{Data, Path},
     HttpResponse, Responder,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, EntityTrait};
@@ -10,15 +10,16 @@ use crate::{
         ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
     },
     models::{
-        authenticated_user::AuthenticatedUser, dtos::create_team_role_dto::CreateTeamRoleDTO,
+        authenticated_user::AuthenticatedUser,
+        dtos::{create_team_role_dto::CreateTeamRoleDTO, validatio_error_dto::ValidationErrorDTO},
         sroute_error::SRouteError,
+        validated_json::ValidatedJson,
     },
-    traits::endpoint_json_body_data::EndpointJsonBodyData,
-    utils::http_helper::endpoint_internal_server_error,
+    utils::{
+        constants::{TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH},
+        http_helper::endpoint_internal_server_error,
+    },
 };
-
-const TEAM_ROLE_CREATE_ROUTE_PATH: &'static str = "/team-role/create";
-const TEAM_ROLE_DELETE_ROUTE_PATH: &'static str = "/team-role/delete/{team_role_id}";
 
 #[utoipa::path(
     post,
@@ -26,25 +27,21 @@ const TEAM_ROLE_DELETE_ROUTE_PATH: &'static str = "/team-role/delete/{team_role_
     request_body = CreateTeamRoleDTO,
     responses(
         (status = 200, description = "Team role created"),
-        (status = 400, description = "Possible errors: Validation failed", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/team-role/create")]
 pub async fn team_role_create(
     db: Data<DatabaseConnection>,
-    _user: AuthenticatedUser,
-    team_role_json: Json<CreateTeamRoleDTO>,
+    _auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<CreateTeamRoleDTO>,
 ) -> impl Responder {
-    let mut team_role_data: CreateTeamRoleDTO = team_role_json.into_inner();
+    // Get json data
+    let team_role_data: &CreateTeamRoleDTO = json_data.get_data();
 
-    if team_role_data.validate() == false {
-        return HttpResponse::BadRequest().json(SRouteError {
-            message: "Validation failed",
-        });
-    }
-
+    // Create team
     let team_role_insertion_result: Result<TeamRole, DbErr> = TeamRoleActiveModel {
-        name: Set(team_role_data.name),
+        name: Set(team_role_data.name.clone()),
         team_id: Set(team_role_data.team_id),
         ..Default::default()
     }
