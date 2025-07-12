@@ -28,3 +28,4 @@ pub const TEAM_DELETE_ROUTE_PATH: &'static str = "/team/delete/{team_id}";
 
 pub const TEAM_ROLE_CREATE_ROUTE_PATH: &'static str = "/team-role/create";
 pub const TEAM_ROLE_DELETE_ROUTE_PATH: &'static str = "/team-role/delete/{team_role_id}";
+pub const TEAM_ROLE_UPDATE_ROUTE_PATH: &'static str = "/team-role/update/{team_role_id}";
