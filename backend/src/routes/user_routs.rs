@@ -94,10 +94,9 @@ pub async fn sign_up(
 
     match existing_user_fetch_result {
             
-        // If user exists return message that user already exists
         Some(_) => { return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" }); },
             
-        // Otherwise if it doesnt exist add it to database and return JWT token
+        // Create new user if it doesn't exist
         None => {
 
             // Hash password
@@ -120,12 +119,9 @@ pub async fn sign_up(
                 is_email_verified:  Set(false),
             }.insert(db.get_ref()).await;
 
-            match user_insertion_result {
-                Ok(_) => (),
-                Err(err) => {
-                    return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
-                }
-            };
+            if let Err(err) = user_insertion_result {
+                return endpoint_internal_server_error(SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
+            }
 
             return HttpResponse::Ok().finish();
         }
