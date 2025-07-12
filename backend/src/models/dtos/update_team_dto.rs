@@ -11,7 +11,7 @@ use validator::{Validate, ValidationErrors};
 // ------------------------------------------------------------------------------------
 #[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
 #[rustfmt::skip]
-pub struct CreateTeamDTO {
+pub struct UpdateTeamDTO{
 
     #[validate(length(min = 1, max = 150))]
     pub name:           String,
@@ -23,7 +23,7 @@ pub struct CreateTeamDTO {
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-impl EndpointJsonBodyData for CreateTeamDTO {
+impl EndpointJsonBodyData for UpdateTeamDTO {
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
