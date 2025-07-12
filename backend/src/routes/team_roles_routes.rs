@@ -12,7 +12,6 @@ use crate::{
     models::{
         authenticated_user::AuthenticatedUser,
         dtos::{create_team_role_dto::CreateTeamRoleDTO, validatio_error_dto::ValidationErrorDTO},
-        sroute_error::SRouteError,
         validated_json::ValidatedJson,
     },
     utils::{
@@ -68,13 +67,12 @@ pub async fn team_role_create(
     ),
     responses(
         (status = 200, description = "Team role deleted"),
-        (status = 400, description = "Internal server error", body = SRouteError),
     )
 )]
 #[delete("/team-role/delete/{team_role_id}")]
 pub async fn team_role_delete(
     db: Data<DatabaseConnection>,
-    _user: AuthenticatedUser,
+    _auth_user: AuthenticatedUser,
     team_role_id: Path<i64>,
 ) -> impl Responder {
     let id = team_role_id.into_inner();
