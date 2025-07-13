@@ -35,7 +35,11 @@ pub struct CreateUserDTO {
 // IMPLEMENTATION
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+#[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateUserDTO {
+
+    type StructFieldNamesEnum = ();
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         
         // Trim strings
@@ -52,4 +56,6 @@ impl EndpointJsonBodyData for CreateUserDTO {
         // Run validation
         return self.validate();
     }
+
+    fn get_field_name(enm: Self::StructFieldNamesEnum) -> &'static str { todo!() }
 }

@@ -12,10 +12,8 @@ impl StringHelper {
     /// Checks if string is not empty <br/>
     /// NOTE: Doesn't trim string before checking <br/>
     /// Returns **true** if string is not empty, otherwise **false**
-    pub fn is_some_and_not_empty<S>(string: Option<S>) -> bool
-    where 
-        S: AsRef<str> 
-    {
+    pub fn is_some_and_not_empty<S>(string: Option<S>) -> bool 
+    where S: AsRef<str> {
         if let Some(string) = string {
             if string.as_ref().is_empty() {
                 return false;
@@ -37,10 +35,7 @@ impl StringHelper {
     /// NOTE: Doesn't trim strings before checking <br/>
     /// Returns **true** if all strings are not empty, otherwise **false**
     pub fn are_all_strings_full<A, I>(strings: A) -> bool
-    where
-        A: IntoIterator<Item = I>,
-        I: AsRef<str>,
-    {
+    where A: IntoIterator<Item = I>, I: AsRef<str> {
         for string in strings {
             if string.as_ref().is_empty() {
                 return false;

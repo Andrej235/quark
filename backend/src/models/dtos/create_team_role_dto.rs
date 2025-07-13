@@ -24,7 +24,11 @@ pub struct CreateTeamRoleDTO {
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+#[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateTeamRoleDTO {
+
+    type StructFieldNamesEnum = ();
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         // Trim all strings
         self.name = self.name.trim().to_string();
@@ -32,4 +36,6 @@ impl EndpointJsonBodyData for CreateTeamRoleDTO {
         // Run validation
         return self.validate();
     }
+
+    fn get_field_name(enm: Self::StructFieldNamesEnum) -> &'static str { todo!() }
 }
