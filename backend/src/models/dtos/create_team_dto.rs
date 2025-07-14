@@ -37,7 +37,7 @@ impl EndpointJsonBodyData for CreateTeamDTO {
         self.name = self.name.trim().to_string();
 
         // Apply custom validation
-        Self::enforce_length_range_optional_string(CreateTeamDTOField::Description, &self.description, Some(10), Some(400))
+        Self::enforce_length_range_optional_string(CreateTeamDTOField::Description, &self.description, Some(1), Some(400))
             .map_err(|errs| errs)?;
 
         // Run validation

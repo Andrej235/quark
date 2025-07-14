@@ -2,6 +2,7 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use macros::GenerateFieldEnum;
 use serde::Deserialize;
 use utoipa::ToSchema;
 use validator::{Validate, ValidationErrors};
@@ -9,13 +10,15 @@ use validator::{Validate, ValidationErrors};
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
 #[rustfmt::skip]
 pub struct UpdateTeamDTO{
 
+    #[enum_name("Name")]
     #[validate(length(min = 1, max = 150))]
     pub name:           String,
 
+    #[enum_name("Description")]
     pub description:    Option<String>
 }
 
@@ -23,11 +26,19 @@ pub struct UpdateTeamDTO{
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+#[allow(unused_variables)]]
 impl EndpointJsonBodyData for UpdateTeamDTO {
+
+    type FieldNameEnums = UpdateTeamDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
         self.name = self.name.trim().to_string();
+
+        // Apply custom validation
+        Self::enforce_length_range_optional_string(UpdateTeamDTOField::Description, &self.description, Some(1), Some(400))
+            .map_err(|errs| errs)?;
 
         // Run validation
         return self.validate();
