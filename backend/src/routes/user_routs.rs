@@ -277,16 +277,14 @@ async fn user_log_out(
     let refresh_token_id = path.into_inner();
 
     // Try to delete refresh token
-    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id)
+    match RefreshTokenEntity::delete_by_id(refresh_token_id)
         .exec(db.get_ref())
-        .await;
-    
-    match delete_refresh_token_result {
-        Ok(_) => (),
-        Err(err) => {
-            return endpoint_internal_server_error(LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
-        }
-    };
+        .await {
+            Ok(_) => (),
+            Err(err) => {
+                return endpoint_internal_server_error(LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
+            }
+        };
 
     return HttpResponse::Ok().finish();
 }
@@ -368,9 +366,6 @@ async fn user_refresh(
     }
 
 
-    // -------------------->
-    // New token creation
-    // -------------------->
     // Delete old refresh token and create new one
     let new_refresh_token: RefreshToken = match recycle_refresh_token(refresh_token.id, claims.user_id, db).await {
         Ok(token) => token,
