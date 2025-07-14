@@ -1,14 +1,15 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Data, Fields, Lit, Attribute};
 use syn::spanned::Spanned;
+use syn::{Attribute, Data, DeriveInput, Fields, Lit, parse_macro_input};
 
 #[proc_macro_derive(GenerateFieldEnum, attributes(enum_name))]
 pub fn generate_field_enum(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input as DeriveInput);
 
     let struct_name: &syn::Ident = &input.ident;
-    let enum_name: syn::Ident = syn::Ident::new(&format!("{}Field", struct_name), struct_name.span());
+    let enum_name: syn::Ident =
+        syn::Ident::new(&format!("{}Field", struct_name), struct_name.span());
 
     let mut variants: Vec<proc_macro2::TokenStream> = Vec::new();
     let mut matches: Vec<proc_macro2::TokenStream> = Vec::new();
@@ -35,16 +36,22 @@ pub fn generate_field_enum(input: TokenStream) -> TokenStream {
     }
 
     let expanded = quote! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum #enum_name {
             #(#variants),*
         }
 
         impl #enum_name {
-            pub fn as_str(&self) -> &'static str {
+            pub fn get_name(&self) -> &'static str {
                 match self {
                     #(#matches)*
                 }
+            }
+        }
+
+        impl crate::traits::field_name::FieldName for #enum_name {
+            fn get_name(&self) -> &'static str {
+                self.get_name()
             }
         }
     };

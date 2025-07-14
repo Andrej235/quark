@@ -30,6 +30,8 @@ pub struct JWTRefreshTokenPairDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for JWTRefreshTokenPairDTO {
 
+    type FieldNameEnums = JWTRefreshTokenPairDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings

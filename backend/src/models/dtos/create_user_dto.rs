@@ -44,10 +44,10 @@ pub struct CreateUserDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateUserDTO {
 
+    type FieldNameEnums = CreateUserDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         
-        println!("{}", CreateUserDTOField::LastName.as_str());
-
         // Trim strings
         let mut string_vec: Vec<&mut String> = vec![
             &mut self.username,

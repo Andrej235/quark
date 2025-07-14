@@ -30,6 +30,8 @@ pub struct CreateTeamRoleDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateTeamRoleDTO {
 
+    type FieldNameEnums = CreateTeamRoleDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         // Trim all strings
         self.name = self.name.trim().to_string();

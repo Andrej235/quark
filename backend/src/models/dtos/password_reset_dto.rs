@@ -32,6 +32,8 @@ pub struct PasswordResetDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for PasswordResetDTO {
 
+    type FieldNameEnums = PasswordResetDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings

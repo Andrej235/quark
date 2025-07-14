@@ -29,13 +29,15 @@ pub struct CreateTeamDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateTeamDTO {
 
+    type FieldNameEnums = CreateTeamDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
         self.name = self.name.trim().to_string();
 
         // Apply custom validation
-        Self::enforce_length_range_optional_string(CreateTeamDTOField::Description.as_str(), &self.description, Some(10), Some(400))
+        Self::enforce_length_range_optional_string(CreateTeamDTOField::Description, &self.description, Some(10), Some(400))
             .map_err(|errs| errs)?;
 
         // Run validation

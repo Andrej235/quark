@@ -30,6 +30,8 @@ pub struct LogInResultDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for LogInResultDTO {
 
+    type FieldNameEnums = LogInResultDTOField;
+
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings

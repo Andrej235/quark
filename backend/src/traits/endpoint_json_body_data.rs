@@ -2,8 +2,9 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use serde_json::{Number, Value};
-use std::fmt::Debug;
 use validator::{ValidationError, ValidationErrors};
+
+use crate::traits::field_name::FieldName;
 
 // ------------------------------------------------------------------------------------
 // TRAIT
@@ -12,6 +13,8 @@ use validator::{ValidationError, ValidationErrors};
 #[allow(unused_variables)]
 pub trait EndpointJsonBodyData {
 
+    type FieldNameEnums: Copy + Clone + FieldName;
+
     /// Runs predefined validations. <br/>
     /// Returns true if all validations are passed, otherwise returns false.
     fn validate_data(&mut self) -> Result<(), ValidationErrors>;
@@ -19,7 +22,7 @@ pub trait EndpointJsonBodyData {
     /// Enforces length range for optional string.
     /// Returns Ok() if validation is passed, otherwise returns ValidationErrors
     fn enforce_length_range_optional_string(
-        field_name: &'static str,
+        field_enum: Self::FieldNameEnums,
         string: &Option<String>, 
         min: Option<isize>, 
         max: Option<isize>
@@ -61,7 +64,7 @@ pub trait EndpointJsonBodyData {
                 let min_value: isize = min.unwrap();
                 if inner_string_length < min_value {
                     return Err(create_validation_error_object(
-                        field_name,
+                        field_enum.get_name(),
                         String::from(inner_string),
                         Some(min_value),
                         None
@@ -74,7 +77,7 @@ pub trait EndpointJsonBodyData {
                 let max_value: isize = max.unwrap();
                 if inner_string_length > max_value {
                     return Err(create_validation_error_object(
-                        field_name,
+                        field_enum.get_name(),
                         String::from(inner_string),
                         None,
                         Some(max_value)
@@ -88,7 +91,7 @@ pub trait EndpointJsonBodyData {
                 let max_value: isize = max.unwrap();
                 if inner_string_length < min_value || inner_string_length > max_value {
                     return Err(create_validation_error_object(
-                        field_name,
+                        field_enum.get_name(),
                         String::from(inner_string),
                         Some(min_value),
                         Some(max_value)
