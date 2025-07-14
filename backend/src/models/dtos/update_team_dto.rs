@@ -12,7 +12,7 @@ use validator::{Validate, ValidationErrors};
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
-pub struct CreateTeamDTO {
+pub struct UpdateTeamDTO {
 
     #[enum_name("Name")]
     #[validate(length(min = 1, max = 150))]
@@ -27,9 +27,9 @@ pub struct CreateTeamDTO {
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[allow(unused_variables)]
-impl EndpointJsonBodyData for CreateTeamDTO {
+impl EndpointJsonBodyData for UpdateTeamDTO {
 
-    type FieldNameEnums = CreateTeamDTOField;
+    type FieldNameEnums = UpdateTeamDTOField;
 
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
@@ -37,7 +37,7 @@ impl EndpointJsonBodyData for CreateTeamDTO {
         self.name = self.name.trim().to_string();
 
         // Apply custom validation
-        Self::enforce_length_range_optional_string(CreateTeamDTOField::Description, &self.description, Some(1), Some(400))
+        Self::enforce_length_range_optional_string(UpdateTeamDTOField::Description, &self.description, Some(1), Some(400))
             .map_err(|errs| errs)?;
 
         // Run validation

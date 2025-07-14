@@ -5,4 +5,6 @@ pub mod jwt_refresh_token_pair_dto;
 pub mod login_result_dto;
 pub mod login_user_dto;
 pub mod password_reset_dto;
+pub mod update_team_dto;
+pub mod update_team_role_dto;
 pub mod validation_error_dto;

@@ -1,5 +1,5 @@
 use actix_web::{
-    delete, post,
+    delete, post, put,
     web::{Data, Path},
     HttpResponse, Responder,
 };
@@ -11,11 +11,16 @@ use crate::{
     },
     models::{
         authenticated_user::AuthenticatedUser,
-        dtos::{create_team_role_dto::CreateTeamRoleDTO, validation_error_dto::ValidationErrorDTO},
+        dtos::{
+            create_team_role_dto::CreateTeamRoleDTO, update_team_role_dto::UpdateTeamRoleDTO,
+            validation_error_dto::ValidationErrorDTO,
+        },
         validated_json::ValidatedJson,
     },
     utils::{
-        constants::{TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH},
+        constants::{
+            TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
+        },
         http_helper::endpoint_internal_server_error,
     },
 };
@@ -84,6 +89,45 @@ pub async fn team_role_delete(
         Err(err) => endpoint_internal_server_error(
             TEAM_ROLE_DELETE_ROUTE_PATH,
             "Deleting team role",
+            Box::new(err),
+        ),
+    }
+}
+
+#[utoipa::path(
+    put,
+    path = TEAM_ROLE_UPDATE_ROUTE_PATH,
+    request_body = UpdateTeamRoleDTO
+)]
+#[put("/team-role/update/{team_role_id}")]
+pub async fn team_role_update(
+    db: Data<DatabaseConnection>,
+    // _auth_user: AuthenticatedUser,
+    team_role_id: Path<i64>,
+    json_data: ValidatedJson<UpdateTeamRoleDTO>,
+) -> impl Responder {
+    let id = team_role_id.into_inner();
+    let update_data = json_data.get_data();
+
+    match TeamRoleEntity::find_by_id(id).one(db.get_ref()).await {
+        Ok(Some(existing)) => {
+            let mut model: TeamRoleActiveModel = existing.into();
+            model.name = Set(update_data.name.clone());
+
+            match model.update(db.get_ref()).await {
+                Ok(_) => HttpResponse::Ok().finish(),
+                Err(err) => endpoint_internal_server_error(
+                    TEAM_ROLE_UPDATE_ROUTE_PATH,
+                    "Updating team role",
+                    Box::new(err),
+                ),
+            }
+        }
+
+        Ok(None) => HttpResponse::NotFound().body("Team role not found"),
+        Err(err) => endpoint_internal_server_error(
+            TEAM_ROLE_UPDATE_ROUTE_PATH,
+            "Finding team role",
             Box::new(err),
         ),
     }
