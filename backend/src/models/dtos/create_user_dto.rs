@@ -1,74 +1,65 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
-use serde::{Deserialize, Serialize};
+use crate::{
+    traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
+};
+use macros::GenerateFieldEnum;
+use serde::Deserialize;
 use utoipa::ToSchema;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
 pub struct CreateUserDTO {
+
+    #[enum_name("Username")]
+    #[validate(length(min = 1, max = 50))]
     pub username:   String,
+
+    #[enum_name("Name")]
+    #[validate(length(min = 1, max = 40))]
     pub name:       String,
+    
+    #[enum_name("LastName")]
+    #[validate(length(min = 1, max = 40))]
     pub last_name:  String,
+    
+    #[enum_name("Email")]
+    #[validate(email)]
     pub email:      String,
+    
+    #[enum_name("Password")]
+    #[validate(length(min = 8))]
     pub password:   String,
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATIONS
+// IMPLEMENTATION
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+#[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateUserDTO {
-    fn validate(&mut self) -> bool {
 
-        // Trim all strings
-        self.trim_strings();
+    type FieldNameEnums = CreateUserDTOField;
 
-        // Check for string emptiness
-        let is_any_string_empty: bool = self.check_if_all_strings_are_not_empty();
-        if is_any_string_empty == false {
-            return false;
-        }
-
-        return true;
-    }
-}
-
-#[rustfmt::skip]
-impl CreateUserDTO {
-
-    /*
-        If any new strings are added to this struct make sure to add new check in function below
-    */
-    /// Makes sure that all strings in struct are not empty <br/>
-    /// Returns true if all strings are not empty, otherwise returns false
-    pub fn check_if_all_strings_are_not_empty(&self) -> bool {
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         
-        if  self.username.is_empty()    == true ||
-            self.name.is_empty()        == true ||
-            self.last_name.is_empty()   == true ||
-            self.email.is_empty()       == true ||
-            self.password.is_empty()    == true
-        {
-            return  false;
-        }        
+        // Trim strings
+        let mut string_vec: Vec<&mut String> = vec![
+            &mut self.username,
+            &mut self.name,
+            &mut self.last_name,
+            &mut self.email,
+            &mut self.password
+        ];
 
-        return true;
-    }
+        StringHelper::trim_all_strings(&mut string_vec);
 
-    /*
-        If any new strings need to be trimmed in this struct (on function call) add them in function below
-    */
-    /// Removes empty spaces from start and end of strings
-    pub fn trim_strings(&mut self) {
-        self.username   = self.username.trim().to_string();
-        self.name       = self.name.trim().to_string();
-        self.last_name  = self.last_name.trim().to_string();
-        self.email      = self.email.trim().to_string();
-        self.password   = self.password.trim().to_string();
+        // Run validation
+        return self.validate();
     }
 }

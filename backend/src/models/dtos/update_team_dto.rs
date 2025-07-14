@@ -1,9 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
-};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use macros::GenerateFieldEnum;
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -14,35 +12,33 @@ use validator::{Validate, ValidationErrors};
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
-pub struct LoginUserDTO {
+pub struct UpdateTeamDTO {
 
-    #[enum_name("Email")]
-    #[validate(email)]
-    pub email:      String,
+    #[enum_name("Name")]
+    #[validate(length(min = 1, max = 150))]
+    pub name:           String,
 
-    #[enum_name("Password")]
-    #[validate(length(min = 8))]
-    pub password:   String,
+    #[enum_name("Description")]
+    pub description:    Option<String>
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATION
+// IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[allow(unused_variables)]
-impl EndpointJsonBodyData for LoginUserDTO {
+impl EndpointJsonBodyData for UpdateTeamDTO {
 
-    type FieldNameEnums = LoginUserDTOField;
+    type FieldNameEnums = UpdateTeamDTOField;
 
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
-        let mut string_vec: Vec<&mut String> = vec![
-            &mut self.email, 
-            &mut self.password
-        ];
+        self.name = self.name.trim().to_string();
 
-        StringHelper::trim_all_strings(&mut string_vec);
+        // Apply custom validation
+        Self::enforce_length_range_optional_string(UpdateTeamDTOField::Description, &self.description, Some(1), Some(400))
+            .map_err(|errs| errs)?;
 
         // Run validation
         return self.validate();

@@ -1,9 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
-};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use macros::GenerateFieldEnum;
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -14,35 +12,25 @@ use validator::{Validate, ValidationErrors};
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
-pub struct LoginUserDTO {
+pub struct UpdateTeamRoleDTO {
 
-    #[enum_name("Email")]
-    #[validate(email)]
-    pub email:      String,
-
-    #[enum_name("Password")]
-    #[validate(length(min = 8))]
-    pub password:   String,
+    #[enum_name("Name")]
+    #[validate(length(min = 1, max = 50))]
+    pub name: String,
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATION
+// IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 #[allow(unused_variables)]
-impl EndpointJsonBodyData for LoginUserDTO {
+impl EndpointJsonBodyData for UpdateTeamRoleDTO {
 
-    type FieldNameEnums = LoginUserDTOField;
+    type FieldNameEnums = UpdateTeamRoleDTOField;
 
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
-
-        // Trim strings
-        let mut string_vec: Vec<&mut String> = vec![
-            &mut self.email, 
-            &mut self.password
-        ];
-
-        StringHelper::trim_all_strings(&mut string_vec);
+        // Trim all strings
+        self.name = self.name.trim().to_string();
 
         // Run validation
         return self.validate();

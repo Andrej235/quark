@@ -1,21 +1,25 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData,
-    utils::string_helper::are_all_strings_full,
-};
-use serde::{Deserialize, Serialize};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use macros::GenerateFieldEnum;
+use serde::Deserialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 #[rustfmt::skip]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
 pub struct CreateTeamRoleDTO {
+
+    #[enum_name("Name")]
+    #[validate(length(min = 1, max = 50))]
     pub name:       String,
+
+    #[enum_name("TeamId")]
     pub team_id:    Uuid,
 }
 
@@ -23,17 +27,16 @@ pub struct CreateTeamRoleDTO {
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+#[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateTeamRoleDTO {
-    fn validate(&mut self) -> bool {
+
+    type FieldNameEnums = CreateTeamRoleDTOField;
+
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
         // Trim all strings
         self.name = self.name.trim().to_string();
 
-        // Check for string emptiness
-        let is_any_string_empty: bool = are_all_strings_full(&[&self.name]);
-        if is_any_string_empty == false {
-            return false;
-        }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

@@ -1,20 +1,24 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{
-    traits::endpoint_json_body_data::EndpointJsonBodyData,
-    utils::string_helper::are_all_strings_full,
-};
-use serde::{Deserialize, Serialize};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use macros::GenerateFieldEnum;
+use serde::Deserialize;
 use utoipa::ToSchema;
+use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 #[rustfmt::skip]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
 pub struct CreateTeamDTO {
+
+    #[enum_name("Name")]
+    #[validate(length(min = 1, max = 150))]
     pub name:           String,
+
+    #[enum_name("Description")]
     pub description:    Option<String>
 }
 
@@ -22,26 +26,21 @@ pub struct CreateTeamDTO {
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+#[allow(unused_variables)]
 impl EndpointJsonBodyData for CreateTeamDTO {
-    fn validate(&mut self) -> bool {
-        // Trim all strings
+
+    type FieldNameEnums = CreateTeamDTOField;
+
+    fn validate_data(&mut self) -> Result<(), ValidationErrors> {
+
+        // Trim strings
         self.name = self.name.trim().to_string();
 
-       if let Some(desc) = &self.description {
-            let trimmed = desc.trim().to_string();
-            // If after trimming, it's empty, treat as invalid
-            if trimmed.is_empty() {
-                return false;
-            }
-            self.description = Some(trimmed);
-        }
+        // Apply custom validation
+        Self::enforce_length_range_optional_string(CreateTeamDTOField::Description, &self.description, Some(1), Some(400))
+            .map_err(|errs| errs)?;
 
-        // Check for string emptiness
-        let is_any_string_empty: bool = are_all_strings_full(&[&self.name]);
-        if is_any_string_empty == false {
-            return false;
-        }
-
-        return true;
+        // Run validation
+        return self.validate();
     }
 }

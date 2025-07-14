@@ -4,8 +4,8 @@
 use crate::{
     api_doc::ApiDoc,
     routes::{
-        team_roles_routes::team_role_create,
-        team_routs::team_create,
+        team_roles_routes::{team_role_create, team_role_delete, team_role_update},
+        team_routs::{team_create, team_delete, team_update},
         user_routs::{
             check, log_in, log_out, refresh, reset_password, send_email_verification, sign_up,
             verify_email,
@@ -16,7 +16,7 @@ use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::{env, fs::File, io::Write};
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
@@ -29,6 +29,8 @@ pub static RESEND_API_KEY: OnceCell<String> = OnceCell::new();
 pub static RESEND_EMAIL: OnceCell<String> = OnceCell::new();
 
 pub static RESEND_INSTANCE: OnceCell<Resend> = OnceCell::new();
+
+pub static IS_DEVELOPMENT_ENV: OnceCell<bool> = OnceCell::new();
 
 // ------------------------------------------------------------------------------------
 // MODS
@@ -59,8 +61,12 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(refresh);
 
     cfg.service(team_create);
+    cfg.service(team_delete);
+    cfg.service(team_update);
 
     cfg.service(team_role_create);
+    cfg.service(team_role_delete);
+    cfg.service(team_role_update);
 }
 
 /*
@@ -101,17 +107,20 @@ async fn main() -> std::io::Result<()> {
 
 
     // Get and check if all required .env variables are set
-    let jwt_secret:     String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
-    let database_url:   String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
-    let resend_api_key:  String = env::var("RESEND_API_KEY").expect("RESEND_API_KEY not set.");
-    let resend_email:    String = env::var("RESEND_EMAIL").expect("RESEND_EMAIL not set.");
+    let jwt_secret:         String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
+    let database_url:       String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
+    let resend_api_key:     String = env::var("RESEND_API_KEY").expect("RESEND_API_KEY not set.");
+    let resend_email:       String = env::var("RESEND_EMAIL").expect("RESEND_EMAIL not set.");
+    let worker_threads:     String = env::var("WORKER_THREADS").expect("WORKER_THREADS not set.");
+    let is_development:     String = env::var("IS_DEVELOPMENT_ENV").expect("IS_DEVELOPMENT_ENV not set.");
+    let database_logging:   String = env::var("DATABASE_LOGGING").expect("DATABASE_LOGGING not set.");
 
 
     // Update public static variables
     JWT_SECRET.set(jwt_secret).unwrap();
     RESEND_API_KEY.set(resend_api_key).unwrap();
     RESEND_EMAIL.set(resend_email).unwrap();
-
+    IS_DEVELOPMENT_ENV.set(is_development.parse::<bool>().expect("Failed to cast IS_DEVELOPMENT_ENV to bool.")).unwrap();
 
     // Create resend instance
     // Its used for sending emails
@@ -120,18 +129,22 @@ async fn main() -> std::io::Result<()> {
 
 
     // Create database connection
-    let database_connection: DatabaseConnection = Database::connect(database_url)
+    let mut database_options: ConnectOptions = ConnectOptions::new(database_url);
+    database_options
+        .sqlx_logging(database_logging.parse::<bool>().expect("Failed to cast DATABASE_LOGGING to bool."));
+
+    let database_connection: DatabaseConnection = Database::connect(database_options)
         .await
-        .expect("Failed to connect to database");
+        .expect("Failed to establish database connection.");
 
 
-    // Start actix server
+    // Start server
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
             .configure(routes) // Register endpoints
     })
-    // .workers(16) // In production set this to number of threads that are available for server
+    .workers(worker_threads.parse::<usize>().unwrap())
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
