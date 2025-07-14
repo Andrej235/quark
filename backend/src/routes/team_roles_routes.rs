@@ -11,7 +11,7 @@ use crate::{
     },
     models::{
         authenticated_user::AuthenticatedUser,
-        dtos::{create_team_role_dto::CreateTeamRoleDTO, validatio_error_dto::ValidationErrorDTO},
+        dtos::{create_team_role_dto::CreateTeamRoleDTO, validation_error_dto::ValidationErrorDTO},
         validated_json::ValidatedJson,
     },
     utils::{

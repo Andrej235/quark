@@ -1,7 +1,7 @@
 use crate::entity::teams::{ActiveModel as TeamActiveModel, Entity as TeamEntity, Model as Team};
 use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::dtos::create_team_dto::CreateTeamDTO;
-use crate::models::dtos::validatio_error_dto::ValidationErrorDTO;
+use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::validated_json::ValidatedJson;
 use crate::utils::constants::{TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH};
 use crate::utils::http_helper::endpoint_internal_server_error;

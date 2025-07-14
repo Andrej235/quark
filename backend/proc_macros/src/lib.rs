@@ -36,7 +36,7 @@ pub fn generate_field_enum(input: TokenStream) -> TokenStream {
     }
 
     let expanded = quote! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum #enum_name {
             #(#variants),*
         }

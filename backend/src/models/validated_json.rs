@@ -2,7 +2,7 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::{
-    models::dtos::validatio_error_dto::ValidationErrorDTO,
+    models::dtos::validation_error_dto::ValidationErrorDTO,
     traits::endpoint_json_body_data::EndpointJsonBodyData,
 };
 use actix_web::{dev::Payload, web::Json, Error as ActixError, FromRequest, HttpRequest};
