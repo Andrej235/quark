@@ -7,4 +7,5 @@ pub mod login_user_dto;
 pub mod password_reset_dto;
 pub mod update_team_dto;
 pub mod update_team_role_dto;
+pub mod update_user;
 pub mod validation_error_dto;
