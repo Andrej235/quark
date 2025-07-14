@@ -3,6 +3,12 @@ name = "quark"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = [
+    ".",
+    "proc_macros"
+]
+
 [dependencies]
 actix-limitation = "0.5.1"
 actix-web = "4.11"
@@ -27,3 +33,5 @@ utoipa = { version = "5.4.0", features = ["actix_extras", "macros", "uuid"] }
 utoipa-swagger-ui = "9.0.2"
 uuid = { version = "1.17.0", features = ["v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive"] }
+
+macros = { path = "./proc_macros" }

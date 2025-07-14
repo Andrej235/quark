@@ -12,20 +12,14 @@ use validator::{ValidationError, ValidationErrors};
 #[allow(unused_variables)]
 pub trait EndpointJsonBodyData {
 
-    type StructFieldNamesEnum: Debug + Clone + Copy;
-
     /// Runs predefined validations. <br/>
     /// Returns true if all validations are passed, otherwise returns false.
     fn validate_data(&mut self) -> Result<(), ValidationErrors>;
 
-    /// Maps enum to field name
-    /// Returns field name
-    fn get_field_name(enm: Self::StructFieldNamesEnum) -> &'static str;
-
     /// Enforces length range for optional string.
     /// Returns Ok() if validation is passed, otherwise returns ValidationErrors
     fn enforce_length_range_optional_string(
-        field: Self::StructFieldNamesEnum,
+        field_name: &'static str,
         string: &Option<String>, 
         min: Option<isize>, 
         max: Option<isize>
@@ -67,7 +61,7 @@ pub trait EndpointJsonBodyData {
                 let min_value: isize = min.unwrap();
                 if inner_string_length < min_value {
                     return Err(create_validation_error_object(
-                        Self::get_field_name(field),
+                        field_name,
                         String::from(inner_string),
                         Some(min_value),
                         None
@@ -80,7 +74,7 @@ pub trait EndpointJsonBodyData {
                 let max_value: isize = max.unwrap();
                 if inner_string_length > max_value {
                     return Err(create_validation_error_object(
-                        Self::get_field_name(field),
+                        field_name,
                         String::from(inner_string),
                         None,
                         Some(max_value)
@@ -94,7 +88,7 @@ pub trait EndpointJsonBodyData {
                 let max_value: isize = max.unwrap();
                 if inner_string_length < min_value || inner_string_length > max_value {
                     return Err(create_validation_error_object(
-                        Self::get_field_name(field),
+                        field_name,
                         String::from(inner_string),
                         Some(min_value),
                         Some(max_value)

@@ -4,6 +4,7 @@
 use crate::{
     traits::endpoint_json_body_data::EndpointJsonBodyData, utils::string_helper::StringHelper,
 };
+use macros::GenerateFieldEnum;
 use serde::Deserialize;
 use utoipa::ToSchema;
 use validator::{Validate, ValidationErrors};
@@ -12,12 +13,14 @@ use validator::{Validate, ValidationErrors};
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Debug, Clone, ToSchema, Deserialize, Validate)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
 pub struct PasswordResetDTO {
 
+    #[enum_name("OldPassword")]
     #[validate(length(min = 8))]
     pub old_password: String,
 
+    #[enum_name("NewPassword")]
     #[validate(length(min = 8))]
     pub new_password: String,
 }
@@ -29,8 +32,6 @@ pub struct PasswordResetDTO {
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for PasswordResetDTO {
 
-    type StructFieldNamesEnum = ();
-    
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
@@ -44,6 +45,4 @@ impl EndpointJsonBodyData for PasswordResetDTO {
         // Run validation
         return self.validate();
     }
-
-    fn get_field_name(enm: Self::StructFieldNamesEnum) -> &'static str { todo!() }
 }
