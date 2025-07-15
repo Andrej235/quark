@@ -1,7 +1,16 @@
 import type { RefToSchemaName, SchemaFromString } from "./schema-parser";
 
 export type ParseSchemaProperty<T> = T extends { type: infer Type }
-  ? Type extends "integer"
+  ? ParseType<Type, T>
+  : T extends { $ref: infer Ref }
+    ? Ref extends string
+      ? SchemaFromString<RefToSchemaName<Ref>>
+      : never
+    : never;
+
+type ParseType<Type, Parent> = Type extends [...infer UnionTypes]
+  ? ParseType<UnionTypes[number], Parent>
+  : Type extends "integer"
     ? number
     : Type extends "number"
       ? number
@@ -9,19 +18,16 @@ export type ParseSchemaProperty<T> = T extends { type: infer Type }
         ? string
         : Type extends "boolean"
           ? boolean
-          : Type extends "array"
-            ? "items" extends keyof T
-              ? (
-                  | ParseSchemaProperty<T["items"]>
-                  | IsPropertyNullable<T["items"]>
-                )[]
-              : never
-            : never
-  : T extends { $ref: infer Ref }
-    ? Ref extends string
-      ? SchemaFromString<RefToSchemaName<Ref>>
-      : never
-    : never;
+          : Type extends "null"
+            ? null
+            : Type extends "array"
+              ? "items" extends keyof Parent
+                ? (
+                    | ParseSchemaProperty<Parent["items"]>
+                    | IsPropertyNullable<Parent["items"]>
+                  )[]
+                : never
+              : never;
 
 export type IsPropertyNullable<T> = T extends { nullable: true } ? null : never;
 

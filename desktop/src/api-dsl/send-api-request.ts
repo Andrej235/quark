@@ -24,7 +24,7 @@ export default async function sendApiRequest<
   request: T,
   abortSignal?: AbortSignal,
 ): Promise<Response<Endpoint, T>> {
-  const url = new URL(baseApiUrl + endpoint);
+  const url = new URL(baseApiUrl.concat(endpoint));
   const requestCopy = structuredClone(request);
 
   if ("parameters" in requestCopy) {

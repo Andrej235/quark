@@ -36,11 +36,25 @@ export type ParseSchema<T extends SchemaInfo<SchemaNames>> =
 
 type ParseSchemaObject<T extends SchemaInfo<SchemaNames>> =
   "properties" extends keyof T
-    ? {
-        [P in keyof T["properties"]]:
-          | ParseSchemaProperty<T["properties"][P]>
-          | IsPropertyNullable<T["properties"][P]>;
-      }
+    ? "required" extends keyof T
+      ? {
+          [P in keyof T["properties"] as P extends T["required"][number]
+            ? P
+            : never]:
+            | ParseSchemaProperty<T["properties"][P]>
+            | IsPropertyNullable<T["properties"][P]>;
+        } & {
+          [P in keyof T["properties"] as P extends T["required"][number]
+            ? never
+            : P]?:
+            | ParseSchemaProperty<T["properties"][P]>
+            | IsPropertyNullable<T["properties"][P]>;
+        }
+      : {
+          [P in keyof T["properties"]]?:
+            | ParseSchemaProperty<T["properties"][P]>
+            | IsPropertyNullable<T["properties"][P]>;
+        }
     : never;
 
 export type RefToSchemaName<Ref extends string> = LastElement<Split<Ref, "/">>;
