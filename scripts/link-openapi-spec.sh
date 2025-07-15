@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd `pwd`/backend
-map=$(GENERATE_OPENAPI_MAP=true cargo run)
+spec=$(GENERATE_API_SPEC=true cargo run)
 
 cd -
-echo "export type ApiMap=$map" > `pwd`/desktop/src/api-dsl/api-map.ts
+echo "export type ApiSpec=$spec" > `pwd`/desktop/src/api-dsl/api-spec.ts

@@ -73,7 +73,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
 
 /*
     This function is used to generate an OpenAPI spec.
-    It runs at every server instance start if the env variable GENERATE_OPENAPI_MAP is set.
+    It runs at every server instance start if the env variable GENERATE_API_SPEC is set.
 */
 fn generate_openapi_string() -> String {
     let openapi = ApiDoc::openapi();
@@ -97,8 +97,8 @@ async fn main() -> std::io::Result<()> {
         .init();
 
 
-    // If the env variable GENERATE_OPENAPI_MAP is set to true, write OpenAPI spec to standard output and prevent server start
-    if env::var("GENERATE_OPENAPI_MAP").map(|v| v == "true").unwrap_or(false) {
+    // If the env variable GENERATE_API_SPEC is set to true, write OpenAPI spec to standard output and prevent server start
+    if env::var("GENERATE_API_SPEC").map(|v| v == "true").unwrap_or(false) {
         println!("{}", generate_openapi_string());
         return Ok(());
     }
