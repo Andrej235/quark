@@ -7,10 +7,12 @@ use crate::{
         team_roles_routes::{team_role_create, team_role_delete, team_role_update},
         team_routs::{team_create, team_delete, team_update},
         user_routs::{
-            check, send_email_verification, user_log_in, user_log_out, user_password_reset, user_refresh, user_sign_up, user_update, verify_email
+            check, send_email_verification, user_log_in, user_log_out, user_password_reset,
+            user_refresh, user_sign_up, user_update, verify_email,
         },
     },
 };
+use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;
@@ -141,6 +143,13 @@ async fn main() -> std::io::Result<()> {
     // Start server
     HttpServer::new(move || {
         App::new()
+            .wrap(
+                Cors::default()
+                .allow_any_origin()
+                .allow_any_method()
+                .allow_any_header()
+                .supports_credentials()
+            )
             .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
             .configure(routes) // Register endpoints
     })
