@@ -18,6 +18,7 @@ pub const LOG_IN_ROUTE_PATH: &'static str = "/user/login";
 pub const LOG_OUT_ROUTE_PATH: &'static str = "/user/logout/{refresh_token_id}";
 pub const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
 pub const RESET_PASSWORD_ROUTE_PATH: &'static str = "/user/reset-password";
+pub const USER_UPDATE_ROUTE_PATH: &'static str = "/user/update";
 pub const CHECK_ROUTE_PATH: &'static str = "/user/check";
 
 pub const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/email/verify/{token}";

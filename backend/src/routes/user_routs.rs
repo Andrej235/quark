@@ -6,6 +6,7 @@ use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
+use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::sroute_error::SRouteError;
@@ -15,7 +16,7 @@ use crate::utils::constants::{
     CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, JWT_TOKEN_EXPIRATION_OFFSET,
     LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH, REFRESH_TOKEN_EXPIRATION_OFFSET,
     RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH, SIGN_UP_ROUTE_PATH,
-    VERIFY_EMAIL_ROUTE_PATH,
+    USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
@@ -70,7 +71,7 @@ use uuid::Uuid;
 )]
 #[post("/user/signup")]
 #[rustfmt::skip]
-pub async fn sign_up(
+pub async fn user_sign_up(
     db: Data<DatabaseConnection>,
     json_data: ValidatedJson<CreateUserDTO>
 ) -> impl Responder {
@@ -143,7 +144,7 @@ pub async fn sign_up(
 )]
 #[post("/user/login")]
 #[rustfmt::skip]
-async fn log_in(    
+async fn user_log_in(    
     db: Data<DatabaseConnection>,
     json_data: ValidatedJson<LoginUserDTO>
 ) -> impl Responder {
@@ -267,7 +268,7 @@ async fn log_in(
 )]
 #[post("/user/logout/{refresh_token_id}")]
 #[rustfmt::skip]
-async fn log_out(    
+async fn user_log_out(    
     db: Data<DatabaseConnection>,
     path: Path<Uuid>
 ) -> impl Responder {
@@ -276,16 +277,14 @@ async fn log_out(
     let refresh_token_id = path.into_inner();
 
     // Try to delete refresh token
-    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id)
+    match RefreshTokenEntity::delete_by_id(refresh_token_id)
         .exec(db.get_ref())
-        .await;
-    
-    match delete_refresh_token_result {
-        Ok(_) => (),
-        Err(err) => {
-            return endpoint_internal_server_error(LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
-        }
-    };
+        .await {
+            Ok(_) => (),
+            Err(err) => {
+                return endpoint_internal_server_error(LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
+            }
+        };
 
     return HttpResponse::Ok().finish();
 }
@@ -308,7 +307,7 @@ async fn log_out(
 )]
 #[post("/user/refresh")]
 #[rustfmt::skip]
-async fn refresh(
+async fn user_refresh(
     db: Data<DatabaseConnection>,
     json_data: ValidatedJson<JWTRefreshTokenPairDTO>  
 ) -> impl Responder {
@@ -367,9 +366,6 @@ async fn refresh(
     }
 
 
-    // -------------------->
-    // New token creation
-    // -------------------->
     // Delete old refresh token and create new one
     let new_refresh_token: RefreshToken = match recycle_refresh_token(refresh_token.id, claims.user_id, db).await {
         Ok(token) => token,
@@ -524,7 +520,7 @@ async fn send_email_verification(
 )]
 #[post("/user/reset-password")]
 #[rustfmt::skip]
-async fn reset_password(
+async fn user_password_reset(
     db: Data<DatabaseConnection>,
     auth_user: AuthenticatedUser,
     json_data: ValidatedJson<PasswordResetDTO>
@@ -575,6 +571,65 @@ async fn reset_password(
             return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
         }
     };
+
+    return HttpResponse::Ok().finish();
+}
+
+/*
+**  update
+*/
+#[utoipa::path(
+    put,
+    path = USER_UPDATE_ROUTE_PATH,
+    responses(
+        (status = 200, description = "User updated"),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+    )
+)]
+#[put("/user/update")]
+#[rustfmt::skip]
+async fn user_update(
+    db: Data<DatabaseConnection>,
+    auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<UpdateUserDTO>
+) -> impl Responder {
+    
+    // Get json data
+    let update_user_data: &UpdateUserDTO = json_data.get_data();
+
+    // Get user
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(),
+            Err(err) => {
+                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+
+    // Update user
+    let mut user_active_model: UserActiveModel = user.into();
+
+    if update_user_data.name.is_some() {
+        user_active_model.name = Set(update_user_data.name.clone().unwrap());
+    }
+
+    if update_user_data.last_name.is_some() {
+        user_active_model.last_name = Set(update_user_data.last_name.clone().unwrap());
+    }
+
+    if update_user_data.username.is_some() {
+        user_active_model.username = Set(update_user_data.username.clone().unwrap());
+    }
+
+    match user_active_model
+        .update(db.get_ref())
+        .await {
+            Ok(_) => {},
+            Err(err) => {
+                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
+            }
+        };
 
     return HttpResponse::Ok().finish();
 }
