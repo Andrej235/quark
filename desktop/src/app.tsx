@@ -1,7 +1,7 @@
-import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Login from "./components/authentication/login";
 import Signup from "./components/authentication/signup";
+
 export default function App() {
   return (
     <BrowserRouter>

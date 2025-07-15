@@ -8,6 +8,7 @@ import globals from "globals";
 export default [
   {
     files: ["src/**/*.{js,mjs,cjs,ts,tsx}"],
+    ignores: ["src/api-dsl/api-map.ts"],
     languageOptions: {
       parser: parserTs,
       parserOptions: {
@@ -37,6 +38,7 @@ export default [
         "error",
         { argsIgnorePattern: "^_" },
       ],
+      "react/react-in-jsx-scope": "off",
       "prefer-const": "error",
     },
     settings: {
