@@ -7,7 +7,6 @@ import {
   MouseEvent,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -44,7 +43,6 @@ export default function Signup() {
   const [touched, setTouched] = useState<Touched>({});
   const [isValid, setIsValid] = useState<boolean>(false);
 
-  const isFirstTimeRenderRef = useRef(true);
   const navigate = useNavigate();
 
   const validateForm = useCallback(() => {
@@ -63,8 +61,7 @@ export default function Signup() {
     if (!fields.lastName.trim())
       newErrors.lastName = "Please enter a last name";
 
-    if (!fields.email.trim() || !fields.email.includes("@"))
-      newErrors.email = "Please enter an email address";
+    if (!fields.email.trim()) newErrors.email = "Please enter an email address";
     else if (
       !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(fields.email)
     )
@@ -80,10 +77,6 @@ export default function Signup() {
   }, [fields]);
 
   useEffect(() => {
-    if (isFirstTimeRenderRef.current) {
-      isFirstTimeRenderRef.current = false;
-      return;
-    }
     validateForm();
   }, [fields, validateForm]);
 
@@ -96,23 +89,7 @@ export default function Signup() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setTouched({
-      username: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      password: true,
-      confirmPassword: true,
-    });
-    validateForm();
-    if (Object.keys(errors).length === 0) {
-      navigate("/login");
-    }
-  };
-
-  const handleSignUpClick = (e: MouseEvent) => {
+  const handleSubmit = (e: MouseEvent | FormEvent) => {
     e.preventDefault();
     setTouched({
       username: true,
@@ -241,7 +218,7 @@ export default function Signup() {
             <Button
               type="submit"
               disabled={!isValid}
-              onClick={handleSignUpClick}
+              onClick={handleSubmit}
               className={`bg-input hover:bg-primary-dark mt-5 h-12 w-full rounded-2xl p-2 text-white transition-colors ${
                 !isValid ? "cursor-not-allowed opacity-50" : "cursor-pointer"
               }`}
