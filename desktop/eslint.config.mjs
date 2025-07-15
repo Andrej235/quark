@@ -8,7 +8,7 @@ import globals from "globals";
 export default [
   {
     files: ["src/**/*.{js,mjs,cjs,ts,tsx}"],
-    ignores: ["src/api-dsl/api-map.ts"],
+    ignores: ["**/api-map.ts"],
     languageOptions: {
       parser: parserTs,
       parserOptions: {
