@@ -40,6 +40,7 @@ export default [
       ],
       "react/react-in-jsx-scope": "off",
       "prefer-const": "error",
+      "@typescript-eslint/no-floating-promises": "off",
     },
     settings: {
       react: {

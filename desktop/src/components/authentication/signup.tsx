@@ -1,92 +1,132 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
 import { CircleAlert } from "lucide-react";
+import {
+  ChangeEvent,
+  FormEvent,
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+type Errors = {
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+};
+
+type Touched = {
+  username?: boolean;
+  firstName?: boolean;
+  lastName?: boolean;
+  email?: boolean;
+  password?: boolean;
+  confirmPassword?: boolean;
+};
 
 export default function Signup() {
-  const [username, setUsername] = useState<string>("");
-  const [firstName, setFirstName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [fields, setFields] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-  const [errorComparePassword, setErrorComparePassword] = useState<string>("");
-  const [errorPassword, setErrorPassword] = useState<string>("");
-  const [errorUsername, setErrorUsername] = useState<string>("");
-  const [errorFirstName, setErrorFirstName] = useState<string>("");
-  const [errorLastName, setErrorLastName] = useState<string>("");
-  const [errorEmail, setErrorEmail] = useState<string>("");
-  const isFirstTimeRenderRef = useRef(false);
+  const [errors, setErrors] = useState<Errors>({});
+  const [touched, setTouched] = useState<Touched>({});
+  const [isValid, setIsValid] = useState<boolean>(false);
 
-  const [isValid, setIsValid] = useState<boolean>(true);
-
+  const isFirstTimeRenderRef = useRef(true);
   const navigate = useNavigate();
 
   const validateForm = useCallback(() => {
-    let valid = true;
+    const newErrors: Errors = {};
 
-    setErrorUsername("");
-    setErrorPassword("");
-    setErrorComparePassword("");
-    setErrorFirstName("");
-    setErrorLastName("");
-    setErrorEmail("");
+    if (!fields.username.trim()) newErrors.username = "Please enter a username";
+    else if (fields.username.trim().length < 3)
+      newErrors.username = "Username must be at least 3 characters";
+    else if (!/^[a-zA-Z0-9-]+$/.test(fields.username.trim()))
+      newErrors.username =
+        "Username can only contain letters, numbers, and dashes";
 
-    if (username.trim() === "") {
-      setErrorUsername("Please enter a username");
-      valid = false;
-    }
+    if (!fields.firstName.trim())
+      newErrors.firstName = "Please enter a first name";
 
-    if (firstName.trim() === "") {
-      setErrorFirstName("Please enter a first name");
-      valid = false;
-    }
+    if (!fields.lastName.trim())
+      newErrors.lastName = "Please enter a last name";
 
-    if (lastName.trim() === "") {
-      setErrorLastName("Please enter a last name");
-      valid = false;
-    }
+    if (!fields.email.trim() || !fields.email.includes("@"))
+      newErrors.email = "Please enter an email address";
+    else if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(fields.email)
+    )
+      newErrors.email = "Please enter a valid email address";
 
-    if (password.trim() === "") {
-      setErrorPassword("Please enter a password");
-      valid = false;
-    }
+    if (!fields.password.trim()) newErrors.password = "Please enter a password";
 
-    if (password !== confirmPassword) {
-      setErrorComparePassword("Passwords do not match");
-      valid = false;
-    }
+    if (fields.password !== fields.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
 
-    if (email.trim() === "" || !email.includes("@")) {
-      setErrorEmail("Please enter a valid email address");
-      valid = false;
-    }
-
-    setIsValid(valid);
-  }, [confirmPassword, email, firstName, lastName, password, username]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
-  const handleSignUpClick = () => {
-    validateForm();
-
-    if (isValid === false) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    navigate("/login");
-  };
+    setErrors(newErrors);
+    setIsValid(Object.keys(newErrors).length === 0);
+  }, [fields]);
 
   useEffect(() => {
-    if (isFirstTimeRenderRef.current === true) {
+    if (isFirstTimeRenderRef.current) {
       isFirstTimeRenderRef.current = false;
       return;
     }
     validateForm();
-  }, [validateForm]);
+  }, [fields, validateForm]);
+
+  const handleChange =
+    (field: keyof typeof fields) => (e: ChangeEvent<HTMLInputElement>) => {
+      setFields((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+
+  const handleBlur = (field: keyof typeof fields) => () => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setTouched({
+      username: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+    });
+    validateForm();
+    if (Object.keys(errors).length === 0) {
+      navigate("/login");
+    }
+  };
+
+  const handleSignUpClick = (e: MouseEvent) => {
+    e.preventDefault();
+    setTouched({
+      username: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+    });
+    validateForm();
+    if (Object.keys(errors).length === 0) {
+      navigate("/login");
+    }
+  };
 
   return (
     <div className="bg-background flex min-h-screen w-full flex-col items-center justify-center">
@@ -106,11 +146,13 @@ export default function Signup() {
               <Input
                 type="text"
                 className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                onChange={(e) => setUsername(e.target.value)}
+                value={fields.username}
+                onChange={handleChange("username")}
+                onBlur={handleBlur("username")}
               />
-              {errorUsername && (
+              {touched.username && errors.username && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                  <CircleAlert /> Required
+                  <CircleAlert /> {errors.username}
                 </p>
               )}
             </div>
@@ -121,11 +163,13 @@ export default function Signup() {
                 <Input
                   type="text"
                   className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                  onChange={(e) => setFirstName(e.target.value)}
+                  value={fields.firstName}
+                  onChange={handleChange("firstName")}
+                  onBlur={handleBlur("firstName")}
                 />
-                {errorFirstName && (
+                {touched.firstName && errors.firstName && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                    <CircleAlert /> Required
+                    <CircleAlert /> {errors.firstName}
                   </p>
                 )}
               </div>
@@ -134,11 +178,13 @@ export default function Signup() {
                 <Input
                   type="text"
                   className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                  onChange={(e) => setLastName(e.target.value)}
+                  value={fields.lastName}
+                  onChange={handleChange("lastName")}
+                  onBlur={handleBlur("lastName")}
                 />
-                {errorLastName && (
+                {touched.lastName && errors.lastName && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                    <CircleAlert /> Required
+                    <CircleAlert /> {errors.lastName}
                   </p>
                 )}
               </div>
@@ -149,11 +195,13 @@ export default function Signup() {
               <Input
                 type="text"
                 className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                onChange={(e) => setEmail(e.target.value)}
+                value={fields.email}
+                onChange={handleChange("email")}
+                onBlur={handleBlur("email")}
               />
-              {errorEmail && (
+              {touched.email && errors.email && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                  <CircleAlert /> Required
+                  <CircleAlert /> {errors.email}
                 </p>
               )}
             </div>
@@ -163,25 +211,29 @@ export default function Signup() {
               <Input
                 type="password"
                 className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                onChange={(e) => setPassword(e.target.value)}
+                value={fields.password}
+                onChange={handleChange("password")}
+                onBlur={handleBlur("password")}
               />
-              {errorPassword && (
+              {touched.password && errors.password && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                  <CircleAlert /> Required
+                  <CircleAlert /> {errors.password}
                 </p>
               )}
             </div>
 
             <div className="flex w-full flex-col gap-2">
-              <h6 className="text-sm">Comfirm Password</h6>
+              <h6 className="text-sm">Confirm Password</h6>
               <Input
                 type="password"
                 className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                value={fields.confirmPassword}
+                onChange={handleChange("confirmPassword")}
+                onBlur={handleBlur("confirmPassword")}
               />
-              {errorComparePassword && (
+              {touched.confirmPassword && errors.confirmPassword && (
                 <p className="text-destructive text-xs">
-                  {errorComparePassword}
+                  {errors.confirmPassword}
                 </p>
               )}
             </div>
