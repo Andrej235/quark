@@ -1,31 +1,36 @@
+use rand::RngCore;
+use std::fs;
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_stronghold::Builder::new(|password| {
-                // Hash the password here with e.g. argon2, blake2b or any other secure algorithm
-                // Here is an example implementation using the `rust-argon2` crate for hashing the password
+        .setup(|app| {
+            let salt_path = app
+                .path()
+                .app_local_data_dir()
+                .expect("could not resolve app local data path")
+                .join("salt.txt");
 
-                use argon2::{hash_raw, Config, Variant, Version};
+            if !salt_path.exists() {
+                let mut salt = [0u8; 32];
+                rand::thread_rng().fill_bytes(&mut salt);
+                fs::create_dir_all(salt_path.parent().unwrap())?;
+                fs::write(&salt_path, &salt)?;
+            }
 
-                let config = Config {
-                    lanes: 4,
-                    mem_cost: 10_000,
-                    time_cost: 10,
-                    variant: Variant::Argon2id,
-                    version: Version::Version13,
-                    ..Default::default()
-                };
+            let salt_path = app
+                .path()
+                .app_local_data_dir()
+                .expect("could not resolve app local data path")
+                .join("salt.txt");
 
-                let salt = "your-salt".as_bytes();
+            app.handle()
+                .plugin(tauri_plugin_stronghold::Builder::with_argon2(&salt_path).build())?;
 
-                let key =
-                    hash_raw(password.as_ref(), salt, &config).expect("failed to hash password");
-
-                key.to_vec()
-            })
-            .build(),
-        )
+            Ok(())
+        })
+        .plugin(tauri_plugin_opener::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
