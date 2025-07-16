@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
@@ -8,8 +9,10 @@ import {
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Input } from "./ui/input";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import useAuthStore from "@/stores/auth-store";
 
 type Errors = {
   email?: string;
@@ -31,6 +34,8 @@ export default function Login() {
   const [touched, setTouched] = useState<Touched>({});
   const [isValid, setIsValid] = useState<boolean>(false);
   const navigate = useNavigate();
+  const setJwt = useAuthStore((x) => x.setJwt);
+  const setRefreshToken = useAuthStore((x) => x.setRefreshToken);
 
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
@@ -60,7 +65,7 @@ export default function Login() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleSubmit = (e: MouseEvent | FormEvent) => {
+  const handleSubmit = async (e: MouseEvent | FormEvent) => {
     e.preventDefault();
     setTouched({
       email: true,
@@ -68,9 +73,25 @@ export default function Login() {
     });
     validateForm();
 
-    if (Object.keys(errors).length === 0) {
-      navigate("/");
+    if (Object.keys(errors).length > 0) return;
+
+    const { error, response } = await sendApiRequest("/user/login", {
+      method: "post",
+      payload: {
+        email: fields.email.trim(),
+        password: fields.password.trim(),
+      },
+    });
+
+    if (error || !response) {
+      toast.error(error?.message || "Something went wrong. Please try again.");
+      return;
     }
+
+    toast.success(JSON.stringify(response));
+    setJwt(response.jwt_token);
+    await setRefreshToken(response.refresh_token_id);
+    navigate("/");
   };
 
   return (
