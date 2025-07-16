@@ -8,8 +8,8 @@ import {
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 
 type Errors = {
   email?: string;
