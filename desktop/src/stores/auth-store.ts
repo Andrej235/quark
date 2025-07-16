@@ -28,9 +28,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
     get().stronghold?.unload();
 
     try {
-      console.log("initStronghold", performance.now());
       const stronghold = await Stronghold.load(VAULT_PATH, VAULT_KEY);
-      console.log("stronghold loaded", performance.now());
 
       let client;
       try {
@@ -136,12 +134,10 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       if (jwt) {
         const data = Array.from(new TextEncoder().encode(jwt));
         await store.insert(JWT_KEY, data);
-        console.log("setJwt", jwt, performance.now());
       } else {
         await store.remove(JWT_KEY);
       }
       await stronghold!.save();
-      console.log("save");
     } catch (error) {
       console.error("Failed to save jwt:", error);
     }
@@ -157,17 +153,14 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       const store = get().client!.getStore();
 
       if (!refreshToken) {
-        console.log(3, "remove");
         await store.remove(REFRESH_TOKEN_KEY);
         await stronghold!.save();
         return;
       }
 
-      console.log("setRefreshToken", refreshToken, performance.now());
       const data = Array.from(new TextEncoder().encode(refreshToken));
       await store.insert(REFRESH_TOKEN_KEY, data);
       await stronghold!.save();
-      console.log("save");
     } catch (error) {
       console.error("Failed to save refresh token:", error);
     }
