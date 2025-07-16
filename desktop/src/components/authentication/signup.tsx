@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CircleAlert } from "lucide-react";
@@ -89,7 +90,7 @@ export default function Signup() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleSubmit = (e: MouseEvent | FormEvent) => {
+  const handleSubmit = async (e: MouseEvent | FormEvent) => {
     e.preventDefault();
     setTouched({
       username: true,
@@ -100,9 +101,23 @@ export default function Signup() {
       confirmPassword: true,
     });
     validateForm();
-    if (Object.keys(errors).length === 0) {
-      navigate("/login");
-    }
+
+    if (Object.keys(errors).length > 0) return;
+
+    const { isOk } = await sendApiRequest("/user/signup", {
+      method: "post",
+      payload: {
+        name: fields.firstName,
+        last_name: fields.lastName,
+        username: fields.username,
+        email: fields.email,
+        password: fields.password,
+      },
+    });
+
+    if (!isOk) return;
+
+    navigate("/login");
   };
 
   return (

@@ -60,13 +60,14 @@ export default function Login() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleLogInClick = (e: MouseEvent | FormEvent) => {
+  const handleSubmit = (e: MouseEvent | FormEvent) => {
     e.preventDefault();
     setTouched({
       email: true,
       password: true,
     });
     validateForm();
+
     if (Object.keys(errors).length === 0) {
       navigate("/");
     }
@@ -78,7 +79,7 @@ export default function Login() {
         <div className="bg-secondary h-xl w-md shadow-muted border-muted rounded-xl border-2 shadow-lg">
           <form
             className="p-15 flex h-full flex-col items-center justify-center gap-4"
-            onSubmit={handleLogInClick}
+            onSubmit={handleSubmit}
           >
             <h1 className="text-foreground mb-1 text-3xl">Welcome to Quark!</h1>
             <p className="mb-5">Ready for a new day?</p>
@@ -124,7 +125,7 @@ export default function Login() {
             <Button
               type="submit"
               className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
-              onClick={handleLogInClick}
+              onClick={handleSubmit}
               disabled={!isValid}
               asChild
             >
