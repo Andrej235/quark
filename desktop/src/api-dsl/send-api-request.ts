@@ -1,3 +1,4 @@
+import useAuthStore from "@/stores/auth-store";
 import { Endpoints, Methods } from "./types/endpoints/endpoints";
 import { Request } from "./types/endpoints/request-parser";
 import { ApiResponse } from "./types/endpoints/response-parser";
@@ -22,6 +23,7 @@ export default async function sendApiRequest<
 >(
   endpoint: Endpoint,
   request: T,
+  includeCredentials: boolean = true,
   abortSignal?: AbortSignal,
 ): Promise<Response<Endpoint, T>> {
   const url = new URL(baseApiUrl.concat(endpoint));
@@ -52,6 +54,9 @@ export default async function sendApiRequest<
     body: body,
     headers: {
       "Content-Type": "application/json",
+      ...(includeCredentials && {
+        Authorization: `Bearer ${await useAuthStore.getState().getJwt()}`,
+      }),
     },
   };
 

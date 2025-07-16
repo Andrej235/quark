@@ -34,7 +34,7 @@ export default function Login() {
   const [touched, setTouched] = useState<Touched>({});
   const [isValid, setIsValid] = useState<boolean>(false);
   const navigate = useNavigate();
-  const setJwt = useAuthStore((x) => x.setJwt);
+  // const setJwt = useAuthStore((x) => x.setJwt);
   const setRefreshToken = useAuthStore((x) => x.setRefreshToken);
 
   const validateForm = useCallback(() => {
@@ -89,7 +89,7 @@ export default function Login() {
     }
 
     toast.success(JSON.stringify(response));
-    setJwt(response.jwt_token);
+    // await setJwt(response.jwt_token);
     await setRefreshToken(response.refresh_token_id);
     navigate("/");
   };

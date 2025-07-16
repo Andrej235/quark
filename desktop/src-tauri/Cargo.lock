@@ -3419,7 +3419,9 @@ dependencies = [
 name = "quark"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "rand 0.8.5",
+ "rust-argon2 2.1.0",
  "serde",
  "serde_json",
  "tauri",

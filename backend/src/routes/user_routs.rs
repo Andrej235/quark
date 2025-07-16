@@ -19,6 +19,7 @@ use crate::utils::constants::{
     USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
 use crate::utils::http_helper::endpoint_internal_server_error;
+use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -29,18 +30,17 @@ use crate::{
     },
     models::dtos::create_user_dto::CreateUserDTO,
 };
-use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::web::{Data, Path};
 use actix_web::*;
 use argon2::PasswordHash;
 use argon2::{
-    password_hash::{rand_core::OsRng, Error as Argon2Error, SaltString},
     Argon2, PasswordHasher,
+    password_hash::{Error as Argon2Error, SaltString, rand_core::OsRng},
 };
 use chrono::{Duration, NaiveDateTime, Utc};
 use jsonwebtoken::{
-    decode, encode, errors::Error as JWTTokenError, DecodingKey, EncodingKey, Header, TokenData,
-    Validation,
+    DecodingKey, EncodingKey, Header, TokenData, Validation, decode, encode,
+    errors::Error as JWTTokenError,
 };
 use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::{Error as ResendError, Resend};
@@ -295,6 +295,7 @@ async fn user_log_out(
 #[utoipa::path(
     post,
     path = REFRESH_ROUTE_PATH,
+    request_body = JWTRefreshTokenPairDTO,
     responses(
         (status = 200, description = "Token pair refreshed", body = JWTRefreshTokenPairDTO),
         (status = 401, description = "Possible messages: Invalid JWT token, 
