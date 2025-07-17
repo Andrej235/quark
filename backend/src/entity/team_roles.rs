@@ -10,6 +10,7 @@ pub struct Model {
     pub team_id: Uuid,
     #[sea_orm(column_type = "Text")]
     pub name: String,
+    pub permissions: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

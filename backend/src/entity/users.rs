@@ -13,6 +13,8 @@ pub struct Model {
     pub name: String,
     #[sea_orm(column_type = "Text")]
     pub last_name: String,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
+    pub profile_picture: Option<Vec<u8>>,
     pub is_email_verified: bool,
     #[sea_orm(column_type = "Text")]
     pub email: String,
@@ -20,8 +22,6 @@ pub struct Model {
     pub salt: String,
     #[sea_orm(column_type = "Text")]
     pub hashed_password: String,
-    #[sea_orm(column_type = "Blob", nullable)]
-    pub profile_picture: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

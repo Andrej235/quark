@@ -3,7 +3,7 @@ CREATE TABLE "users" (
   "username" TEXT NOT NULL,
   "name" TEXT NOT NULL,
   "last_name" TEXT NOT NULL,
-  "profile_picture" BYTEA;
+  "profile_picture" BYTEA,
   "is_email_verified" BOOLEAN NOT NULL,
   "email" TEXT NOT NULL,
   "salt" TEXT NOT NULL,
@@ -26,7 +26,8 @@ CREATE TABLE "teams" (
 CREATE TABLE "team_roles" (
   "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY NOT NULL,
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
-  "name" TEXT NOT NULL
+  "name" TEXT NOT NULL,
+  "permissions" INTEGER NOT NULL
 );
 
 CREATE TABLE "team_members" (

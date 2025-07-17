@@ -3,9 +3,16 @@
 // ------------------------------------------------------------------------------------
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use macros::GenerateFieldEnum;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::Deserialize;
 use utoipa::ToSchema;
 use validator::{Validate, ValidationErrors};
+
+// ------------------------------------------------------------------------------------
+// STATICS
+// ------------------------------------------------------------------------------------
+static NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9\-]+$").unwrap());
 
 // ------------------------------------------------------------------------------------
 // STRUCT
@@ -15,6 +22,7 @@ use validator::{Validate, ValidationErrors};
 pub struct CreateTeamDTO {
 
     #[enum_name("Name")]
+    #[validate(regex(path = "*NAME_REGEX"))]
     #[validate(length(min = 1, max = 150))]
     pub name:           String,
 
