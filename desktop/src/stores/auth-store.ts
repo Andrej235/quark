@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { Stronghold, Client } from "@tauri-apps/plugin-stronghold";
-import { appDataDir } from "@tauri-apps/api/path";
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { appDataDir } from "@tauri-apps/api/path";
+import { Client, Stronghold } from "@tauri-apps/plugin-stronghold";
+import { create } from "zustand";
 
 const VAULT_PATH = `${await appDataDir()}/vault.hold`;
 const VAULT_KEY = "vault-key";
@@ -98,7 +98,9 @@ const useAuthStore = create<AuthStore>((set, get) => ({
             refreshTokenId: refreshToken,
           },
         },
-        false,
+        {
+          includeCredentials: false,
+        },
       );
 
       // Failed to refresh, either the user has mismatched claims or the refresh token is expired, log them out
