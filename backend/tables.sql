@@ -1,3 +1,9 @@
+CREATE TABLE "teams" (
+  "id" UUID PRIMARY KEY NOT NULL,
+  "name" TEXT NOT NULL,
+  "description" TEXT
+);
+
 CREATE TABLE "users" (
   "id" UUID PRIMARY KEY NOT NULL,
   "username" TEXT NOT NULL,
@@ -7,7 +13,9 @@ CREATE TABLE "users" (
   "is_email_verified" BOOLEAN NOT NULL,
   "email" TEXT NOT NULL,
   "salt" TEXT NOT NULL,
-  "hashed_password" TEXT NOT NULL
+  "hashed_password" TEXT NOT NULL,
+
+  "default_team_id" UUID REFERENCES "teams"("id") ON DELETE CASCADE
 );
 
 CREATE TABLE "refresh_tokens" (
@@ -15,12 +23,6 @@ CREATE TABLE "refresh_tokens" (
   "expire_time" TIMESTAMP NOT NULL,
   "jit" UUID NOT NULL,
   "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE
-);
-
-CREATE TABLE "teams" (
-  "id" UUID PRIMARY KEY NOT NULL,
-  "name" TEXT NOT NULL,
-  "description" TEXT
 );
 
 CREATE TABLE "team_roles" (

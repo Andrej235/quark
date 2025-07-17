@@ -8,6 +8,7 @@ use crate::entity::team_roles::ActiveModel as TeamRoleActiveModel;
 use crate::entity::teams::{
     ActiveModel as TeamActiveModel, Column as TeamColumn, Entity as TeamEntity,
 };
+use crate::entity::users::ActiveModel as UserActiveModel;
 use crate::models::dtos::create_team_dto::CreateTeamDTO;
 use crate::models::dtos::update_team_dto::UpdateTeamDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
@@ -38,7 +39,8 @@ use uuid::Uuid;
 // ************************************************************************************
 lazy_static! {
     static ref OWNER_PERMISSIONS: i32 = Role::all().bits();
-    static ref MODERATOR_PERMISSIONS: i32 = (Role::CAN_ADD_TEAM_MEMBER | Role::CAN_REMOVE_TEAM_MEMBER).bits();
+    static ref MODERATOR_PERMISSIONS: i32 =
+        (Role::CAN_ADD_TEAM_MEMBER | Role::CAN_REMOVE_TEAM_MEMBER).bits();
 }
 
 // ************************************************************************************
@@ -117,6 +119,11 @@ pub async fn team_create(
             team_role_id: Set(owner_role.id),
             ..Default::default()
         }.insert(&transaction).await?;
+
+        // Update default team id of user
+        let mut user_active_model: UserActiveModel = auth_user.user.into();
+        user_active_model.default_team_id = Set(Some(team.id));
+        user_active_model.update(&transaction).await?;
 
         transaction.commit().await
     })().await; 

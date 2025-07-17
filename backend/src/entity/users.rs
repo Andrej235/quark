@@ -22,6 +22,7 @@ pub struct Model {
     pub salt: String,
     #[sea_orm(column_type = "Text")]
     pub hashed_password: String,
+    pub default_team_id: Option<Uuid>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -30,6 +31,14 @@ pub enum Relation {
     RefreshTokens,
     #[sea_orm(has_many = "super::team_members::Entity")]
     TeamMembers,
+    #[sea_orm(
+        belongs_to = "super::teams::Entity",
+        from = "Column::DefaultTeamId",
+        to = "super::teams::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    Teams,
 }
 
 impl Related<super::refresh_tokens::Entity> for Entity {
@@ -41,6 +50,12 @@ impl Related<super::refresh_tokens::Entity> for Entity {
 impl Related<super::team_members::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::TeamMembers.def()
+    }
+}
+
+impl Related<super::teams::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Teams.def()
     }
 }
 

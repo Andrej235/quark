@@ -132,7 +132,8 @@ pub async fn user_sign_up(
                 hashed_password:    Set(password_hash),
                 salt:               Set(salt),
                 is_email_verified:  Set(false),
-                profile_picture:    Set(None) // We set it to None by default it means default profile picture will be used
+                profile_picture:    Set(None), // no default profile picture
+                default_team_id:    Set(None), // no default team
             }.insert(db.get_ref()).await;
 
             if let Err(err) = user_insertion_result {
