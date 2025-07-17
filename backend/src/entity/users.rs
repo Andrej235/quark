@@ -20,6 +20,8 @@ pub struct Model {
     pub salt: String,
     #[sea_orm(column_type = "Text")]
     pub hashed_password: String,
+    #[sea_orm(column_type = "Blob", nullable)]
+    pub profile_picture: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

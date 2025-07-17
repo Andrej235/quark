@@ -18,7 +18,11 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::{env, fs::File, io::Write};
+use std::{
+    env::{self},
+    fs::File,
+    io::Write,
+};
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 
@@ -93,7 +97,7 @@ async fn main() -> std::io::Result<()> {
 
     // Makes sure that .env file exists
     dotenv().ok();
-
+    
 
     // Initialize logger
     tracing_subscriber::fmt()
@@ -123,6 +127,7 @@ async fn main() -> std::io::Result<()> {
     RESEND_API_KEY.set(resend_api_key).unwrap();
     RESEND_EMAIL.set(resend_email).unwrap();
     IS_DEVELOPMENT_ENV.set(is_development.parse::<bool>().expect("Failed to cast IS_DEVELOPMENT_ENV to bool.")).unwrap();
+
 
     // Create resend instance
     // Its used for sending emails

@@ -100,6 +100,8 @@ pub async fn user_sign_up(
         // Create new user if it doesn't exist
         None => {
 
+            // Parse profile picture
+
             // Hash password
             let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
                 Ok((salt, password_hash)) => (salt, password_hash),
@@ -118,6 +120,7 @@ pub async fn user_sign_up(
                 hashed_password:    Set(password_hash),
                 salt:               Set(salt),
                 is_email_verified:  Set(false),
+                profile_picture:    Set(None) // We set it to None by default it means default profile picture will be used
             }.insert(db.get_ref()).await;
 
             if let Err(err) = user_insertion_result {
@@ -283,6 +286,65 @@ async fn user_log_out(
             Ok(_) => (),
             Err(err) => {
                 return endpoint_internal_server_error(LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
+            }
+        };
+
+    return HttpResponse::Ok().finish();
+}
+
+/*
+**  update
+*/
+#[utoipa::path(
+    patch,
+    path = USER_UPDATE_ROUTE_PATH,
+    responses(
+        (status = 200, description = "User updated"),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+    )
+)]
+#[patch("/user/me")]
+#[rustfmt::skip]
+async fn user_update(
+    db: Data<DatabaseConnection>,
+    auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<UpdateUserDTO>
+) -> impl Responder {
+    
+    // Get json data
+    let update_user_data: &UpdateUserDTO = json_data.get_data();
+
+    // Get user
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(),
+            Err(err) => {
+                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+
+    // Update user
+    let mut user_active_model: UserActiveModel = user.into();
+
+    if update_user_data.name.is_some() {
+        user_active_model.name = Set(update_user_data.name.clone().unwrap());
+    }
+
+    if update_user_data.last_name.is_some() {
+        user_active_model.last_name = Set(update_user_data.last_name.clone().unwrap());
+    }
+
+    if update_user_data.username.is_some() {
+        user_active_model.username = Set(update_user_data.username.clone().unwrap());
+    }
+
+    match user_active_model
+        .update(db.get_ref())
+        .await {
+            Ok(_) => {},
+            Err(err) => {
+                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
             }
         };
 
@@ -571,65 +633,6 @@ async fn user_password_reset(
             return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
         }
     };
-
-    return HttpResponse::Ok().finish();
-}
-
-/*
-**  update
-*/
-#[utoipa::path(
-    put,
-    path = USER_UPDATE_ROUTE_PATH,
-    responses(
-        (status = 200, description = "User updated"),
-        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
-    )
-)]
-#[put("/user/update")]
-#[rustfmt::skip]
-async fn user_update(
-    db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser,
-    json_data: ValidatedJson<UpdateUserDTO>
-) -> impl Responder {
-    
-    // Get json data
-    let update_user_data: &UpdateUserDTO = json_data.get_data();
-
-    // Get user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(),
-            Err(err) => {
-                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
-
-    // Update user
-    let mut user_active_model: UserActiveModel = user.into();
-
-    if update_user_data.name.is_some() {
-        user_active_model.name = Set(update_user_data.name.clone().unwrap());
-    }
-
-    if update_user_data.last_name.is_some() {
-        user_active_model.last_name = Set(update_user_data.last_name.clone().unwrap());
-    }
-
-    if update_user_data.username.is_some() {
-        user_active_model.username = Set(update_user_data.username.clone().unwrap());
-    }
-
-    match user_active_model
-        .update(db.get_ref())
-        .await {
-            Ok(_) => {},
-            Err(err) => {
-                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
-            }
-        };
 
     return HttpResponse::Ok().finish();
 }

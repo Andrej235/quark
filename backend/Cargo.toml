@@ -36,3 +36,4 @@ validator = { version = "0.20.0", features = ["derive"] }
 
 macros = { path = "./proc_macros" }
 actix-cors = "0.7.1"
+image = { version = "0.25.6", features = ["jpeg", "png"] }

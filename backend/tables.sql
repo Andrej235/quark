@@ -3,6 +3,7 @@ CREATE TABLE "users" (
   "username" TEXT NOT NULL,
   "name" TEXT NOT NULL,
   "last_name" TEXT NOT NULL,
+  "profile_picture" BYTEA;
   "is_email_verified" BOOLEAN NOT NULL,
   "email" TEXT NOT NULL,
   "salt" TEXT NOT NULL,
