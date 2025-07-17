@@ -33,7 +33,7 @@ type Touched = {
 export default function Signup() {
   const [fields, setFields] = useState({
     username: "",
-    firstName: "",
+    name: "",
     lastName: "",
     email: "",
     password: "",
@@ -56,8 +56,7 @@ export default function Signup() {
       newErrors.username =
         "Username can only contain letters, numbers, and dashes";
 
-    if (!fields.firstName.trim())
-      newErrors.firstName = "Please enter a first name";
+    if (!fields.name.trim()) newErrors.firstName = "Please enter a first name";
 
     if (!fields.lastName.trim())
       newErrors.lastName = "Please enter a last name";
@@ -104,16 +103,19 @@ export default function Signup() {
 
     if (Object.keys(errors).length > 0) return;
 
-    const { isOk } = await sendApiRequest("/user/signup", {
-      method: "post",
-      payload: {
-        name: fields.firstName,
-        lastName: fields.lastName,
-        username: fields.username,
-        email: fields.email,
-        password: fields.password,
+    const { isOk } = await sendApiRequest(
+      "/user/signup",
+      {
+        method: "post",
+        payload: fields,
       },
-    });
+      {
+        showToast: true,
+        toastOptions: {
+          success: "Successfully signed up! Please log in.",
+        },
+      },
+    );
 
     if (!isOk) return;
 
@@ -155,9 +157,9 @@ export default function Signup() {
                 <Input
                   type="text"
                   className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                  value={fields.firstName}
-                  onChange={handleChange("firstName")}
-                  onBlur={handleBlur("firstName")}
+                  value={fields.name}
+                  onChange={handleChange("name")}
+                  onBlur={handleBlur("name")}
                 />
                 {touched.firstName && errors.firstName && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">

@@ -98,7 +98,9 @@ const useAuthStore = create<AuthStore>((set, get) => ({
             refreshTokenId: refreshToken,
           },
         },
-        false,
+        {
+          includeCredentials: false,
+        },
       );
 
       // Failed to refresh, either the user has mismatched claims or the refresh token is expired, log them out
