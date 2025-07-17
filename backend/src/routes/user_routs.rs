@@ -1,6 +1,8 @@
-// ------------------------------------------------------------------------------------
+// ************************************************************************************
+//
 // IMPORTS
-// ------------------------------------------------------------------------------------
+//
+// ************************************************************************************
 use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
@@ -53,9 +55,11 @@ use std::error::Error;
 use tracing::error;
 use uuid::Uuid;
 
-// ------------------------------------------------------------------------------------
-// ROUTES
-// ------------------------------------------------------------------------------------
+// ************************************************************************************
+//
+// ROUTES - POST
+//
+// ************************************************************************************
 /*
 **  signup
 */
@@ -293,60 +297,70 @@ async fn user_log_out(
 }
 
 /*
-**  update
+**  reset-password
 */
 #[utoipa::path(
-    patch,
-    path = USER_UPDATE_ROUTE_PATH,
+    post,
+    path = RESET_PASSWORD_ROUTE_PATH,
     responses(
-        (status = 200, description = "User updated"),
+        (status = 200, description = "Password reset"),
+        (status = 400, description = "Possible messages: Wrong password", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-#[patch("/user/me")]
+#[post("/user/reset-password")]
 #[rustfmt::skip]
-async fn user_update(
+async fn user_password_reset(
     db: Data<DatabaseConnection>,
     auth_user: AuthenticatedUser,
-    json_data: ValidatedJson<UpdateUserDTO>
+    json_data: ValidatedJson<PasswordResetDTO>
 ) -> impl Responder {
-    
-    // Get json data
-    let update_user_data: &UpdateUserDTO = json_data.get_data();
 
-    // Get user
+    // Get json data
+    let reset_password_data: &PasswordResetDTO = json_data.get_data();
+
+    // Try to find user
     let user: User = match UserEntity::find_by_id(auth_user.user_id)
         .one(db.get_ref())
         .await {
             Ok(user) => user.unwrap(),
             Err(err) => {
-                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Finding user by id", Box::new(err));
+                return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", Box::new(err));
             }
         };
 
-    // Update user
+    // Hash old password
+    let old_password_hash: String = match hash_password_with_salt(&user.salt, &reset_password_data.old_password) {
+        Ok(hash) => hash,
+        Err(err) => {
+            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
+        }
+    };
+
+    // Check if old password is correct
+    if user.hashed_password != old_password_hash {
+        return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
+    }
+
+    // Hash new password
+    let (new_salt, new_password_hash): (String, String) = match hash_password(&reset_password_data.new_password) {
+        Ok(hash) => hash,
+        Err(err) => {
+            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
+        }
+    };
+
+    // Update password
     let mut user_active_model: UserActiveModel = user.into();
-
-    if update_user_data.name.is_some() {
-        user_active_model.name = Set(update_user_data.name.clone().unwrap());
-    }
-
-    if update_user_data.last_name.is_some() {
-        user_active_model.last_name = Set(update_user_data.last_name.clone().unwrap());
-    }
-
-    if update_user_data.username.is_some() {
-        user_active_model.username = Set(update_user_data.username.clone().unwrap());
-    }
-
-    match user_active_model
-        .update(db.get_ref())
-        .await {
-            Ok(_) => {},
-            Err(err) => {
-                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
-            }
-        };
+    user_active_model.hashed_password = Set(new_password_hash);
+    user_active_model.salt = Set(new_salt);
+    
+    match user_active_model.update(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => {
+            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
+        }
+    };
 
     return HttpResponse::Ok().finish();
 }
@@ -448,6 +462,75 @@ async fn user_refresh(
     };
 }
 
+// ************************************************************************************
+//
+// ROUTES - PATCH
+//
+// ************************************************************************************
+/*
+**  update
+*/
+#[utoipa::path(
+    patch,
+    path = USER_UPDATE_ROUTE_PATH,
+    responses(
+        (status = 200, description = "User updated"),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+    )
+)]
+#[patch("/user/me")]
+#[rustfmt::skip]
+async fn user_update(
+    db: Data<DatabaseConnection>,
+    auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<UpdateUserDTO>
+) -> impl Responder {
+    
+    // Get json data
+    let update_user_data: &UpdateUserDTO = json_data.get_data();
+
+    // Get user
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(),
+            Err(err) => {
+                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+
+    // Update user
+    let mut user_active_model: UserActiveModel = user.into();
+
+    if update_user_data.name.is_some() {
+        user_active_model.name = Set(update_user_data.name.clone().unwrap());
+    }
+
+    if update_user_data.last_name.is_some() {
+        user_active_model.last_name = Set(update_user_data.last_name.clone().unwrap());
+    }
+
+    if update_user_data.username.is_some() {
+        user_active_model.username = Set(update_user_data.username.clone().unwrap());
+    }
+
+    match user_active_model
+        .update(db.get_ref())
+        .await {
+            Ok(_) => {},
+            Err(err) => {
+                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
+            }
+        };
+
+    return HttpResponse::Ok().finish();
+}
+
+// ************************************************************************************
+//
+// ROUTES - GET
+//
+// ************************************************************************************
 /*
 **  verify-email
 */
@@ -569,75 +652,6 @@ async fn send_email_verification(
 }
 
 /*
-**  reset-password
-*/
-#[utoipa::path(
-    post,
-    path = RESET_PASSWORD_ROUTE_PATH,
-    responses(
-        (status = 200, description = "Password reset"),
-        (status = 400, description = "Possible messages: Wrong password", body = SRouteError),
-        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
-    )
-)]
-#[post("/user/reset-password")]
-#[rustfmt::skip]
-async fn user_password_reset(
-    db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser,
-    json_data: ValidatedJson<PasswordResetDTO>
-) -> impl Responder {
-
-    // Get json data
-    let reset_password_data: &PasswordResetDTO = json_data.get_data();
-
-    // Try to find user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(),
-            Err(err) => {
-                return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
-
-    // Hash old password
-    let old_password_hash: String = match hash_password_with_salt(&user.salt, &reset_password_data.old_password) {
-        Ok(hash) => hash,
-        Err(err) => {
-            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
-        }
-    };
-
-    // Check if old password is correct
-    if user.hashed_password != old_password_hash {
-        return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
-    }
-
-    // Hash new password
-    let (new_salt, new_password_hash): (String, String) = match hash_password(&reset_password_data.new_password) {
-        Ok(hash) => hash,
-        Err(err) => {
-            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
-        }
-    };
-
-    // Update password
-    let mut user_active_model: UserActiveModel = user.into();
-    user_active_model.hashed_password = Set(new_password_hash);
-    user_active_model.salt = Set(new_salt);
-    
-    match user_active_model.update(db.get_ref()).await {
-        Ok(_) => {},
-        Err(err) => {
-            return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
-        }
-    };
-
-    return HttpResponse::Ok().finish();
-}
-
-/*
 **  check
 */
 #[utoipa::path(
@@ -656,9 +670,11 @@ async fn check(
     HttpResponse::Ok().finish()
 }
 
-// ------------------------------------------------------------------------------------
+// ************************************************************************************
+//
 // HELPER FUNCTIONS
-// ------------------------------------------------------------------------------------
+//
+// ************************************************************************************
 #[rustfmt::skip]
 /// Tries to delete old refresh token and create new one <br/>
 /// Error logging is handled but this function <br/>
