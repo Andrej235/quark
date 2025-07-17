@@ -10,7 +10,6 @@ import {
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
@@ -75,20 +74,25 @@ export default function Login() {
 
     if (Object.keys(errors).length > 0) return;
 
-    const { error, response } = await sendApiRequest("/user/login", {
-      method: "post",
-      payload: {
-        email: fields.email.trim(),
-        password: fields.password.trim(),
+    const { error, response } = await sendApiRequest(
+      "/user/login",
+      {
+        method: "post",
+        payload: {
+          email: fields.email.trim(),
+          password: fields.password.trim(),
+        },
       },
-    });
+      {
+        showToast: true,
+        toastOptions: {
+          success: "Successfully logged in. Welcome back!",
+        },
+      },
+    );
 
-    if (error || !response) {
-      toast.error(error?.message || "Something went wrong. Please try again.");
-      return;
-    }
+    if (error || !response) return;
 
-    toast.success(JSON.stringify(response));
     await setJwt(response.jwtToken);
     await setRefreshToken(response.refreshTokenId);
     navigate("/");

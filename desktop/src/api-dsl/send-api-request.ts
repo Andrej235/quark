@@ -2,6 +2,7 @@ import useAuthStore from "@/stores/auth-store";
 import { Endpoints, Methods } from "./types/endpoints/endpoints";
 import { Request } from "./types/endpoints/request-parser";
 import { ApiResponse } from "./types/endpoints/response-parser";
+import { apiResponseToToast } from "@/lib/toast-promise";
 
 const baseApiUrl = import.meta.env.VITE_PUBLIC_API_URL as string;
 if (!baseApiUrl) throw new Error("VITE_PUBLIC_API_URL not defined");
@@ -17,14 +18,26 @@ type Response<
     : never
   : never;
 
+type Options = {
+  includeCredentials?: boolean;
+  abortSignal?: AbortSignal;
+} & (
+  | {
+      showToast: true;
+      toastOptions?: Parameters<typeof apiResponseToToast>[1];
+    }
+  | {
+      showToast?: false;
+    }
+);
+
 export default async function sendApiRequest<
   T extends Request<Endpoint>,
   Endpoint extends Endpoints,
 >(
   endpoint: Endpoint,
   request: T,
-  includeCredentials: boolean = true,
-  abortSignal?: AbortSignal,
+  options: Options = {},
 ): Promise<Response<Endpoint, T>> {
   const url = new URL(baseApiUrl.concat(endpoint));
   const requestCopy = structuredClone(request);
@@ -58,31 +71,38 @@ export default async function sendApiRequest<
 
   const requestInit: RequestInit = {
     method: requestCopy.method as string,
-    signal: abortSignal,
+    signal: options.abortSignal,
     body: body,
     headers: {
       "Content-Type": "application/json",
-      ...(includeCredentials && {
+      ...(options.includeCredentials && {
         Authorization: `Bearer ${await useAuthStore.getState().getJwt()}`,
       }),
     },
   };
 
-  const response = await fetch(url, requestInit);
-  const code = response.status.toString();
-  const isOk = response.ok;
-  let data = null;
+  const responsePromise = (async () => {
+    const response = await fetch(url, requestInit);
+    const code = response.status.toString();
+    const isOk = response.ok;
+    let data = null;
 
-  try {
-    data = mapFromSnakeToCamel(
-      (await response.json()) as Record<string, unknown>,
-    ) as unknown;
-    // eslint-disable-next-line no-empty
-  } catch {}
+    try {
+      data = mapFromSnakeToCamel(
+        (await response.json()) as Record<string, unknown>,
+      ) as unknown;
+      // eslint-disable-next-line no-empty
+    } catch {}
 
-  return isOk
-    ? ({ code, isOk, error: null, response: data } as Response<Endpoint, T>)
-    : ({ code, isOk, error: data, response: null } as Response<Endpoint, T>);
+    return isOk
+      ? ({ code, isOk, error: null, response: data } as Response<Endpoint, T>)
+      : ({ code, isOk, error: data, response: null } as Response<Endpoint, T>);
+  })();
+
+  if (options.showToast)
+    apiResponseToToast(responsePromise, options.toastOptions || {});
+
+  return await responsePromise;
 }
 
 function mapFromCamelToSnake(
