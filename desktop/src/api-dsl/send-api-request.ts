@@ -50,7 +50,11 @@ export default async function sendApiRequest<
   }
 
   const body =
-    "payload" in requestCopy ? JSON.stringify(requestCopy.payload) : null;
+    "payload" in requestCopy
+      ? JSON.stringify(
+          mapFromCamelToSnake(requestCopy.payload as Record<string, unknown>),
+        )
+      : null;
 
   const requestInit: RequestInit = {
     method: requestCopy.method as string,
@@ -141,11 +145,3 @@ function mapFromSnakeToCamel(
   }
   return result;
 }
-
-sendApiRequest("/team-role/create", {
-  method: "post",
-  payload: {
-    name: "asd",
-    teamId: "123",
-  },
-});

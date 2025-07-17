@@ -89,8 +89,8 @@ export default function Login() {
     }
 
     toast.success(JSON.stringify(response));
-    await setJwt(response.jwt_token);
-    await setRefreshToken(response.refresh_token_id);
+    await setJwt(response.jwtToken);
+    await setRefreshToken(response.refreshTokenId);
     navigate("/");
   };
 

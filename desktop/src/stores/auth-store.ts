@@ -94,8 +94,8 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         {
           method: "post",
           payload: {
-            jwt_token: jwt,
-            refresh_token_id: refreshToken,
+            jwtToken: jwt,
+            refreshTokenId: refreshToken,
           },
         },
         false,
@@ -114,9 +114,9 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         return null;
       }
 
-      get().setRefreshToken(response.refresh_token_id);
-      get().setJwt(response.jwt_token);
-      return response.jwt_token;
+      get().setRefreshToken(response.refreshTokenId);
+      get().setJwt(response.jwtToken);
+      return response.jwtToken;
     } catch (error) {
       console.error("Failed to retrieve jwt:", error);
       return null;
