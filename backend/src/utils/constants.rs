@@ -27,6 +27,7 @@ pub const REFRESH_ROUTE_PATH: &'static str = "/user/refresh";
 pub const RESET_PASSWORD_ROUTE_PATH: &'static str = "/user/reset-password";
 pub const USER_UPDATE_ROUTE_PATH: &'static str = "/user/update";
 pub const CHECK_ROUTE_PATH: &'static str = "/user/check";
+pub const UPDATE_USER_PROFILE_PICTURE_PATH: &'static str = "/user/me/profile-picture";
 
 pub const VERIFY_EMAIL_ROUTE_PATH: &'static str = "/user/email/verify/{token}";
 pub const SEND_VERIFICATION_EMAIL_ROUTE_PATH: &'static str = "/user/email/send-verification";

@@ -4,12 +4,13 @@ use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
+use crate::models::route_error::RouteError;
 use crate::models::{dtos::create_user_dto::CreateUserDTO, sroute_error::SRouteError};
 use crate::routes::team_roles_routes::__path_team_role_create;
 use crate::routes::team_routs::{__path_team_create, __path_team_delete};
 use crate::routes::user_routs::{
     __path_check, __path_user_log_in, __path_user_log_out, __path_user_refresh, __path_user_password_reset, __path_user_update,
-    __path_send_email_verification, __path_user_sign_up, __path_verify_email,
+    __path_send_email_verification, __path_user_sign_up, __path_verify_email, __path_user_update_profile_picture
 };
 use utoipa::OpenApi;
 
@@ -24,6 +25,7 @@ use utoipa::OpenApi;
     paths(
         // user routes
         user_sign_up, user_log_in, user_log_out, user_refresh, verify_email, send_email_verification, user_password_reset, user_update, check,
+        user_update_profile_picture,
 
         // team routes
         team_create, team_delete,
@@ -33,7 +35,7 @@ use utoipa::OpenApi;
         
     components(schemas(
         // Common
-        SRouteError, ValidationErrorDTO,
+        SRouteError, RouteError, ValidationErrorDTO,
 
         // user routes
         CreateUserDTO, LogInResultDTO, JWTRefreshTokenPairDTO, PasswordResetDTO,

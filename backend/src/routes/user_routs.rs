@@ -8,9 +8,11 @@ use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
+use crate::models::dtos::update_profile_picture_dto::UpdateProfilePictureDTO;
 use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
+use crate::models::route_error::RouteError;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
 use crate::models::validated_json::ValidatedJson;
@@ -18,7 +20,7 @@ use crate::utils::constants::{
     CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, JWT_TOKEN_EXPIRATION_OFFSET,
     LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH, REFRESH_TOKEN_EXPIRATION_OFFSET,
     RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH, SIGN_UP_ROUTE_PATH,
-    USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
+    UPDATE_USER_PROFILE_PICTURE_PATH, USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
@@ -32,6 +34,7 @@ use crate::{
     models::dtos::create_user_dto::CreateUserDTO,
 };
 use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
+use actix_web::error::Error as ActixWebError;
 use actix_web::web::{Data, Path};
 use actix_web::*;
 use argon2::PasswordHash;
@@ -39,7 +42,10 @@ use argon2::{
     password_hash::{rand_core::OsRng, Error as Argon2Error, SaltString},
     Argon2, PasswordHasher,
 };
+use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
+use image::imageops::FilterType;
+use image::{DynamicImage, ImageFormat, ImageReader};
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTTokenError, DecodingKey, EncodingKey, Header, TokenData,
     Validation,
@@ -52,6 +58,7 @@ use sea_orm::{
     QueryFilter,
 };
 use std::error::Error;
+use std::io::Cursor;
 use tracing::error;
 use uuid::Uuid;
 
@@ -526,6 +533,70 @@ async fn user_update(
     return HttpResponse::Ok().finish();
 }
 
+#[utoipa::path(
+    patch,
+    path = UPDATE_USER_PROFILE_PICTURE_PATH,
+    responses(
+        (status = 200, description = "Profile picture changed"),
+        (status = 401, description = "Possible messages: Invalid base64 string
+                                                         Invalid [] format
+                                                         Failed to convert image into bytes", body = RouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+    )
+)]
+/*
+**  update profile picture
+*/
+#[patch("/user/me/profile-picture")]
+#[rustfmt::skip]
+#[allow(unused_assignments)]
+async fn user_update_profile_picture(
+    db: Data<DatabaseConnection>,
+    auth_user: AuthenticatedUser,
+    json_data: ValidatedJson<UpdateProfilePictureDTO>
+) -> impl Responder {
+
+    // Get json data
+    let update_profile_picture_data: &UpdateProfilePictureDTO = json_data.get_data();
+
+    // Get user
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(),
+            Err(err) => {
+                return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+        
+    // Get bytes of new profile picture
+    let mut new_image_bytes: Option<Vec<u8>> = None;
+
+    if update_profile_picture_data.profile_picture.is_none() {
+        new_image_bytes = None;        
+    }
+    else {
+        new_image_bytes = Some(match decode_base64_string(update_profile_picture_data.profile_picture.as_ref().unwrap(), ImageFormat::Png) {
+            Ok(bytes) => bytes,
+            Err(err) => {
+                // We dont return internal server error here because we know that user should see error message
+                return HttpResponse::BadRequest().json(RouteError { message: err.to_string() }); 
+            }
+        });
+    }
+
+    // Update user
+    let mut user_active_model: UserActiveModel = user.into();
+    user_active_model.profile_picture = Set(new_image_bytes);
+
+    let update_result = user_active_model.update(db.get_ref()).await;
+    if let Err(err) = update_result {
+        return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_PATH, "Updating user", Box::new(err));
+    }
+
+    return HttpResponse::Ok().finish();
+}
+
 // ************************************************************************************
 //
 // ROUTES - GET
@@ -808,6 +879,40 @@ async fn send_verification_email(user_username: &str, user_email: &str, token: &
         Ok(_) => Ok(()),
         Err(err) => return Err(err),
     }
+}
+
+#[rustfmt::skip]
+/// Decodes base64 string into bytes
+/// Returns **bytes** or **error**
+fn decode_base64_string(base64_string: &str, image_format: ImageFormat) -> Result<Vec<u8>, ActixWebError> {
+
+    // Try to decode base64 string
+    let image_bytes: Vec<u8> = base64::engine::general_purpose::STANDARD
+        .decode(base64_string)
+        .map_err(|_| actix_web::error::ErrorBadRequest("Invalid base64 string"))?;
+
+    // Check if image is JPEG format
+    let cursor: Cursor<&Vec<u8>> = Cursor::new(&image_bytes);
+    
+    let mut reader: ImageReader<Cursor<&Vec<u8>>> = ImageReader::new(cursor);
+    reader.set_format(image_format);
+
+    let img: DynamicImage = reader
+        .decode()
+        .map_err(|_| actix_web::error::ErrorBadRequest(format!("Invalid [{:?}] format", image_format)))?;
+
+    // Resize image
+    let resized_img: DynamicImage = img.resize(256, 256, FilterType::Lanczos3);
+
+    // Convert image to bytes
+    let mut out_bytes: Vec<u8> = vec![];
+    let mut cursor: Cursor<&mut Vec<u8>> = Cursor::new(&mut out_bytes);
+
+    resized_img
+        .write_to(&mut cursor, image_format)
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to convert image into bytes"))?;
+
+    return Ok(out_bytes);
 }
 
 #[rustfmt::skip]
