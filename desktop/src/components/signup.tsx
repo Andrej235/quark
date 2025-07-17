@@ -108,7 +108,7 @@ export default function Signup() {
       method: "post",
       payload: {
         name: fields.firstName,
-        last_name: fields.lastName,
+        lastName: fields.lastName,
         username: fields.username,
         email: fields.email,
         password: fields.password,

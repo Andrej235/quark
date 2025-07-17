@@ -30,23 +30,31 @@ export default async function sendApiRequest<
   const requestCopy = structuredClone(request);
 
   if ("parameters" in requestCopy) {
-    for (const key in requestCopy.parameters) {
+    const parameters = mapFromCamelToSnake(
+      requestCopy.parameters as Record<string, string>,
+    );
+
+    for (const key in parameters) {
       if (!url.href.includes("%7B" + key + "%7D")) continue;
 
-      const value = (requestCopy.parameters as Record<string, string>)[key];
+      const value = (parameters as Record<string, string>)[key];
       if (value !== undefined)
         url.href = url.href.replace("%7B" + key + "%7D", value);
 
-      delete (requestCopy.parameters as Record<string, string>)[key];
+      delete (parameters as Record<string, string>)[key];
     }
 
     url.search = new URLSearchParams(
-      requestCopy.parameters as Record<string, string>,
+      parameters as Record<string, string>,
     ).toString();
   }
 
   const body =
-    "payload" in requestCopy ? JSON.stringify(requestCopy.payload) : null;
+    "payload" in requestCopy
+      ? JSON.stringify(
+          mapFromCamelToSnake(requestCopy.payload as Record<string, unknown>),
+        )
+      : null;
 
   const requestInit: RequestInit = {
     method: requestCopy.method as string,
@@ -66,11 +74,74 @@ export default async function sendApiRequest<
   let data = null;
 
   try {
-    data = (await response.json()) as unknown;
+    data = mapFromSnakeToCamel(
+      (await response.json()) as Record<string, unknown>,
+    ) as unknown;
     // eslint-disable-next-line no-empty
   } catch {}
 
   return isOk
     ? ({ code, isOk, error: null, response: data } as Response<Endpoint, T>)
     : ({ code, isOk, error: data, response: null } as Response<Endpoint, T>);
+}
+
+function mapFromCamelToSnake(
+  object: Record<string, unknown>,
+): Record<string, unknown> {
+  const toSnake = (str: string) => str.replace(/([A-Z])/g, "_$1").toLowerCase();
+
+  const result: Record<string, unknown> = {};
+  for (const key in object) {
+    const value = object[key];
+    const snakeKey = toSnake(key);
+
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      !(value instanceof Date)
+    ) {
+      result[snakeKey] = mapFromCamelToSnake(value as Record<string, unknown>);
+    } else if (Array.isArray(value)) {
+      result[snakeKey] = value.map((item) =>
+        typeof item === "object" && item !== null
+          ? mapFromCamelToSnake(item as Record<string, unknown>)
+          : (item as Record<string, unknown>),
+      );
+    } else {
+      result[snakeKey] = value;
+    }
+  }
+  return result;
+}
+
+function mapFromSnakeToCamel(
+  object: Record<string, unknown>,
+): Record<string, unknown> {
+  const toCamel = (str: string) =>
+    str.replace(/_([a-z])/g, (_, letter) => (letter as string).toUpperCase());
+
+  const result: Record<string, unknown> = {};
+  for (const key in object) {
+    const value = object[key];
+    const camelKey = toCamel(key);
+
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      !(value instanceof Date)
+    ) {
+      result[camelKey] = mapFromSnakeToCamel(value as Record<string, unknown>);
+    } else if (Array.isArray(value)) {
+      result[camelKey] = value.map((item) =>
+        typeof item === "object" && item !== null
+          ? mapFromSnakeToCamel(item as Record<string, unknown>)
+          : (item as Record<string, unknown>),
+      );
+    } else {
+      result[camelKey] = value;
+    }
+  }
+  return result;
 }
