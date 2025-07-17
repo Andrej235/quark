@@ -17,11 +17,7 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::{
-    env::{self},
-    fs::File,
-    io::Write,
-};
+use std::env;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 
@@ -77,19 +73,12 @@ fn routes(cfg: &mut web::ServiceConfig) {
 }
 
 /*
-    This function is used to write OpenAPI endpoint map to a file.
-    Its run at every server instance start.
+    This function is used to generate an OpenAPI spec.
+    It runs at every server instance start if the env variable GENERATE_API_SPEC is set.
 */
-fn write_openapi_file() -> std::io::Result<()> {
-    let openapi: utoipa::openapi::OpenApi = ApiDoc::openapi();
-
-    let json: String =
-        serde_json::to_string_pretty(&openapi).expect("Failed to serialize OpenAPI spec");
-
-    let mut file: File = File::create("openapi.json")?;
-    file.write_all(json.as_bytes())?;
-
-    Ok(())
+fn generate_openapi_string() -> String {
+    let openapi = ApiDoc::openapi();
+    serde_json::to_string(&openapi).expect("Failed to serialize OpenAPI spec")
 }
 
 #[actix_web::main]
@@ -109,8 +98,11 @@ async fn main() -> std::io::Result<()> {
         .init();
 
 
-    // Write OpenAPI endpoint map to a file
-    write_openapi_file().expect("Failed to write OpenAPI endpoint map.");
+    // If the env variable GENERATE_API_SPEC is set to true, write OpenAPI spec to standard output and prevent server start
+    if env::var("GENERATE_API_SPEC").map(|v| v == "true").unwrap_or(false) {
+        println!("{}", generate_openapi_string());
+        return Ok(());
+    }
 
 
     // Get and check if all required .env variables are set

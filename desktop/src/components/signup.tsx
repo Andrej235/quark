@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CircleAlert } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Signup() {
@@ -18,13 +18,14 @@ export default function Signup() {
   const [errorFirstName, setErrorFirstName] = useState<string>("");
   const [errorLastName, setErrorLastName] = useState<string>("");
   const [errorEmail, setErrorEmail] = useState<string>("");
+
   const isFirstTimeRenderRef = useRef(true);
 
   const [isValid, setIsValid] = useState<boolean>(true);
 
   const navigate = useNavigate();
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     let valid = true;
 
     setErrorUsername("");
@@ -65,7 +66,7 @@ export default function Signup() {
     }
 
     setIsValid(valid);
-  };
+  }, [confirmPassword, email, firstName, lastName, password, username]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +86,7 @@ export default function Signup() {
       return;
     }
     validateForm();
-  });
+  }, [validateForm]);
 
   return (
     <div className="bg-background flex min-h-screen w-full flex-col items-center justify-center">
