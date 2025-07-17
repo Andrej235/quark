@@ -6,6 +6,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Outlet } from "react-router-dom";
+import DashboardBreadcrumbs from "./dashboard-breadcrumbs";
 
 export default function SidebarContainer() {
   return (
@@ -19,6 +20,7 @@ export default function SidebarContainer() {
               orientation="vertical"
               className="mr-2 data-[orientation=vertical]:h-4"
             />
+            <DashboardBreadcrumbs />
           </div>
         </header>
 
