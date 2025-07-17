@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
 import { CircleAlert } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [username, setUsername] = useState<string>("");
@@ -18,7 +18,7 @@ export default function Signup() {
   const [errorFirstName, setErrorFirstName] = useState<string>("");
   const [errorLastName, setErrorLastName] = useState<string>("");
   const [errorEmail, setErrorEmail] = useState<string>("");
-  const [isFirstTimeRender, setIsFirstTimeRender] = useState<boolean>(true);
+  const isFirstTimeRenderRef = useRef(true);
 
   const [isValid, setIsValid] = useState<boolean>(true);
 
@@ -76,13 +76,12 @@ export default function Signup() {
 
     if (isValid === false) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     navigate("/login");
   };
 
   useEffect(() => {
-    if (isFirstTimeRender === true) {
-      setIsFirstTimeRender(false);
+    if (isFirstTimeRenderRef.current) {
+      isFirstTimeRenderRef.current = false;
       return;
     }
     validateForm();

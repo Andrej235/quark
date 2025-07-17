@@ -8,6 +8,7 @@ import globals from "globals";
 export default [
   {
     files: ["src/**/*.{js,mjs,cjs,ts,tsx}"],
+    ignores: ["**/api-spec.ts"],
     languageOptions: {
       parser: parserTs,
       parserOptions: {
@@ -37,7 +38,10 @@ export default [
         "error",
         { argsIgnorePattern: "^_" },
       ],
+      "react/react-in-jsx-scope": "off",
       "prefer-const": "error",
+      "@typescript-eslint/no-floating-promises": "off",
+      "@typescript-eslint/no-misused-promises": "off",
     },
     settings: {
       react: {
