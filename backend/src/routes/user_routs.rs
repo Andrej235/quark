@@ -10,6 +10,7 @@ use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
 use crate::models::dtos::update_profile_picture_dto::UpdateProfilePictureDTO;
 use crate::models::dtos::update_user::UpdateUserDTO;
+use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::route_error::RouteError;
@@ -17,10 +18,11 @@ use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
 use crate::models::validated_json::ValidatedJson;
 use crate::utils::constants::{
-    CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, JWT_TOKEN_EXPIRATION_OFFSET,
-    LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH, REFRESH_TOKEN_EXPIRATION_OFFSET,
-    RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH, SIGN_UP_ROUTE_PATH,
-    UPDATE_USER_PROFILE_PICTURE_PATH, USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
+    CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, GET_USER_INFO_ROUTE_PATH,
+    JWT_TOKEN_EXPIRATION_OFFSET, LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH,
+    REFRESH_TOKEN_EXPIRATION_OFFSET, RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH,
+    SIGN_UP_ROUTE_PATH, UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH,
+    VERIFY_EMAIL_ROUTE_PATH,
 };
 use crate::utils::http_helper::endpoint_internal_server_error;
 use crate::{
@@ -535,7 +537,7 @@ async fn user_update(
 
 #[utoipa::path(
     patch,
-    path = UPDATE_USER_PROFILE_PICTURE_PATH,
+    path = UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH,
     responses(
         (status = 200, description = "Profile picture changed"),
         (status = 401, description = "Possible messages: Invalid base64 string
@@ -565,7 +567,7 @@ async fn user_update_profile_picture(
         .await {
             Ok(user) => user.unwrap(),
             Err(err) => {
-                return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_PATH, "Finding user by id", Box::new(err));
+                return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH, "Finding user by id", Box::new(err));
             }
         };
         
@@ -591,7 +593,7 @@ async fn user_update_profile_picture(
 
     let update_result = user_active_model.update(db.get_ref()).await;
     if let Err(err) = update_result {
-        return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_PATH, "Updating user", Box::new(err));
+        return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH, "Updating user", Box::new(err));
     }
 
     return HttpResponse::Ok().finish();
@@ -723,6 +725,55 @@ async fn send_email_verification(
 }
 
 /*
+**  get user info
+*/
+#[utoipa::path(
+    get,
+    path = GET_USER_INFO_ROUTE_PATH,
+    responses(
+        (status = 200, description = "User info", body = UserInfoDTO),
+    )
+)]
+#[get("/user/me")]
+#[rustfmt::skip]
+async fn get_user_info(
+    db: Data<DatabaseConnection>,
+    auth_user: AuthenticatedUser
+) -> impl Responder {
+
+    // Get user
+    let user: User = match UserEntity::find_by_id(auth_user.user_id)
+        .one(db.get_ref())
+        .await {
+            Ok(user) => user.unwrap(), 
+            Err(err) => {
+                return endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding user by id", Box::new(err));
+            }
+        };
+
+    // Encode profile picture as base64 string
+    let profile_picture_base64: Option<String> = match user.profile_picture {
+        None => None,
+        Some(image_bytes) => {
+            Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes)) // TODO: Handle possible errors
+        }
+    };
+
+    // Create DTO object
+    let user_info: UserInfoDTO = UserInfoDTO {
+        username: user.username,
+        name: user.name,
+        last_name: user.last_name,
+        email: user.email,
+        is_email_verified: user.is_email_verified,
+        profile_picture: profile_picture_base64
+        // TODO: Add team related info when teams are implemented
+    };
+    
+    return HttpResponse::Ok().json(user_info);
+}
+
+/*
 **  check
 */
 #[utoipa::path(
@@ -731,12 +782,12 @@ async fn send_email_verification(
     responses(
         (status = 200, description = "User logged in"),
         (status = 401, description = "User not logged in"),
-    )
+    )   
 )]
 #[get("/user/check")]
 #[rustfmt::skip]
 async fn check(
-    _auth_user: AuthenticatedUser    
+    _auth_user: AuthenticatedUser
 ) -> impl Responder {
     HttpResponse::Ok().finish()
 }

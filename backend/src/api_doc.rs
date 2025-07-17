@@ -10,9 +10,10 @@ use crate::routes::team_roles_routes::__path_team_role_create;
 use crate::routes::team_routs::{__path_team_create, __path_team_delete};
 use crate::routes::user_routs::{
     __path_check, __path_user_log_in, __path_user_log_out, __path_user_refresh, __path_user_password_reset, __path_user_update,
-    __path_send_email_verification, __path_user_sign_up, __path_verify_email, __path_user_update_profile_picture
+    __path_send_email_verification, __path_user_sign_up, __path_verify_email, __path_user_update_profile_picture, __path_get_user_info
 };
 use utoipa::OpenApi;
+use crate::models::dtos::user_info_dto::UserInfoDTO;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -25,7 +26,7 @@ use utoipa::OpenApi;
     paths(
         // user routes
         user_sign_up, user_log_in, user_log_out, user_refresh, verify_email, send_email_verification, user_password_reset, user_update, check,
-        user_update_profile_picture,
+        user_update_profile_picture, get_user_info,
 
         // team routes
         team_create, team_delete,
@@ -38,7 +39,7 @@ use utoipa::OpenApi;
         SRouteError, RouteError, ValidationErrorDTO,
 
         // user routes
-        CreateUserDTO, LogInResultDTO, JWTRefreshTokenPairDTO, PasswordResetDTO,
+        CreateUserDTO, LogInResultDTO, JWTRefreshTokenPairDTO, PasswordResetDTO, UserInfoDTO,
 
         // team routes
         CreateTeamDTO,
