@@ -1,9 +1,9 @@
 use crate::entity::teams::{ActiveModel as TeamActiveModel, Entity as TeamEntity, Model as Team};
-use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::dtos::create_team_dto::CreateTeamDTO;
 use crate::models::dtos::update_team_dto::UpdateTeamDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
-use crate::models::validated_json::ValidatedJson;
+use crate::models::middleware::basic_authenticated_user::BasicAuthenticatedUser;
+use crate::models::middleware::validated_json::ValidatedJson;
 use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
@@ -27,7 +27,7 @@ use uuid::Uuid;
 #[post("/team/create")]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
-    _auth_user: AuthenticatedUser,
+    _auth_user: BasicAuthenticatedUser,
     team_json: ValidatedJson<CreateTeamDTO>,
 ) -> impl Responder {
     // Get json data
@@ -68,7 +68,7 @@ pub async fn team_create(
 #[delete("/team/delete/{team_id}")]
 pub async fn team_delete(
     db: Data<DatabaseConnection>,
-    _auth_user: AuthenticatedUser,
+    _auth_user: BasicAuthenticatedUser,
     team_id: Path<Uuid>,
 ) -> impl Responder {
     // Get ownership of incoming data

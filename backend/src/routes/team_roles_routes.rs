@@ -10,12 +10,12 @@ use crate::{
         ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
     },
     models::{
-        authenticated_user::AuthenticatedUser,
         dtos::{
             create_team_role_dto::CreateTeamRoleDTO, update_team_role_dto::UpdateTeamRoleDTO,
             validation_error_dto::ValidationErrorDTO,
         },
-        validated_json::ValidatedJson,
+        middleware::basic_authenticated_user::BasicAuthenticatedUser,
+        middleware::validated_json::ValidatedJson,
     },
     utils::{
         constants::{
@@ -37,7 +37,7 @@ use crate::{
 #[post("/team-role/create")]
 pub async fn team_role_create(
     db: Data<DatabaseConnection>,
-    _auth_user: AuthenticatedUser,
+    _auth_user: BasicAuthenticatedUser,
     json_data: ValidatedJson<CreateTeamRoleDTO>,
 ) -> impl Responder {
     // Get json data
@@ -77,7 +77,7 @@ pub async fn team_role_create(
 #[delete("/team-role/delete/{team_role_id}")]
 pub async fn team_role_delete(
     db: Data<DatabaseConnection>,
-    _auth_user: AuthenticatedUser,
+    _auth_user: BasicAuthenticatedUser,
     team_role_id: Path<i64>,
 ) -> impl Responder {
     let id = team_role_id.into_inner();

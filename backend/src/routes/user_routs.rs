@@ -3,7 +3,6 @@
 // IMPORTS
 //
 // ************************************************************************************
-use crate::models::authenticated_user::AuthenticatedUser;
 use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
@@ -13,10 +12,12 @@ use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::email_verify_claims::EmailVerifyClaims;
+use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
+use crate::models::middleware::basic_authenticated_user::BasicAuthenticatedUser;
+use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::route_error::RouteError;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
-use crate::models::validated_json::ValidatedJson;
 use crate::utils::constants::{
     CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, GET_USER_INFO_ROUTE_PATH,
     JWT_TOKEN_EXPIRATION_OFFSET, LOG_IN_ROUTE_PATH, LOG_OUT_ROUTE_PATH, REFRESH_ROUTE_PATH,
@@ -320,22 +321,15 @@ async fn user_log_out(
 #[rustfmt::skip]
 async fn user_password_reset(
     db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser,
+    auth_user: AdvancedAuthenticatedUser,
     json_data: ValidatedJson<PasswordResetDTO>
 ) -> impl Responder {
 
     // Get json data
     let reset_password_data: &PasswordResetDTO = json_data.get_data();
 
-    // Try to find user
-    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
-        Ok(Some(user)) => user,
-        Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
-    };
-
     // Hash old password
-    let old_password_hash: String = match hash_password_with_salt(&user.salt, &reset_password_data.old_password) {
+    let old_password_hash: String = match hash_password_with_salt(&auth_user.user.salt, &reset_password_data.old_password) {
         Ok(hash) => hash,
         Err(err) => {
             return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
@@ -343,7 +337,7 @@ async fn user_password_reset(
     };
 
     // Check if old password is correct
-    if user.hashed_password != old_password_hash {
+    if auth_user.user.hashed_password != old_password_hash {
         return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
     }
 
@@ -356,7 +350,7 @@ async fn user_password_reset(
     };
 
     // Update password
-    let mut user_active_model: UserActiveModel = user.into();
+    let mut user_active_model: UserActiveModel = auth_user.user.into();
     user_active_model.hashed_password = Set(new_password_hash);
     user_active_model.salt = Set(new_salt);
     
@@ -484,22 +478,15 @@ async fn user_refresh(
 #[rustfmt::skip]
 async fn user_update(
     db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser,
+    auth_user: AdvancedAuthenticatedUser,
     json_data: ValidatedJson<UpdateUserDTO>
 ) -> impl Responder {
     
     // Get json data
     let update_user_data: &UpdateUserDTO = json_data.get_data();
 
-    // Try to find user
-    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
-        Ok(Some(user)) => user,
-        Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
-    };
-
     // Update user
-    let mut user_active_model: UserActiveModel = user.into();
+    let mut user_active_model: UserActiveModel = auth_user.user.into();
 
     if update_user_data.name.is_some() {
         user_active_model.name = Set(update_user_data.name.clone().unwrap());
@@ -545,19 +532,12 @@ async fn user_update(
 #[allow(unused_assignments)]
 async fn user_update_profile_picture(
     db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser,
+    auth_user: AdvancedAuthenticatedUser,
     json_data: ValidatedJson<UpdateProfilePictureDTO>
 ) -> impl Responder {
 
     // Get json data
     let update_profile_picture_data: &UpdateProfilePictureDTO = json_data.get_data();
-
-    // Try to find user
-    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
-        Ok(Some(user)) => user,
-        Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
-    };
         
     // Get bytes of new profile picture
     let mut new_image_bytes: Option<Vec<u8>> = None;
@@ -576,7 +556,7 @@ async fn user_update_profile_picture(
     }
 
     // Update user
-    let mut user_active_model: UserActiveModel = user.into();
+    let mut user_active_model: UserActiveModel = auth_user.user.into();
     user_active_model.profile_picture = Set(new_image_bytes);
 
     let update_result = user_active_model.update(db.get_ref()).await;
@@ -668,25 +648,18 @@ async fn verify_email(
 #[get("/user/email/send-verification")]
 #[rustfmt::skip]
 async fn send_email_verification(
-    db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser
+    _db: Data<DatabaseConnection>,
+    auth_user: AdvancedAuthenticatedUser
 ) -> impl Responder {
 
-    // Try to find user
-    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
-        Ok(Some(user)) => user,
-        Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
-    };
-
     // Check if user is already verified
-    if user.is_email_verified == true {
+    if auth_user.user.is_email_verified == true {
         return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
     }
 
     // Generate email verification token
     // Its used to verify user email
-    let email_verification_token: String = match create_email_verification_token(user.id) {
+    let email_verification_token: String = match create_email_verification_token(auth_user.user.id) {
         Ok(token) => token,
         Err(err) => {
             return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Creating email verification token", Box::new(err));
@@ -694,7 +667,7 @@ async fn send_email_verification(
     };
 
     // Send verification email to user
-    match send_verification_email(&user.username, &user.email, &email_verification_token).await {
+    match send_verification_email(&auth_user.user.username, &auth_user.user.email, &email_verification_token).await {
         Ok(_) => {},
         Err(err) => {
             return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
@@ -718,19 +691,12 @@ async fn send_email_verification(
 #[get("/user/me")]
 #[rustfmt::skip]
 async fn get_user_info(
-    db: Data<DatabaseConnection>,
-    auth_user: AuthenticatedUser
+    _db: Data<DatabaseConnection>,
+    auth_user: AdvancedAuthenticatedUser
 ) -> impl Responder {
 
-    // Try to find user
-    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
-        Ok(Some(user)) => user,
-        Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
-    };
-
     // Encode profile picture as base64 string
-    let profile_picture_base64: Option<String> = match user.profile_picture {
+    let profile_picture_base64: Option<String> = match auth_user.user.profile_picture {
         None => None,
         Some(image_bytes) => {
             Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes)) // TODO: Handle possible errors
@@ -739,11 +705,11 @@ async fn get_user_info(
 
     // Create DTO object
     let user_info: UserInfoDTO = UserInfoDTO {
-        username: user.username,
-        name: user.name,
-        last_name: user.last_name,
-        email: user.email,
-        is_email_verified: user.is_email_verified,
+        username: auth_user.user.username,
+        name: auth_user.user.name,
+        last_name: auth_user.user.last_name,
+        email: auth_user.user.email,
+        is_email_verified: auth_user.user.is_email_verified,
         profile_picture: profile_picture_base64
         // TODO: Add team related info when
     };
@@ -765,7 +731,7 @@ async fn get_user_info(
 #[get("/user/check")]
 #[rustfmt::skip]
 async fn check(
-    _auth_user: AuthenticatedUser
+    _auth_user: BasicAuthenticatedUser
 ) -> impl Responder {
     HttpResponse::Ok().finish()
 }

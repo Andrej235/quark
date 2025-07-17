@@ -2,9 +2,8 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::entity::users::{Entity as UserEntity, Model as User};
-use actix_web::web::Data;
 use actix_web::HttpResponse;
-use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait};
+use sea_orm::{DatabaseConnection, EntityTrait};
 use std::error::Error;
 use tracing::error;
 use uuid::Uuid;

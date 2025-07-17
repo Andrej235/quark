@@ -12,7 +12,7 @@ use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-pub struct AuthenticatedUser {
+pub struct BasicAuthenticatedUser {
     pub user_id: uuid::Uuid,
     pub claims: UserClaims,
 }
@@ -21,7 +21,7 @@ pub struct AuthenticatedUser {
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-impl FromRequest for AuthenticatedUser {
+impl FromRequest for BasicAuthenticatedUser {
     type Error = ActixError;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
@@ -80,7 +80,7 @@ impl FromRequest for AuthenticatedUser {
                 }; 
 
                 
-            Ok(AuthenticatedUser {
+            Ok(BasicAuthenticatedUser {
                 user_id: claims.user_id,
                 claims: claims,
             })
