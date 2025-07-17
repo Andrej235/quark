@@ -1,12 +1,7 @@
 import { AllSchemaInformation, SchemaNames } from "./endpoints";
 import { IsPropertyNullable, ParseSchemaProperty } from "./property-parser";
-
-type Split<
-  T extends string,
-  Separator extends string = " ",
-> = T extends `${infer L}${Separator}${infer R}`
-  ? [...Split<L, Separator>, ...Split<R, Separator>]
-  : [T];
+import { SnakeToCamel } from "./snake-to-camel";
+import { Split } from "./split-string";
 
 type LastElement<T extends string[]> = T extends [infer L, ...infer R]
   ? R extends [string, ...string[]]
@@ -39,19 +34,19 @@ type ParseSchemaObject<T extends SchemaInfo<SchemaNames>> =
     ? "required" extends keyof T
       ? {
           [P in keyof T["properties"] as P extends T["required"][number]
-            ? P
+            ? SnakeToCamel<P>
             : never]:
             | ParseSchemaProperty<T["properties"][P]>
             | IsPropertyNullable<T["properties"][P]>;
         } & {
           [P in keyof T["properties"] as P extends T["required"][number]
             ? never
-            : P]?:
+            : SnakeToCamel<P>]?:
             | ParseSchemaProperty<T["properties"][P]>
             | IsPropertyNullable<T["properties"][P]>;
         }
       : {
-          [P in keyof T["properties"]]?:
+          [P in keyof T["properties"] as SnakeToCamel<P>]?:
             | ParseSchemaProperty<T["properties"][P]>
             | IsPropertyNullable<T["properties"][P]>;
         }

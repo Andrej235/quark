@@ -1,4 +1,5 @@
 import type { RefToSchemaName, SchemaFromString } from "./schema-parser";
+import { SnakeToCamel } from "./snake-to-camel";
 
 export type ParseSchemaProperty<T> = T extends { type: infer Type }
   ? ParseType<Type, T>
@@ -32,7 +33,7 @@ type ParseType<Type, Parent> = Type extends [...infer UnionTypes]
 export type IsPropertyNullable<T> = T extends { nullable: true } ? null : never;
 
 export type NullableToOptional<T> = {
-  [K in keyof T as null extends T[K] ? K : never]?: T[K];
+  [K in keyof T as null extends T[K] ? SnakeToCamel<K> : never]?: T[K];
 } & {
-  [K in keyof T as null extends T[K] ? never : K]: T[K];
+  [K in keyof T as null extends T[K] ? never : SnakeToCamel<K>]: T[K];
 };
