@@ -24,8 +24,7 @@ use crate::utils::constants::{
     SIGN_UP_ROUTE_PATH, UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH,
     VERIFY_EMAIL_ROUTE_PATH,
 };
-use crate::utils::http_helper::endpoint_internal_server_error;
-use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
+use crate::utils::http_helper::{endpoint_internal_server_error, find_user};
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -36,21 +35,22 @@ use crate::{
     },
     models::dtos::create_user_dto::CreateUserDTO,
 };
+use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::error::Error as ActixWebError;
 use actix_web::web::{Data, Path};
 use actix_web::*;
 use argon2::PasswordHash;
 use argon2::{
+    password_hash::{rand_core::OsRng, Error as Argon2Error, SaltString},
     Argon2, PasswordHasher,
-    password_hash::{Error as Argon2Error, SaltString, rand_core::OsRng},
 };
 use base64::Engine;
 use chrono::{Duration, NaiveDateTime, Utc};
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat, ImageReader};
 use jsonwebtoken::{
-    DecodingKey, EncodingKey, Header, TokenData, Validation, decode, encode,
-    errors::Error as JWTTokenError,
+    decode, encode, errors::Error as JWTTokenError, DecodingKey, EncodingKey, Header, TokenData,
+    Validation,
 };
 use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::{Error as ResendError, Resend};
@@ -112,8 +112,6 @@ pub async fn user_sign_up(
             
         // Create new user if it doesn't exist
         None => {
-
-            // Parse profile picture
 
             // Hash password
             let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
@@ -314,6 +312,7 @@ async fn user_log_out(
     responses(
         (status = 200, description = "Password reset"),
         (status = 400, description = "Possible messages: Wrong password", body = SRouteError),
+        (status = 401, description = ""),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -329,14 +328,11 @@ async fn user_password_reset(
     let reset_password_data: &PasswordResetDTO = json_data.get_data();
 
     // Try to find user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(),
-            Err(err) => {
-                return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+    };
 
     // Hash old password
     let old_password_hash: String = match hash_password_with_salt(&user.salt, &reset_password_data.old_password) {
@@ -380,14 +376,14 @@ async fn user_password_reset(
 #[utoipa::path(
     post,
     path = REFRESH_ROUTE_PATH,
-    request_body = JWTRefreshTokenPairDTO,
     responses(
         (status = 200, description = "Token pair refreshed", body = JWTRefreshTokenPairDTO),
-        (status = 401, description = "Possible messages: Invalid JWT token, 
+        (status = 400, description = "Possible messages: Invalid JWT token, 
                                                          Invalid Refresh token, 
                                                          Expired Refresh token,
                                                          Mismatched user and refresh token,
                                                          Mismatched claim and refresh token", body = SRouteError),
+        (status = 401, description = ""),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -411,17 +407,12 @@ async fn user_refresh(
     };
 
 
-    // Return unauthorized response if user is not found
-    match UserEntity::find_by_id(claims.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => {
-                if user.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "Invalid JWT token" }); }
-            },
-            Err(err) => {
-                return endpoint_internal_server_error(REFRESH_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    // Check if user exists with same id from claims
+    match find_user(db.get_ref(), claims.user_id).await {
+        Ok(Some(_)) => {},
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(REFRESH_ROUTE_PATH, "Finding user by id", err)
+    }
 
     // Return unauthorized response if refresh token is not found
     let refresh_token: RefreshToken = match RefreshTokenEntity::find_by_id(token_pair.refresh_token_id)
@@ -485,6 +476,7 @@ async fn user_refresh(
     path = USER_UPDATE_ROUTE_PATH,
     responses(
         (status = 200, description = "User updated"),
+        (status = 401, description = ""),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -499,15 +491,12 @@ async fn user_update(
     // Get json data
     let update_user_data: &UpdateUserDTO = json_data.get_data();
 
-    // Get user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(),
-            Err(err) => {
-                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    // Try to find user
+    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+    };
 
     // Update user
     let mut user_active_model: UserActiveModel = user.into();
@@ -536,20 +525,21 @@ async fn user_update(
     return HttpResponse::Ok().finish();
 }
 
+/*
+**  update profile picture
+*/
 #[utoipa::path(
     patch,
     path = UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH,
     responses(
         (status = 200, description = "Profile picture changed"),
-        (status = 401, description = "Possible messages: Invalid base64 string
+        (status = 400, description = "Possible messages: Invalid base64 string
                                                          Invalid [] format
                                                          Failed to convert image into bytes", body = RouteError),
+        (status = 401, description = ""),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-/*
-**  update profile picture
-*/
 #[patch("/user/me/profile-picture")]
 #[rustfmt::skip]
 #[allow(unused_assignments)]
@@ -562,15 +552,12 @@ async fn user_update_profile_picture(
     // Get json data
     let update_profile_picture_data: &UpdateProfilePictureDTO = json_data.get_data();
 
-    // Get user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(),
-            Err(err) => {
-                return endpoint_internal_server_error(UPDATE_USER_PROFILE_PICTURE_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    // Try to find user
+    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+    };
         
     // Get bytes of new profile picture
     let mut new_image_bytes: Option<Vec<u8>> = None;
@@ -613,8 +600,9 @@ async fn user_update_profile_picture(
     path = VERIFY_EMAIL_ROUTE_PATH,
     responses(
         (status = 200, description = "Email verified"),
-        (status = 400, description = "Possible messages: User already verified", body = SRouteError),
-        (status = 401, description = "Possible messages: User not found", body = SRouteError),
+        (status = 400, description = "Possible messages: User not found, 
+                                                         User already verified", body = SRouteError),
+        (status = 401, description = ""),
     )
 )]
 #[get("/user/email/verify/{token}")]
@@ -640,18 +628,12 @@ async fn verify_email(
         return HttpResponse::Unauthorized().body("Token expired.");
     }
 
-    // Try to find user by id
-    let user_model: User = match UserEntity::find_by_id(email_verification_claims.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => {
-                if user.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "User not found" }); }
-                user.unwrap()
-            },
-            Err(err) => {
-                return endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    // Try to find user
+    let user_model: User = match find_user(db.get_ref(), email_verification_claims.user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+    };
 
     // Check if user is already verified
     if user_model.is_email_verified == true {
@@ -691,14 +673,11 @@ async fn send_email_verification(
 ) -> impl Responder {
 
     // Try to find user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(), // This is not safe to do because user can be None but i think its impossible to be authorized with invalid id
-            Err(err) => {
-                return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+    };
 
     // Check if user is already verified
     if user.is_email_verified == true {
@@ -733,6 +712,7 @@ async fn send_email_verification(
     path = GET_USER_INFO_ROUTE_PATH,
     responses(
         (status = 200, description = "User info", body = UserInfoDTO),
+        (status = 401, description = ""),
     )
 )]
 #[get("/user/me")]
@@ -742,15 +722,12 @@ async fn get_user_info(
     auth_user: AuthenticatedUser
 ) -> impl Responder {
 
-    // Get user
-    let user: User = match UserEntity::find_by_id(auth_user.user_id)
-        .one(db.get_ref())
-        .await {
-            Ok(user) => user.unwrap(), 
-            Err(err) => {
-                return endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding user by id", Box::new(err));
-            }
-        };
+    // Try to find user
+    let user: User = match find_user(db.get_ref(), auth_user.user_id).await {
+        Ok(Some(user)) => user,
+        Ok(None) => return HttpResponse::Unauthorized().finish(),
+        Err(err) => return endpoint_internal_server_error(RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+    };
 
     // Encode profile picture as base64 string
     let profile_picture_base64: Option<String> = match user.profile_picture {
@@ -768,7 +745,7 @@ async fn get_user_info(
         email: user.email,
         is_email_verified: user.is_email_verified,
         profile_picture: profile_picture_base64
-        // TODO: Add team related info when teams are implemented
+        // TODO: Add team related info when
     };
     
     return HttpResponse::Ok().json(user_info);

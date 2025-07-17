@@ -58,6 +58,7 @@ impl FromRequest for AuthenticatedUser {
 
 
             // Verify jit
+            // TODO: Remove
             _ = match RefreshTokenEntity::find()
                 .filter(RefreshTokenColumn::Jit.eq(claims.jit))
                 .one(db.get_ref())
