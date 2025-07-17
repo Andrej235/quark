@@ -12,21 +12,18 @@ export default function App() {
     if (isWaiting.current) return;
     isWaiting.current = true;
 
-    setTimeout(() => {
-      sendApiRequest("/user/check", {
-        method: "get",
-      }).then(({ isOk }) => {
-        setIsLoading(false);
+    sendApiRequest("/user/check", {
+      method: "get",
+    }).then(({ isOk }) => {
+      setIsLoading(false);
 
-        if (!isOk) {
-          navigate("/login");
-          return;
-        }
+      if (!isOk) {
+        navigate("/login");
+        return;
+      }
 
-        isWaiting.current = false;
-        navigate("/");
-      });
-    }, 500);
+      // isWaiting.current = false;
+    });
   }, [navigate]);
 
   return (
