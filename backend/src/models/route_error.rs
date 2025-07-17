@@ -1,4 +1,7 @@
-#[derive(Debug, PartialEq)]
+use serde::Serialize;
+use utoipa::ToSchema;
+
+#[derive(Debug, PartialEq, Serialize, ToSchema)]
 pub struct RouteError {
     pub message: String,
 }

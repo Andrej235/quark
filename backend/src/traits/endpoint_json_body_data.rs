@@ -19,7 +19,8 @@ pub trait EndpointJsonBodyData {
     /// Returns true if all validations are passed, otherwise returns false.
     fn validate_data(&mut self) -> Result<(), ValidationErrors>;
 
-    /// Enforces length range for optional string.
+    /// Enforces length range for optional string. <br/>
+    /// NOTE: Only enforces length if string is not None
     /// Returns Ok() if validation is passed, otherwise returns ValidationErrors
     fn enforce_length_range_optional_string(
         field_enum: Self::FieldNameEnums,
