@@ -42,6 +42,7 @@ export default [
       "prefer-const": "error",
       "@typescript-eslint/no-floating-promises": "off",
       "@typescript-eslint/no-misused-promises": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
     },
     settings: {
       react: {

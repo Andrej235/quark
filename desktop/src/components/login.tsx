@@ -1,4 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import useAuthStore from "@/stores/auth-store";
 import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
@@ -12,7 +13,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import useAuthStore from "@/stores/auth-store";
 
 type Errors = {
   email?: string;

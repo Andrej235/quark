@@ -7,8 +7,7 @@ use crate::{
         team_roles_routes::{team_role_create, team_role_delete, team_role_update},
         team_routs::{team_create, team_delete, team_update},
         user_routs::{
-            check, send_email_verification, user_log_in, user_log_out, user_password_reset,
-            user_refresh, user_sign_up, user_update, verify_email,
+            check, get_user_info, send_email_verification, user_log_in, user_log_out, user_password_reset, user_refresh, user_sign_up, user_update, user_update_profile_picture, verify_email
         },
     },
 };
@@ -18,7 +17,7 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::{env};
+use std::env;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 
@@ -61,6 +60,8 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(user_password_reset);
     cfg.service(user_update);
     cfg.service(user_refresh);
+    cfg.service(user_update_profile_picture);
+    cfg.service(get_user_info);
 
     cfg.service(team_create);
     cfg.service(team_delete);
@@ -86,7 +87,7 @@ async fn main() -> std::io::Result<()> {
 
     // Makes sure that .env file exists
     dotenv().ok();
-
+    
 
     // Initialize logger
     tracing_subscriber::fmt()
@@ -119,6 +120,7 @@ async fn main() -> std::io::Result<()> {
     RESEND_API_KEY.set(resend_api_key).unwrap();
     RESEND_EMAIL.set(resend_email).unwrap();
     IS_DEVELOPMENT_ENV.set(is_development.parse::<bool>().expect("Failed to cast IS_DEVELOPMENT_ENV to bool.")).unwrap();
+
 
     // Create resend instance
     // Its used for sending emails
