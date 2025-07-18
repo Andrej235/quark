@@ -1,40 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import sendApiRequest from "./api-dsl/send-api-request";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
-import { toast } from "sonner";
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const isWaiting = useRef(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isWaiting.current) return;
-    isWaiting.current = true;
-
-    sendApiRequest("/user/check", {
-      method: "get",
-    }).then(({ isOk }) => {
-      setIsLoading(false);
-      setIsLoggedIn(isOk);
-
-      if (!isOk) {
-        navigate("/login");
-        return;
-      }
-
-      // isWaiting.current = false;
-    });
-  }, [navigate]);
+  const isLoggedIn = useQuery({
+    queryKey: ["isLoggedIn"],
+    queryFn: () => sendApiRequest("/user/check", { method: "get" }),
+  });
 
   const user = useQuery({
     queryKey: ["user"],
     queryFn: () => sendApiRequest("/user/me", { method: "get" }),
-    enabled: !isLoading && isLoggedIn,
+    enabled: !isLoggedIn.isLoading && isLoggedIn.data?.isOk,
   });
 
   const setUser = useUserStore((state) => state.setUser);
@@ -51,9 +34,11 @@ export default function App() {
 
   return (
     <div className="min-w-svw bg-background min-h-svh">
-      {!isLoading && (!isLoggedIn || !user.isLoading) && <Outlet />}
+      {!isLoggedIn.isLoading && (!isLoggedIn.data?.isOk || !user.isLoading) && (
+        <Outlet />
+      )}
 
-      {(isLoading || user.isLoading) && (
+      {(isLoggedIn.isLoading || user.isLoading) && (
         <div className="flex h-full w-full flex-col items-center justify-center gap-4">
           <p className="text-lg font-medium">Loading...</p>
         </div>
