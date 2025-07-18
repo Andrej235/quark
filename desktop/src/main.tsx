@@ -1,15 +1,18 @@
 import Homepage from "@/components/homepage";
 import Login from "@/components/login";
 import Signup from "@/components/signup";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
 import NotificationSettingsPage from "./components/notification-settings-page";
+import SidebarContainer from "./components/sidebar-container";
 import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import "./globals.css";
-import SidebarContainer from "./components/sidebar-container";
+
+const queryClient = new QueryClient();
 
 const router = createBrowserRouter([
   {
@@ -52,6 +55,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </React.StrictMode>,
 );
