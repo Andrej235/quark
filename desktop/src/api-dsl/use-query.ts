@@ -20,13 +20,14 @@ type Options<Route extends GetRoutes> = OmitKeyof<
 
 export default function useQuery<Route extends GetRoutes>(
   route: Route,
-  options: Options<Route>,
+  options?: Options<Route>,
 ): ReturnType<typeof useTanQuery<UnwrappedApiResponse<Route, "get">>> {
   return useTanQuery({
     queryFn: () =>
       sendApiRequest(route, {
         method: "get",
-        parameters: "parameters" in options ? options.parameters : undefined,
+        parameters:
+          options && "parameters" in options ? options.parameters : undefined,
       } as unknown as Request<Route>).then((x) => {
         if (x?.isOk) return x.response;
 
