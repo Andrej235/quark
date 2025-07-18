@@ -1,40 +1,37 @@
-import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import sendApiRequest from "./api-dsl/send-api-request";
+import useQuery from "./api-dsl/use-query";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
 
 export default function App() {
   const navigate = useNavigate();
 
-  const isLoggedIn = useQuery({
+  const isLoggedIn = useQuery("/user/check", {
     queryKey: ["isLoggedIn"],
-    queryFn: () => sendApiRequest("/user/check", { method: "get" }),
   });
 
-  const user = useQuery({
+  const user = useQuery("/user/me", {
     queryKey: ["user"],
-    queryFn: () => sendApiRequest("/user/me", { method: "get" }),
-    enabled: !isLoggedIn.isLoading && isLoggedIn.data?.isOk,
+    enabled: !isLoggedIn.isLoading && isLoggedIn.isSuccess,
   });
 
   const setUser = useUserStore((state) => state.setUser);
   useEffect(() => {
     if (!user.data) return;
 
-    if (user.isError || !user.data.isOk) {
-      toast.error(user.data.error?.message ?? "Something went wrong");
+    if (user.isError || !user.isSuccess) {
+      toast.error((user.error as Error).message ?? "Something went wrong");
       return;
     }
 
-    setUser(user.data.response);
+    setUser(user.data);
   }, [user, navigate, setUser]);
 
   return (
     <div className="min-w-svw bg-background min-h-svh">
-      {!isLoggedIn.isLoading && (!isLoggedIn.data?.isOk || !user.isLoading) && (
+      {!isLoggedIn.isLoading && (!isLoggedIn.isSuccess || !user.isLoading) && (
         <Outlet />
       )}
 
