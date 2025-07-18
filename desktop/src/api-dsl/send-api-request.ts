@@ -19,7 +19,7 @@ type Response<
   : never;
 
 type Options = {
-  includeCredentials?: boolean;
+  omitCredentials?: boolean;
   abortSignal?: AbortSignal;
 } & (
   | {
@@ -75,7 +75,7 @@ export default async function sendApiRequest<
     body: body,
     headers: {
       "Content-Type": "application/json",
-      ...(options.includeCredentials && {
+      ...(!options.omitCredentials && {
         Authorization: `Bearer ${await useAuthStore.getState().getJwt()}`,
       }),
     },

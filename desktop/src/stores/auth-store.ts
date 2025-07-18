@@ -99,7 +99,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
           },
         },
         {
-          includeCredentials: false,
+          omitCredentials: true,
         },
       );
 
