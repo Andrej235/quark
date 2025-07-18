@@ -11,6 +11,8 @@ import SidebarContainer from "./components/sidebar-container";
 import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import "./globals.css";
+import TeamMemberSettingsTab from "./components/team-member-settings-page";
+import TeamRolesSettings from "./components/team-roles-settings-page";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,14 @@ const router = createBrowserRouter([
           {
             path: "/settings/team",
             element: <TeamSettingsPage />,
+          },
+          {
+            path: "/settings/team-members",
+            element: <TeamMemberSettingsTab />,
+          },
+          {
+            path: "/settings/team-roles",
+            element: <TeamRolesSettings />,
           },
           {
             path: "/settings/notifications",

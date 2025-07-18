@@ -4,7 +4,7 @@ import { formatCount } from "@/lib/format-count";
 import { formatUserCount } from "@/lib/format-user-count";
 import { Edit, Lock, LucideDot, Shield, Trash2 } from "lucide-react";
 import React from "react";
-import { Permission, Role } from "./team-roles-settings";
+import { Permission, Role } from "./team-roles-settings-page";
 import { Link } from "react-router-dom";
 
 interface RoleCardProps {

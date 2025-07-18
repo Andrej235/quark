@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Users } from "lucide-react";
 import React from "react";
-import { Role } from "./team-roles-settings";
+import { Role } from "./team-roles-settings-page";
 
 interface DeleteRoleDialogProps {
   isOpen: boolean;

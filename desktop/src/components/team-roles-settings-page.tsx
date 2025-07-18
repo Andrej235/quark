@@ -1,6 +1,6 @@
-import { TabsContent } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { DeleteRoleDialog } from "./delete-role-dialog";
 import { RoleCard } from "./role-card";
 import { Button } from "./ui/button";
 import {
@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
-import { DeleteRoleDialog } from "./delete-role-dialog";
 
 export type Permission = {
   id: string;
@@ -222,43 +221,41 @@ export default function TeamRolesSettings() {
   };
 
   return (
-    <TabsContent value="roles" className="flex-1 rounded-xl">
-      <Card className="border-0 bg-transparent">
-        <CardHeader className="pb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">Team Roles</CardTitle>
-              <CardDescription>
-                Create and manage roles to control what team members can access
-              </CardDescription>
-            </div>
-
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Role
-                </Button>
-              </DialogTrigger>
-
-              <DialogContent>Test</DialogContent>
-            </Dialog>
+    <Card className="border-0 bg-transparent">
+      <CardHeader className="pb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl">Team Roles</CardTitle>
+            <CardDescription>
+              Create and manage roles to control what team members can access
+            </CardDescription>
           </div>
-        </CardHeader>
 
-        <CardContent className="bg-transparent">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {roles.map((role) => (
-              <RoleCard
-                key={role.id}
-                role={role}
-                permissions={AVAILABLE_PERMISSIONS}
-                onDelete={(role) => setDeletingRole(role)}
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Role
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent>Test</DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+
+      <CardContent className="bg-transparent">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {roles.map((role) => (
+            <RoleCard
+              key={role.id}
+              role={role}
+              permissions={AVAILABLE_PERMISSIONS}
+              onDelete={(role) => setDeletingRole(role)}
+            />
+          ))}
+        </div>
+      </CardContent>
 
       <DeleteRoleDialog
         isOpen={deletingRole !== null}
@@ -266,6 +263,6 @@ export default function TeamRolesSettings() {
         onConfirm={() => handleDeleteRole(deletingRole!.id)}
         role={deletingRole}
       />
-    </TabsContent>
+    </Card>
   );
 }

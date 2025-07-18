@@ -51,6 +51,14 @@ const data = {
           url: "/settings/team",
         },
         {
+          title: "Team Members",
+          url: "/settings/team-members",
+        },
+        {
+          title: "Team Roles",
+          url: "/settings/team-roles",
+        },
+        {
           title: "Notifications",
           url: "/settings/notifications",
         },
