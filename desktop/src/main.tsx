@@ -5,7 +5,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
+import NotificationSettingsPage from "./components/notification-settings-page";
+import TeamSettingsPage from "./components/team-settings-page";
+import UserSettingsPage from "./components/user-settings-page";
 import "./globals.css";
+import SidebarContainer from "./components/sidebar-container";
 
 const router = createBrowserRouter([
   {
@@ -14,7 +18,25 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <Homepage />,
+        element: <SidebarContainer />,
+        children: [
+          {
+            path: "/",
+            element: <Homepage />,
+          },
+          {
+            path: "/settings/team",
+            element: <TeamSettingsPage />,
+          },
+          {
+            path: "/settings/notifications",
+            element: <NotificationSettingsPage />,
+          },
+          {
+            path: "/settings/user",
+            element: <UserSettingsPage />,
+          },
+        ],
       },
       {
         path: "/login",
@@ -30,6 +52,6 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />;
+    <RouterProvider router={router} />
   </React.StrictMode>,
 );
