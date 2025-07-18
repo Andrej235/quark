@@ -7,7 +7,9 @@ use crate::{
         team_roles_routes::{team_role_create, team_role_delete, team_role_update},
         team_routs::{team_create, team_delete, team_update},
         user_routs::{
-            check, get_user_info, send_email_verification, user_log_in, user_log_out, user_password_reset, user_refresh, user_sign_up, user_update, user_update_profile_picture, verify_email
+            check, get_user_info, send_email_verification, user_log_in, user_log_out,
+            user_password_reset, user_refresh, user_sign_up, user_update,
+            user_update_profile_picture, verify_email,
         },
     },
 };
@@ -37,6 +39,7 @@ pub static IS_DEVELOPMENT_ENV: OnceCell<bool> = OnceCell::new();
 // ------------------------------------------------------------------------------------
 pub mod api_doc;
 pub mod entity;
+pub mod enums;
 pub mod extensions;
 pub mod models;
 pub mod routes;

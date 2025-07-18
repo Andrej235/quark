@@ -7,8 +7,7 @@ use crate::entity::team_members::{
     ActiveModel as TeamMemberActiveModel, Column as TeamMemberColumn, Entity as TeamMemberEntity,
 };
 use crate::entity::team_roles::{
-    ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
-    Model as TeamRole,
+    ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
 };
 use crate::entity::teams::{
     ActiveModel as TeamActiveModel, Column as TeamColumn, Entity as TeamEntity,
@@ -18,7 +17,6 @@ use crate::models::dtos::create_team_dto::CreateTeamDTO;
 use crate::models::dtos::update_team_dto::UpdateTeamDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
-use crate::models::middleware::basic_authenticated_user::BasicAuthenticatedUser;
 use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::role::Role;
 use crate::models::sroute_error::SRouteError;
@@ -33,7 +31,7 @@ use lazy_static::lazy_static;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-    QuerySelect, TransactionTrait,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -55,7 +53,7 @@ lazy_static! {
 // ************************************************************************************
 #[utoipa::path(
     post,
-    path = TEAM_CREATE_ROUTE_PATH,
+    path = TEAM_CREATE_ROUTE_PATH.0,
     request_body = CreateTeamDTO,
     responses(
         (status = 200, description = "Team created"),
@@ -146,10 +144,19 @@ pub async fn team_create(
 // ROUTES - PUT
 //
 // ************************************************************************************
+#[utoipa::path(
+    post,
+    path = TEAM_UPDATE_ROUTE_PATH.0,
+    request_body = CreateTeamDTO,
+    responses(
+        (status = 200, description = "Team created"),
+        (status = 404, description = "Team not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+    )
+)]
 #[put("/team/update/{team_id}")]
 pub async fn team_update(
     db: Data<DatabaseConnection>,
-    //_auth_user: AuthenticatedUser,
     team_id: Path<Uuid>,
     json_data: ValidatedJson<UpdateTeamDTO>,
 ) -> impl Responder {
@@ -171,7 +178,9 @@ pub async fn team_update(
                 ),
             }
         }
-        Ok(None) => HttpResponse::NotFound().body("Team not found"),
+        Ok(None) => HttpResponse::NotFound().json(SRouteError {
+            message: "Team not found",
+        }),
         Err(err) => {
             endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err))
         }
@@ -185,7 +194,7 @@ pub async fn team_update(
 // ************************************************************************************
 #[utoipa::path(
     delete,
-    path = TEAM_DELETE_ROUTE_PATH,
+    path = TEAM_DELETE_ROUTE_PATH.0,
     params(
         ("team_id" = Uuid, Path, description = "Team ID to delete"),
     ),

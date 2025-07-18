@@ -27,7 +27,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = TEAM_ROLE_CREATE_ROUTE_PATH,
+    path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
     request_body = CreateTeamRoleDTO,
     responses(
         (status = 200, description = "Team role created"),
@@ -66,7 +66,7 @@ pub async fn team_role_create(
 
 #[utoipa::path(
     delete,
-    path = TEAM_ROLE_DELETE_ROUTE_PATH,
+    path = TEAM_ROLE_DELETE_ROUTE_PATH.0,
     params(
         ("team_role_id" = i64, Path, description = "ID of the team role to delete"),
     ),
@@ -96,7 +96,7 @@ pub async fn team_role_delete(
 
 #[utoipa::path(
     put,
-    path = TEAM_ROLE_UPDATE_ROUTE_PATH,
+    path = TEAM_ROLE_UPDATE_ROUTE_PATH.0,
     request_body = UpdateTeamRoleDTO
 )]
 #[put("/team-role/update/{team_role_id}")]

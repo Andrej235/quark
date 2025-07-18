@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::entity::users::{Entity as UserEntity, Model as User};
+use crate::{entity::users::{Entity as UserEntity, Model as User}, enums::type_of_request::TypeOfRequest};
 use actix_web::HttpResponse;
 use sea_orm::{DatabaseConnection, EntityTrait};
 use std::error::Error;
@@ -13,11 +13,11 @@ use uuid::Uuid;
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
 pub fn endpoint_internal_server_error(
-    route_path: &'static str,
+    route_uri_info: (&'static str, TypeOfRequest),
     what_failed: &'static str,
     error: Box<dyn Error>
 ) -> HttpResponse {
-    error!("[FAILED] [{}] Reason: {}, Error: {:?}", route_path, what_failed, error);
+    error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", route_uri_info.1, route_uri_info.0, what_failed, error);
     return HttpResponse::InternalServerError().finish();
 }
 
