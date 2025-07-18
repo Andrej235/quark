@@ -3,12 +3,8 @@
 // IMPORTS
 //
 // ************************************************************************************
-use crate::entity::team_members::{
-    ActiveModel as TeamMemberActiveModel, Column as TeamMemberColumn, Entity as TeamMemberEntity,
-};
-use crate::entity::team_roles::{
-    ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
-};
+use crate::entity::team_members::ActiveModel as TeamMemberActiveModel;
+use crate::entity::team_roles::{ActiveModel as TeamRoleActiveModel, Model as TeamRole};
 use crate::entity::teams::{
     ActiveModel as TeamActiveModel, Column as TeamColumn, Entity as TeamEntity,
 };
@@ -24,7 +20,7 @@ use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
 use crate::utils::http_helper::{
-    check_permission, check_permissions, endpoint_internal_server_error, get_user_team_permissions,
+    check_permission, endpoint_internal_server_error, get_user_team_permissions,
 };
 use actix_web::web::Path;
 use actix_web::{delete, put};
