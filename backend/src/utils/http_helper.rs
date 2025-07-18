@@ -1,26 +1,42 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::{entity::users::{Entity as UserEntity, Model as User}, enums::type_of_request::TypeOfRequest};
+use crate::entity::team_members::{
+    Column as TeamMemberColumn, Entity as TeamMemberEntity, Model as TeamMember,
+};
+use crate::entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole};
+use crate::models::permission::Permission;
+use crate::models::sroute_error::SRouteError;
+use crate::{
+    entity::users::{Entity as UserEntity, Model as User},
+    enums::type_of_request::TypeOfRequest,
+};
 use actix_web::HttpResponse;
-use sea_orm::{DatabaseConnection, EntityTrait};
+use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::error::Error;
 use tracing::error;
 use uuid::Uuid;
 
-// ------------------------------------------------------------------------------------
-// FUNCTIONS
-// ------------------------------------------------------------------------------------
+// ************************************************************************************
+//
+// ENDPOINT FUNCTIONS
+//
+// ************************************************************************************
 #[rustfmt::skip]
 pub fn endpoint_internal_server_error(
-    route_uri_info: (&'static str, TypeOfRequest),
+    endpoint_path: (&'static str, TypeOfRequest),
     what_failed: &'static str,
     error: Box<dyn Error>
 ) -> HttpResponse {
-    error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", route_uri_info.1, route_uri_info.0, what_failed, error);
+    error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, what_failed, error);
     return HttpResponse::InternalServerError().finish();
 }
 
+// ************************************************************************************
+//
+// PREDIFINED DATABASE QUERIES
+//
+// ************************************************************************************
 #[rustfmt::skip]
 pub async fn find_user(
     db: &DatabaseConnection,
@@ -34,4 +50,91 @@ pub async fn find_user(
                 return Err(Box::new(err));
             }
         };
+}
+
+#[rustfmt::skip]
+/// Gets user team permissions <br/>
+/// Returns: Forbidden response if user is not member of team <br/>
+/// Returns: Internal server error if database query fails <br/>
+/// Returns: Tuple of team member and team role
+pub async fn get_user_team_permissions(
+    endpoint_path: (&'static str, TypeOfRequest),
+    db: &DatabaseConnection,
+    user_id: Uuid,
+    team_id: Uuid,
+) -> Result<(TeamMember, TeamRole), HttpResponse> {
+
+    let (team_member, team_role): (TeamMember, TeamRole) = match TeamMemberEntity::find()
+        .filter(TeamMemberColumn::UserId.eq(user_id))
+        .filter(TeamMemberColumn::TeamId.eq(team_id))
+        .find_also_related(TeamRoleEntity)
+        .one(db)
+        .await {
+
+        // If everything is ok return both team member and team role objects
+        Ok(Some((member, Some(role)))) => (member, role),
+
+        // If team role is not found or team member is not found return forbidden response
+        Ok(Some((_, None))) | Ok(None) => {
+            return Err(HttpResponse::Forbidden().json(SRouteError { message: "Not memeber of team" }));
+        },
+
+        // Something went to shit and return internal server error
+        Err(err) => {
+            return Err(endpoint_internal_server_error(
+                endpoint_path,
+                "Finding team member",
+                Box::new(err),
+            ));
+        }
+    };
+
+    return Ok((team_member, team_role));
+}
+
+// ************************************************************************************
+//
+// PERMISSIONS FUNCTIONS
+//
+// ************************************************************************************
+#[rustfmt::skip]
+/// Checks if all required permissions are present
+/// Returns (), otherwise status forbidden
+pub fn check_permissions(
+    permissions: i32,
+    required_permissions: Vec<Permission>
+) -> Result<(), HttpResponse> {
+
+    let perm: Permission = match Permission::from_bits(permissions) {
+        Some(perm) => perm,
+        None => return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" })) // I think this should cause any errors
+    };
+
+    for required_permission in required_permissions {
+        if perm.contains(required_permission) == false {
+            return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }));
+        }
+    }
+
+    return Ok(());
+}
+
+#[rustfmt::skip]
+/// Checks if required permission is present
+/// Returns (), otherwise status forbidden
+pub fn check_permission(
+    permissions: i32,
+    required_permission: Permission
+) -> Result<(), HttpResponse> {
+
+    let perm: Permission = match Permission::from_bits(permissions) {
+        Some(perm) => perm,
+        None => return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }))
+    };
+
+    if perm.contains(required_permission) == false {
+        return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }));
+    }
+
+    return Ok(());
 }

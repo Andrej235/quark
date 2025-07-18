@@ -18,12 +18,14 @@ use crate::models::dtos::update_team_dto::UpdateTeamDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
 use crate::models::middleware::validated_json::ValidatedJson;
-use crate::models::role::Role;
+use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
 use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
-use crate::utils::http_helper::endpoint_internal_server_error;
+use crate::utils::http_helper::{
+    check_permission, check_permissions, endpoint_internal_server_error, get_user_team_permissions,
+};
 use actix_web::web::Path;
 use actix_web::{delete, put};
 use actix_web::{post, web::Data, HttpResponse, Responder};
@@ -41,9 +43,9 @@ use uuid::Uuid;
 //
 // ************************************************************************************
 lazy_static! {
-    static ref OWNER_PERMISSIONS: i32 = Role::all().bits();
+    static ref OWNER_PERMISSIONS: i32 = Permission::all().bits();
     static ref MODERATOR_PERMISSIONS: i32 =
-        (Role::CAN_ADD_TEAM_MEMBER | Role::CAN_REMOVE_TEAM_MEMBER).bits();
+        (Permission::CAN_ADD_TEAM_MEMBER | Permission::CAN_REMOVE_TEAM_MEMBER).bits();
 }
 
 // ************************************************************************************
@@ -215,27 +217,17 @@ pub async fn team_delete(
     let team_id = team_id.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
-    let team_role: TeamRole = match TeamMemberEntity::find()
-        .filter(TeamMemberColumn::UserId.eq(auth_user.user.id))
-        .filter(TeamMemberColumn::TeamId.eq(team_id))
-        .find_also_related(TeamRoleEntity)
-        .one(db.get_ref())
-        .await {
-        Ok(Some((_, Some(team_role)))) => team_role,
-        Ok(Some((_, None))) | Ok(None) => {
-            return HttpResponse::Forbidden().json(SRouteError { message: "Not memeber of team" });
-        },
-        Err(err) => {
-            return endpoint_internal_server_error(
-                TEAM_DELETE_ROUTE_PATH,
-                "Finding team member",
-                Box::new(err),
-            );
-        }
+    let team_role: TeamRole = match get_user_team_permissions(
+        TEAM_DELETE_ROUTE_PATH, db.get_ref(),
+        auth_user.user.id, team_id,
+    ).await {
+        Ok((_, team_role)) => team_role,
+        Err(err) => return err,
     };
 
-    if Role::from_bits_truncate(team_role.permissions).contains(Role::CAN_DELETE_TEAM) == false {
-        return HttpResponse::Forbidden().json(SRouteError { message: "Not allowed to delete team" });
+    match check_permission(team_role.permissions, Permission::CAN_DELETE_TEAM) {
+        Ok(_) => (),
+        Err(err) => return err
     }
 
     // Delete team
