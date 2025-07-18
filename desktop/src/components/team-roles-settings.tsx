@@ -223,7 +223,6 @@ export default function TeamRolesSettings() {
 
   return (
     <TabsContent value="roles" className="flex-1 rounded-xl">
-      {/* Role Management Section */}
       <Card className="border-0 bg-transparent">
         <CardHeader className="pb-6">
           <div className="flex items-center justify-between">
