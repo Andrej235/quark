@@ -46,12 +46,12 @@ export default function App() {
       return;
     }
 
-    setUser(user.data.response!);
+    setUser(user.data.response);
   }, [user, navigate, setUser]);
 
   return (
     <div className="min-w-svw bg-background min-h-svh">
-      {!isLoading && !user.isLoading && <Outlet />}
+      {!isLoading && (!isLoggedIn || !user.isLoading) && <Outlet />}
 
       {(isLoading || user.isLoading) && (
         <div className="flex h-full w-full flex-col items-center justify-center gap-4">
