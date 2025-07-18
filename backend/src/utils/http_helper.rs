@@ -105,6 +105,8 @@ pub fn check_permissions(
     required_permissions: Vec<Permission>
 ) -> Result<(), HttpResponse> {
 
+    // TODO: Improve performance by caching
+
     let perm = Permission::from_bits(permissions)
         .ok_or_else(|| HttpResponse::Forbidden().json(SRouteError { message: "Invalid permissions" }))?;
 
@@ -124,6 +126,8 @@ pub fn check_permission(
     permissions: i32,
     required_permission: Permission
 ) -> Result<(), HttpResponse> {
+
+    // TODO: Improve performance by caching
 
     let perm: Permission = match Permission::from_bits(permissions) {
         Some(perm) => perm,

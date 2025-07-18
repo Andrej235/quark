@@ -2,6 +2,7 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::entity::users::{Entity as UserEntity, Model as User};
+use crate::utils::constants::ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL;
 use crate::{models::user_claims::UserClaims, JWT_SECRET};
 use actix_web::{dev::Payload, Error as ActixError, FromRequest, HttpRequest};
 use futures::future::LocalBoxFuture;
@@ -41,6 +42,15 @@ impl FromRequest for AdvancedAuthenticatedUser {
             .and_then(|s| s.strip_prefix("Bearer ")
             .map(|s| s.to_string()));
 
+
+        // Check if path needs to have required email verified
+        let path: &str = req.path();
+
+        let is_verified_email_required: bool = ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL
+            .iter()
+            .any(|&endpoint| path.starts_with(endpoint));
+
+
         Box::pin(async move {
 
             // Unwrap token
@@ -67,7 +77,10 @@ impl FromRequest for AdvancedAuthenticatedUser {
                 }
             };
 
-                
+            if is_verified_email_required == true && user.is_email_verified == false {
+                return Err(actix_web::error::ErrorUnauthorized("Unverified email"));
+            }
+
             Ok(AdvancedAuthenticatedUser {
                 user: user,
                 claims: claims,

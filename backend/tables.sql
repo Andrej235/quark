@@ -15,7 +15,7 @@ CREATE TABLE "users" (
   "salt" TEXT NOT NULL,
   "hashed_password" TEXT NOT NULL,
 
-  "default_team_id" UUID REFERENCES "teams"("id") ON DELETE CASCADE
+  "default_team_id" UUID REFERENCES "teams"("id") ON DELETE SET NULL
 );
 
 CREATE TABLE "refresh_tokens" (

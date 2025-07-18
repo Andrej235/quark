@@ -59,7 +59,7 @@ lazy_static! {
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-#[post("/team/create")]
+#[post("/team")]
 #[rustfmt::skip]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
@@ -69,9 +69,6 @@ pub async fn team_create(
 
     // Get json data
     let team_data: &CreateTeamDTO = team_json.get_data();
-
-    // Only user with verified email can create team
-    if auth_user.user.is_email_verified == false { return HttpResponse::Unauthorized().body("Unverified email"); }
 
     // Dont allow user to create team if there is team with same name
     match TeamEntity::find()
@@ -152,7 +149,7 @@ pub async fn team_create(
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-#[put("/team/update/{team_id}")]
+#[put("/team/{team_id}")]
 pub async fn team_update(
     db: Data<DatabaseConnection>,
     team_id: Path<Uuid>,
@@ -203,7 +200,7 @@ pub async fn team_update(
     )
 )]
 #[rustfmt::skip]
-#[delete("/team/delete/{team_id}")]
+#[delete("/team/{team_id}")]
 pub async fn team_delete(
     db: Data<DatabaseConnection>,
     auth_user: AdvancedAuthenticatedUser,
