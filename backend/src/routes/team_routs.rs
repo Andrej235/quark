@@ -40,8 +40,17 @@ use uuid::Uuid;
 // ************************************************************************************
 lazy_static! {
     static ref OWNER_PERMISSIONS: i32 = Permission::all().bits();
-    static ref MODERATOR_PERMISSIONS: i32 =
-        (Permission::CAN_ADD_TEAM_MEMBER | Permission::CAN_REMOVE_TEAM_MEMBER).bits();
+    static ref MODERATOR_PERMISSIONS: i32 = (Permission::CAN_VIEW_USERS
+        | Permission::CAN_VIEW_PROSPECTS
+        | Permission::CAN_CREATE_PROSPECTS
+        | Permission::CAN_EDIT_PROSPECTS
+        | Permission::CAN_DELETE_PROSPECTS
+        | Permission::CAN_VIEW_EMAILS
+        | Permission::CAN_CREATE_EMAILS
+        | Permission::CAN_EDIT_EMAILS
+        | Permission::CAN_DELETE_EMAILS
+        | Permission::CAN_SEND_EMAILS)
+        .bits();
 }
 
 // ************************************************************************************
@@ -142,35 +151,73 @@ pub async fn team_create(
 #[utoipa::path(
     post,
     path = TEAM_UPDATE_ROUTE_PATH.0,
-    request_body = CreateTeamDTO,
+    request_body = UpdateTeamDTO,
     responses(
         (status = 200, description = "Team created"),
         (status = 404, description = "Team not found", body = SRouteError),
-        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+        (status = 409, description = "Team with same name already exists", body = SRouteError),
+        (status = 422, description = "", body = ValidationErrorDTO),
     )
 )]
 #[put("/team/{team_id}")]
+#[rustfmt::skip]
 pub async fn team_update(
     db: Data<DatabaseConnection>,
+    auth_user: AdvancedAuthenticatedUser,
     team_id: Path<Uuid>,
     json_data: ValidatedJson<UpdateTeamDTO>,
 ) -> impl Responder {
-    let id = team_id.into_inner();
-    let update_data = json_data.get_data();
+    
+    let team_id: Uuid = team_id.into_inner();
+    let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
-    match TeamEntity::find_by_id(id).one(db.get_ref()).await {
+    // Prevent user from updating team if they dont have permission
+    let team_role: TeamRole = match get_user_team_permissions(
+        TEAM_DELETE_ROUTE_PATH, db.get_ref(),
+        auth_user.user.id, team_id,
+    ).await {
+        Ok((_, team_role)) => team_role,
+        Err(err) => return err,
+    };
+
+    match check_permission(team_role.permissions, Permission::CAN_EDIT_SETTINGS) {
+        Ok(_) => (),
+        Err(err) => return err
+    }
+
+    // Update team
+    match TeamEntity::find_by_id(team_id).one(db.get_ref()).await {
         Ok(Some(existing)) => {
+            
+            // Check for name conflict
+            match TeamEntity::find()
+                .filter(TeamColumn::Name.eq(new_team_info.name.clone()))
+                .filter(TeamColumn::Id.ne(team_id))
+                .one(db.get_ref())
+                .await {
+                Ok(None) => {},
+                Ok(Some(_)) => {
+                    return HttpResponse::Conflict().json(SRouteError { message: "Team name already exists" });
+                }
+                Err(err) => {
+                    return endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
+                }
+            };
+
+            // Abort updating team if new team data is same as before
+            // Prevents unnecessary database updates
+            if existing.name == new_team_info.name && existing.description == new_team_info.description {
+                return HttpResponse::Ok().finish();
+            }
+
+            // Update existing team
             let mut model: TeamActiveModel = existing.into();
-            model.name = Set(update_data.name.clone());
-            model.description = Set(update_data.description.clone());
+            model.name = Set(new_team_info.name.clone());
+            model.description = Set(new_team_info.description.clone());
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => endpoint_internal_server_error(
-                    TEAM_UPDATE_ROUTE_PATH,
-                    "Updating team",
-                    Box::new(err),
-                ),
+                Err(err) => endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
             }
         }
         Ok(None) => HttpResponse::NotFound().json(SRouteError {
@@ -199,8 +246,8 @@ pub async fn team_update(
                                                         Not allowed to delete team", body = SRouteError),
     )
 )]
-#[rustfmt::skip]
 #[delete("/team/{team_id}")]
+#[rustfmt::skip]
 pub async fn team_delete(
     db: Data<DatabaseConnection>,
     auth_user: AdvancedAuthenticatedUser,
