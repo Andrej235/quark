@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, PartialEq, Eq, Clone, Copy)]
     pub struct Permission: i32 {
         const CAN_UPDATE_TEAM        = 1 << 0;
         const CAN_DELETE_TEAM        = 1 << 1;

@@ -105,18 +105,16 @@ pub fn check_permissions(
     required_permissions: Vec<Permission>
 ) -> Result<(), HttpResponse> {
 
-    let perm: Permission = match Permission::from_bits(permissions) {
-        Some(perm) => perm,
-        None => return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" })) // I think this should cause any errors
-    };
+    let perm = Permission::from_bits(permissions)
+        .ok_or_else(|| HttpResponse::Forbidden().json(SRouteError { message: "Invalid permissions" }))?;
 
-    for required_permission in required_permissions {
-        if perm.contains(required_permission) == false {
-            return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }));
-        }
+    let required = required_permissions.into_iter().fold(Permission::empty(), |acc, p| acc | p);
+
+    if (perm & required) == required {
+        Ok(())
+    } else {
+        Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }))
     }
-
-    return Ok(());
 }
 
 #[rustfmt::skip]
