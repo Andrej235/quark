@@ -31,6 +31,8 @@ use crate::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
         Entity as RefreshTokenEntity, Model as RefreshToken,
     },
+    entity::team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity},
+    entity::teams::Entity as TeamEntity,
     entity::users::{
         ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, Model as User,
     },
@@ -692,7 +694,7 @@ async fn send_email_verification(
 #[get("/user/me")]
 #[rustfmt::skip]
 async fn get_user_info(
-    _db: Data<DatabaseConnection>,
+    db: Data<DatabaseConnection>,
     auth_user: AdvancedAuthenticatedUser
 ) -> impl Responder {
 
@@ -704,6 +706,21 @@ async fn get_user_info(
         }
     };
 
+    // Get all teams name in which user is member
+    let teams_name = match TeamMemberEntity::find()
+        .filter(TeamMemberColumn::UserId.eq(auth_user.user.id))
+        .find_also_related(TeamEntity)
+        .all(db.get_ref())
+        .await {
+        Ok(team_records) => {
+            team_records
+                .into_iter()
+                .filter_map(|(_, team)| team.map(|t| t.name))
+                .collect::<Vec<String>>()
+        },
+        Err(err) => return endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err))
+    };
+
     // Create DTO object
     let user_info: UserInfoDTO = UserInfoDTO {
         username: auth_user.user.username,
@@ -711,8 +728,10 @@ async fn get_user_info(
         last_name: auth_user.user.last_name,
         email: auth_user.user.email,
         is_email_verified: auth_user.user.is_email_verified,
-        profile_picture: profile_picture_base64
+        profile_picture: profile_picture_base64,
+        
         // TODO: Add team related info when
+        teams_name: teams_name
     };
     
     return HttpResponse::Ok().json(user_info);

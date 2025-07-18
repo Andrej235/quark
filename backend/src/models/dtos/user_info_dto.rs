@@ -17,4 +17,6 @@ pub struct UserInfoDTO {
     pub profile_picture:    Option<String>,
     
     pub is_email_verified:  bool,
+
+    pub teams_name:         Vec<String>,
 }
