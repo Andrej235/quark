@@ -1,10 +1,3 @@
-import { TabsContent } from "./ui/tabs";
-import {
-  LucideLogOut,
-  LucideSettings2,
-  LucideUsers2,
-  UserCog2,
-} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -23,6 +16,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatUserCount } from "@/lib/format-user-count";
+import {
+  LucideLogOut,
+  LucideSettings2,
+  LucideUsers2,
+  UserCog2,
+} from "lucide-react";
+import { TabsContent } from "./ui/tabs";
 
 const members: {
   viewAccessCount: number;
@@ -46,13 +47,6 @@ export default function TeamMemberSettingsTab({
 }: {
   teamName: string;
 }) {
-  function formatUserCount(count: number) {
-    const string = count.toString();
-    return string.endsWith("1") && !string.endsWith("11")
-      ? "1 user"
-      : `${count} users`;
-  }
-
   function canAddUsers() {
     return true;
   }

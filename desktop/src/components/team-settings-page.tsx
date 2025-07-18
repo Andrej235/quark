@@ -1,4 +1,5 @@
 import TeamMemberSettingsTab from "./team-member-settings-tab";
+import TeamRolesSettings from "./team-roles-settings";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 export default function TeamSettingsPage() {
@@ -13,6 +14,7 @@ export default function TeamSettingsPage() {
       </TabsList>
 
       <TeamMemberSettingsTab teamName={teamName} />
+      <TeamRolesSettings />
     </Tabs>
   );
 }
