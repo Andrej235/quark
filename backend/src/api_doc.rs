@@ -14,6 +14,7 @@ use crate::routes::user_routs::{
 };
 use utoipa::OpenApi;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
+use crate::models::dtos::team_info_dto::TeamInfoDTO;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -39,7 +40,7 @@ use crate::models::dtos::user_info_dto::UserInfoDTO;
         SRouteError, RouteError, ValidationErrorDTO,
 
         // user routes
-        CreateUserDTO, LogInResultDTO, JWTRefreshTokenPairDTO, PasswordResetDTO, UserInfoDTO,
+        CreateUserDTO, LogInResultDTO, JWTRefreshTokenPairDTO, PasswordResetDTO, UserInfoDTO, TeamInfoDTO,
 
         // team routes
         CreateTeamDTO,

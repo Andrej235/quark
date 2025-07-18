@@ -7,6 +7,7 @@ use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
 use crate::models::dtos::login_user_dto::LoginUserDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
+use crate::models::dtos::team_info_dto::TeamInfoDTO;
 use crate::models::dtos::update_profile_picture_dto::UpdateProfilePictureDTO;
 use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
@@ -20,10 +21,10 @@ use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
 use crate::utils::constants::{
     CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, GET_USER_INFO_ROUTE_PATH,
-    JWT_TOKEN_EXPIRATION_OFFSET, USER_LOG_IN_ROUTE_PATH, USER_LOG_OUT_ROUTE_PATH, USER_REFRESH_ROUTE_PATH,
-    REFRESH_TOKEN_EXPIRATION_OFFSET, USER_RESET_PASSWORD_ROUTE_PATH, SEND_VERIFICATION_EMAIL_ROUTE_PATH,
-    USER_SIGN_UP_ROUTE_PATH, USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH,
-    VERIFY_EMAIL_ROUTE_PATH,
+    JWT_TOKEN_EXPIRATION_OFFSET, REFRESH_TOKEN_EXPIRATION_OFFSET,
+    SEND_VERIFICATION_EMAIL_ROUTE_PATH, USER_LOG_IN_ROUTE_PATH, USER_LOG_OUT_ROUTE_PATH,
+    USER_REFRESH_ROUTE_PATH, USER_RESET_PASSWORD_ROUTE_PATH, USER_SIGN_UP_ROUTE_PATH,
+    USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
 use crate::utils::http_helper::{endpoint_internal_server_error, find_user};
 use crate::{
@@ -715,8 +716,8 @@ async fn get_user_info(
         Ok(team_records) => {
             team_records
                 .into_iter()
-                .filter_map(|(_, team)| team.map(|t| t.name))
-                .collect::<Vec<String>>()
+                .filter_map(|(_, team)| team.map(|t| TeamInfoDTO { id: t.id, name: t.name, description: t.description }))
+                .collect::<Vec<TeamInfoDTO>>()
         },
         Err(err) => return endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err))
     };
@@ -729,8 +730,6 @@ async fn get_user_info(
         email: auth_user.user.email,
         is_email_verified: auth_user.user.is_email_verified,
         profile_picture: profile_picture_base64,
-        
-        // TODO: Add team related info when
         teams_name: teams_name
     };
     

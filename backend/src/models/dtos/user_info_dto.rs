@@ -4,6 +4,8 @@
 use serde::Serialize;
 use utoipa::ToSchema;
 
+use crate::models::dtos::team_info_dto::TeamInfoDTO;
+
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
@@ -18,5 +20,5 @@ pub struct UserInfoDTO {
     
     pub is_email_verified:  bool,
 
-    pub teams_name:         Vec<String>,
+    pub teams_name:         Vec<TeamInfoDTO>,
 }
