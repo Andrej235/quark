@@ -15,7 +15,7 @@ use crate::{
     enums::type_of_request::TypeOfRequest,
 };
 use actix_web::HttpResponse;
-use bb8::Pool;
+use bb8::{Pool, PooledConnection};
 use bb8_redis::RedisConnectionManager;
 use rand::distr::Alphanumeric;
 use rand::Rng;
@@ -57,20 +57,33 @@ impl HttpHelper {
         random_string.to_uppercase()
     }
     
+    /// Tries to get redis connection from connections pool <br/>
+    /// Returns **connection**, otherwise returns **RedisError**
+    pub async fn get_redis_connection(redis_pool: &Pool<RedisConnectionManager>) -> Result<PooledConnection<'_, RedisConnectionManager>, RedisError> {
+        let redis_connection = redis_pool.get().await.map_err(|e| {
+            RedisError::from((redis::ErrorKind::IoError, "Redis Pool Error", format!("{}", e)))
+        })?;
+
+        return Ok(redis_connection);
+    }
+
     // ************************************************************************************
     //
     // REDIS QUIERIES
     //
     // ************************************************************************************
+    /// Tries to store email verification code in redis <br/>
+    /// Returns **Ok** or **RedisError**
     pub async fn store_email_verification_code(
         redis_pool: &Pool<RedisConnectionManager>,
         user_email: String,
         email_verification_code: String
     ) -> Result<(), RedisError> {
     
-        let mut redis_connection = redis_pool.get().await.map_err(|e| {
-            RedisError::from((redis::ErrorKind::IoError, "Redis Pool Error", format!("{}", e)))
-        })?;
+        let mut redis_connection: PooledConnection<'_, RedisConnectionManager> = match HttpHelper::get_redis_connection(redis_pool).await {
+            Ok(connection) => connection,
+            Err(err) => { return Err(err); }
+        };
     
         let key = format!("email_verif:{}", user_email);
         redis_connection.set_ex::<_, _, ()>(key, email_verification_code, REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION).await?;
@@ -78,15 +91,18 @@ impl HttpHelper {
         return Ok(());
     }
 
+    /// Tries to verify email verification code in redis <br/>
+    /// Returns **true** if code is valid or **false**, otherwise **RedisError**
     pub async fn verify_email_verification_code(
         redis_pool: &Pool<RedisConnectionManager>,
         user_email: &str,
         email_verification_code: &str
     ) -> Result<bool, RedisError> {
 
-        let mut redis_connection = redis_pool.get().await.map_err(|e| {
-            RedisError::from((redis::ErrorKind::IoError, "Redis Pool Error", format!("{}", e)))
-        })?;
+        let mut redis_connection: PooledConnection<'_, RedisConnectionManager> = match HttpHelper::get_redis_connection(redis_pool).await {
+            Ok(connection) => connection,
+            Err(err) => { return Err(err); }
+        };
 
         let key = format!("email_verif:{}", user_email);
         let stored_code: Option<String> = redis_connection.get(key.clone()).await?;
