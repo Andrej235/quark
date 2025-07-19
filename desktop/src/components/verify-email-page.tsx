@@ -20,12 +20,16 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "./ui/input-otp";
+import useAuthStore from "@/stores/auth-store";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ConfirmEmailInstructions() {
   const user = useUserStore((x) => x.user);
   const [otp, setOtp] = useState("");
 
   const navigate = useNavigate();
+  const logOut = useAuthStore((x) => x.logOut);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!user) return;
@@ -166,6 +170,34 @@ export default function ConfirmEmailInstructions() {
               ) : (
                 <span>Resend verification email</span>
               )}
+            </Button>
+          </div>
+
+          <div className="mt-4 flex items-center gap-0">
+            <p className="text-muted-foreground text-center text-sm">
+              Currently logged in as {user?.username}.
+            </p>
+
+            <Button
+              variant="link"
+              className="px-2 text-sm"
+              onClick={async () => {
+                await logOut();
+
+                // Force revalidation, without this app.tsx would just redirect the user to the dashboard
+                await queryClient.invalidateQueries({
+                  queryKey: ["isLoggedIn"],
+                  exact: true,
+                });
+                await queryClient.invalidateQueries({
+                  queryKey: ["user"],
+                  exact: true,
+                });
+
+                await navigate("/login");
+              }}
+            >
+              Log out
             </Button>
           </div>
         </CardFooter>
