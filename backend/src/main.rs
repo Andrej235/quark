@@ -7,7 +7,9 @@ use crate::{
         team_roles_routes::{team_role_create, team_role_delete, team_role_update},
         team_routs::{team_create, team_delete, team_update},
         user_routs::{
-            check, get_user_info, send_email_verification, user_log_in, user_log_out, user_password_reset, user_refresh, user_sign_up, user_update, user_update_default_team, user_update_profile_picture, verify_email
+            check, get_user_info, send_email_verification, user_log_in, user_log_out,
+            user_password_reset, user_refresh, user_sign_up, user_update, user_update_default_team,
+            user_update_profile_picture, verify_email,
         },
     },
 };
@@ -15,11 +17,14 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;
+use redis::Client as RedisClient;
+use redis::Connection as RedisConnection;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::env;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
+use web::Data as WebData;
 
 // ------------------------------------------------------------------------------------
 // PUBLIC VARIABLES
@@ -110,6 +115,7 @@ async fn main() -> std::io::Result<()> {
     // Get and check if all required .env variables are set
     let jwt_secret:         String = env::var("JWT_SECRET").expect("JWT_SECRET not set.");
     let database_url:       String = env::var("DATABASE_URL").expect("DATABASE_URL not set.");
+    let redis_url:          String = env::var("REDIS_URL").expect("REDIS_URL not set.");
     let resend_api_key:     String = env::var("RESEND_API_KEY").expect("RESEND_API_KEY not set.");
     let resend_email:       String = env::var("RESEND_EMAIL").expect("RESEND_EMAIL not set.");
     let worker_threads:     String = env::var("WORKER_THREADS").expect("WORKER_THREADS not set.");
@@ -138,10 +144,15 @@ async fn main() -> std::io::Result<()> {
     let database_connection: DatabaseConnection = Database::connect(database_options)
         .await
         .expect("Failed to establish database connection.");
-
-
+    
+    
     // Start server
     HttpServer::new(move || {
+
+        // Create redis connection
+        let redis_client: RedisClient = RedisClient::open(redis_url.clone()).expect("Failed to create redis client.");
+        let redis_connection: RedisConnection = redis_client.get_connection().expect("Failed to create redis connection.");
+        
         App::new()
             .wrap(
                 Cors::default()
@@ -150,7 +161,8 @@ async fn main() -> std::io::Result<()> {
                 .allow_any_header()
                 .supports_credentials()
             )
-            .app_data(web::Data::new(database_connection.clone())) // Inject database into app state
+            .app_data(WebData::new(database_connection.clone())) // Inject database into app state
+            .app_data(WebData::new(redis_connection))
             .configure(routes) // Register endpoints
     })
     .workers(worker_threads.parse::<usize>().unwrap())

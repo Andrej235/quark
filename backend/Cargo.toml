@@ -25,7 +25,7 @@ resend-rs = "0.15.0"
 sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-native-tls"] }
 sea-orm-migration = { version = "1.1.13", features = ["sqlx-postgres"]}
 serde = { version = "1.0.219", features = ["serde_derive"] }
-serde_json = "1.0.140"
+serde_json = "1.0.141"
 tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
@@ -40,3 +40,4 @@ macros = { path = "./proc_macros" }
 bitflags = "2.9.1"
 lazy_static = "1.5.0"
 regex = "1.11.1"
+redis = { version = "0.32.4", features = ["cluster-async", "tokio-comp"] }
