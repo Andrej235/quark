@@ -68,7 +68,7 @@ export default function ConfirmEmailInstructions() {
   async function handleSubmitCode() {
     setOtp("");
 
-    await sendApiRequest(
+    const { isOk } = await sendApiRequest(
       "/user/email/verify/{token}",
       {
         method: "get",
@@ -85,6 +85,8 @@ export default function ConfirmEmailInstructions() {
         },
       },
     );
+
+    if (isOk) await navigate("/first-team");
   }
 
   return (
