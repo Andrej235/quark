@@ -2,6 +2,7 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
+use crate::utils::constants::TEAM_NAME_REGEX;
 use macros::GenerateFieldEnum;
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -15,6 +16,7 @@ use validator::{Validate, ValidationErrors};
 pub struct UpdateTeamDTO {
 
     #[enum_name("Name")]
+    #[validate(regex(path = "*TEAM_NAME_REGEX"))]
     #[validate(length(min = 1, max = 150))]
     pub name:           String,
 

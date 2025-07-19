@@ -19,6 +19,8 @@ pub enum Relation {
     TeamMembers,
     #[sea_orm(has_many = "super::team_roles::Entity")]
     TeamRoles,
+    #[sea_orm(has_many = "super::users::Entity")]
+    Users,
 }
 
 impl Related<super::team_members::Entity> for Entity {
@@ -30,6 +32,12 @@ impl Related<super::team_members::Entity> for Entity {
 impl Related<super::team_roles::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::TeamRoles.def()
+    }
+}
+
+impl Related<super::users::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Users.def()
     }
 }
 
