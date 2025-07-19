@@ -908,7 +908,7 @@ async fn send_verification_email(user_username: &str, user_email: &str, code: &s
 
     // Create email option instance
     let email = CreateEmailBaseOptions::new(&from, to, subject)
-        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/email/verify/{}/{}'>HERE</a> to verify your email.</p>", user_username, user_email, code).as_str());
+        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/email/verify/{}/{}'>HERE</a> to verify your email, or enter this code: <b>{}</b> into the app.</p>", user_username, user_email, code, code).as_str());
 
     // Send email
     match resend_instance.emails.send(email).await {
