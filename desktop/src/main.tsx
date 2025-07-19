@@ -13,6 +13,7 @@ import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import "./globals.css";
 import VerifyEmailPage from "./components/verify-email-page";
+import FirstTeamPage from "./components/first-team-page";
 
 const queryClient = new QueryClient();
 
@@ -61,7 +62,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/first-team",
-        element: <Signup />,
+        element: <FirstTeamPage />,
       },
     ],
   },
