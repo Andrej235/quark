@@ -26,7 +26,16 @@ export default function App() {
       return;
     }
 
+    if (!user.data.isEmailVerified) {
+      navigate("/verify-email");
+      return;
+    }
+
     setUser(user.data);
+
+    if (user.data.teamsName.length === 0) {
+      navigate("/first-team");
+    }
   }, [user, navigate, setUser]);
 
   return (
