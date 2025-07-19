@@ -50,5 +50,6 @@ export default function useQuery<Route extends GetRoutes>(
         throw new Error(x?.error?.message ?? "Something went wrong");
       }),
     ...options,
+    queryKey: options?.queryKey ?? [route],
   }) as ReturnType<typeof useTanQuery<UnwrappedApiResponse<Route, "get">>>;
 }
