@@ -13,6 +13,8 @@ import UserSettingsPage from "./components/user-settings-page";
 import "./globals.css";
 import TeamMemberSettingsTab from "./components/team-member-settings-page";
 import TeamRolesSettings from "./components/team-roles-settings-page";
+import EditRolePage from "./components/edit-role-page";
+import NewRolePage from "./components/new-role-page";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +42,14 @@ const router = createBrowserRouter([
           {
             path: "/settings/team-roles",
             element: <TeamRolesSettings />,
+          },
+          {
+            path: "/settings/team-roles/new",
+            element: <NewRolePage />,
+          },
+          {
+            path: "/settings/team-roles/:roleId",
+            element: <EditRolePage />,
           },
           {
             path: "/settings/notifications",

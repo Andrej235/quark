@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { DeleteRoleDialog } from "./delete-role-dialog";
 import { RoleCard } from "./role-card";
 import { Button } from "./ui/button";
@@ -10,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "./ui/dialog";
 
 export type Permission = {
   id: string;
@@ -231,16 +231,12 @@ export default function TeamRolesSettings() {
             </CardDescription>
           </div>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Role
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent>Test</DialogContent>
-          </Dialog>
+          <Button asChild>
+            <Link to="new">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Role
+            </Link>
+          </Button>
         </div>
       </CardHeader>
 
