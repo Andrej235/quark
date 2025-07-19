@@ -52,7 +52,12 @@ export default function App() {
       return;
     }
 
-    if (!user.data?.teamsName?.length) {
+    if (
+      !user.data?.teamsName?.length &&
+      location !== "/first-team" &&
+      location !== "/payment" &&
+      location !== "/new-team"
+    ) {
       navigate("/first-team");
     }
   }, [
