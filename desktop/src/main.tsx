@@ -6,6 +6,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
+import ErrorPage from "./components/error-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
 import SidebarContainer from "./components/sidebar-container";
 import TeamSettingsPage from "./components/team-settings-page";
@@ -16,7 +17,6 @@ const queryClient = new QueryClient();
 
 const router = createBrowserRouter([
   {
-    path: "/",
     element: <App />,
     children: [
       {
@@ -38,6 +38,10 @@ const router = createBrowserRouter([
           {
             path: "/settings/user",
             element: <UserSettingsPage />,
+          },
+          {
+            path: "*",
+            element: <ErrorPage />,
           },
         ],
       },
