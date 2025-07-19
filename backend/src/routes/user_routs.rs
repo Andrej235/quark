@@ -103,8 +103,6 @@ pub async fn user_sign_up(
     // Check if user already exists
     let existing_user_fetch_result: Option<User> = match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
-        .filter(UserColumn::Name.eq(&user_data.name))
-        .filter(UserColumn::LastName.eq(&user_data.last_name))
         .filter(UserColumn::Email.eq(&user_data.email))
         .one(db.get_ref())
         .await {
