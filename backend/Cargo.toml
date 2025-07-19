@@ -40,4 +40,6 @@ macros = { path = "./proc_macros" }
 bitflags = "2.9.1"
 lazy_static = "1.5.0"
 regex = "1.11.1"
-redis = { version = "0.32.4", features = ["cluster-async", "tokio-comp"] }
+redis = { version = "0.32.4", features = ["cluster-async", "connection-manager", "tokio-comp"] }
+bb8 = "0.9.0"
+bb8-redis = "0.24.0"

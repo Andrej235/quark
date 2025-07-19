@@ -21,7 +21,7 @@ use crate::{
         constants::{
             TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
         },
-        http_helper::endpoint_internal_server_error,
+        http_helper::HttpHelper,
     },
 };
 
@@ -55,7 +55,7 @@ pub async fn team_role_create(
     match team_role_insertion_result {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(err) => {
-            return endpoint_internal_server_error(
+            return HttpHelper::endpoint_internal_server_error(
                 TEAM_ROLE_CREATE_ROUTE_PATH,
                 "Inserting new team role",
                 Box::new(err),
@@ -86,7 +86,7 @@ pub async fn team_role_delete(
 
     match delete_result {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(err) => endpoint_internal_server_error(
+        Err(err) => HttpHelper::endpoint_internal_server_error(
             TEAM_ROLE_DELETE_ROUTE_PATH,
             "Deleting team role",
             Box::new(err),
@@ -116,7 +116,7 @@ pub async fn team_role_update(
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => endpoint_internal_server_error(
+                Err(err) => HttpHelper::endpoint_internal_server_error(
                     TEAM_ROLE_UPDATE_ROUTE_PATH,
                     "Updating team role",
                     Box::new(err),
@@ -125,7 +125,7 @@ pub async fn team_role_update(
         }
 
         Ok(None) => HttpResponse::NotFound().body("Team role not found"),
-        Err(err) => endpoint_internal_server_error(
+        Err(err) => HttpHelper::endpoint_internal_server_error(
             TEAM_ROLE_UPDATE_ROUTE_PATH,
             "Finding team role",
             Box::new(err),

@@ -19,12 +19,13 @@ pub static TEAM_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9\
 
 // ************************************************************************************
 //
-// TOKEN
+// TIME
 //
 // ************************************************************************************
 pub const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
 pub const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 pub const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
+pub const REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION: u64 = 300; // seconds (5 minutes)
 
 // ************************************************************************************
 //
@@ -44,14 +45,16 @@ pub const USER_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me", T
 pub const USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me/profile-picture", TypeOfRequest::PATCH);
 pub const USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me/default-team/{team_id}", TypeOfRequest::PATCH);
 
-pub const VERIFY_EMAIL_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/email/verify/{token}", TypeOfRequest::GET);
+pub const VERIFY_EMAIL_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/email/verify/{email}/{code}", TypeOfRequest::GET);
 pub const SEND_VERIFICATION_EMAIL_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/email/send-verification", TypeOfRequest::GET);
 pub const GET_USER_INFO_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me", TypeOfRequest::GET);
 pub const CHECK_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/check", TypeOfRequest::GET);
 
+
 pub const TEAM_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team", TypeOfRequest::POST);
 pub const TEAM_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::POST);
 pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::POST);
+
 
 pub const TEAM_ROLE_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/create", TypeOfRequest::POST);
 pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);

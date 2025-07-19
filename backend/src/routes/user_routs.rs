@@ -20,14 +20,13 @@ use crate::models::route_error::RouteError;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
 use crate::utils::constants::{
-    CHECK_ROUTE_PATH, EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET, GET_USER_INFO_ROUTE_PATH,
-    JWT_TOKEN_EXPIRATION_OFFSET, REFRESH_TOKEN_EXPIRATION_OFFSET,
-    SEND_VERIFICATION_EMAIL_ROUTE_PATH, USER_LOG_IN_ROUTE_PATH, USER_LOG_OUT_ROUTE_PATH,
-    USER_REFRESH_ROUTE_PATH, USER_RESET_PASSWORD_ROUTE_PATH, USER_SIGN_UP_ROUTE_PATH,
-    USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH,
-    USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
+    CHECK_ROUTE_PATH, GET_USER_INFO_ROUTE_PATH, JWT_TOKEN_EXPIRATION_OFFSET,
+    REFRESH_TOKEN_EXPIRATION_OFFSET, SEND_VERIFICATION_EMAIL_ROUTE_PATH, USER_LOG_IN_ROUTE_PATH,
+    USER_LOG_OUT_ROUTE_PATH, USER_REFRESH_ROUTE_PATH, USER_RESET_PASSWORD_ROUTE_PATH,
+    USER_SIGN_UP_ROUTE_PATH, USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH,
+    USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
-use crate::utils::http_helper::{endpoint_internal_server_error, find_team, find_user};
+use crate::utils::http_helper::HttpHelper;
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -40,7 +39,7 @@ use crate::{
     },
     models::dtos::create_user_dto::CreateUserDTO,
 };
-use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
+use crate::{main, JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::error::Error as ActixWebError;
 use actix_web::web::{Data, Path};
 use actix_web::*;
@@ -50,6 +49,8 @@ use argon2::{
     Argon2, PasswordHasher,
 };
 use base64::Engine;
+use bb8::Pool;
+use bb8_redis::RedisConnectionManager;
 use chrono::{Duration, NaiveDateTime, Utc};
 use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat, ImageReader};
@@ -68,6 +69,8 @@ use std::error::Error;
 use std::io::Cursor;
 use tracing::error;
 use uuid::Uuid;
+
+type RedisConnection = Pool<RedisConnectionManager>;
 
 // ************************************************************************************
 //
@@ -107,7 +110,7 @@ pub async fn user_sign_up(
         .await {
             Ok(user) => user,
             Err(err) => {
-                return endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Finding user with filterting", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Finding user with filterting", Box::new(err));
             }
         };
 
@@ -122,7 +125,7 @@ pub async fn user_sign_up(
             let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
                 Ok((salt, password_hash)) => (salt, password_hash),
                 Err(err) => {
-                    return endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
+                    return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
                 }
             };
 
@@ -141,7 +144,7 @@ pub async fn user_sign_up(
             }.insert(db.get_ref()).await;
 
             if let Err(err) = user_insertion_result {
-                return endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
             }
 
             return HttpResponse::Ok().finish();
@@ -179,7 +182,7 @@ async fn user_log_in(
         .await {
             Ok(user) => user,
             Err(err) => {
-                return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding user with filtering", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding user with filtering", Box::new(err));
             }
         };
 
@@ -192,7 +195,7 @@ async fn user_log_in(
             let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
                 Ok(password_hash) => password_hash,
                 Err(err) => {
-                    return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
+                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
                 }
             };
 
@@ -208,7 +211,7 @@ async fn user_log_in(
                 .await {
                     Ok(refresh_token) => refresh_token,
                     Err(err) => {
-                        return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding refresh token with filtering", Box::new(err));
+                        return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding refresh token with filtering", Box::new(err));
                     }
                 };
 
@@ -223,7 +226,7 @@ async fn user_log_in(
                         match recycle_refresh_token(refresh_token.id, user.id, db).await {
                             Ok(token) => refresh_token = token,
                             Err(err) => {
-                                return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Recycling refresh token", Box::new(err));
+                                return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Recycling refresh token", Box::new(err));
                             }
                         };
                     }
@@ -237,7 +240,7 @@ async fn user_log_in(
                             });
                         },
                         Err(err) => {
-                            return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
+                            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
                         }
                     };
                 },
@@ -251,7 +254,7 @@ async fn user_log_in(
                     let refresh_token = match add_refresh_token_result {
                         Ok(token) => token,
                         Err(err) => {
-                            return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Adding new refresh token to database", Box::new(err));
+                            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Adding new refresh token to database", Box::new(err));
                         }
                     };
 
@@ -264,7 +267,7 @@ async fn user_log_in(
                             });
                         },
                         Err(err) => {
-                            return endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
+                            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
                         }
                     };
                 }
@@ -302,7 +305,7 @@ async fn user_log_out(
         .await {
             Ok(_) => (),
             Err(err) => {
-                return endpoint_internal_server_error(USER_LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
             }
         };
 
@@ -337,7 +340,7 @@ async fn user_password_reset(
     let old_password_hash: String = match hash_password_with_salt(&auth_user.user.salt, &reset_password_data.old_password) {
         Ok(hash) => hash,
         Err(err) => {
-            return endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
+            return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
         }
     };
 
@@ -350,7 +353,7 @@ async fn user_password_reset(
     let (new_salt, new_password_hash): (String, String) = match hash_password(&reset_password_data.new_password) {
         Ok(hash) => hash,
         Err(err) => {
-            return endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
+            return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
         }
     };
 
@@ -362,7 +365,7 @@ async fn user_password_reset(
     match user_active_model.update(db.get_ref()).await {
         Ok(_) => {},
         Err(err) => {
-            return endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
+            return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
         }
     };
 
@@ -407,10 +410,10 @@ async fn user_refresh(
 
 
     // Check if user exists with same id from claims
-    match find_user(db.get_ref(), claims.user_id).await {
+    match HttpHelper::find_user_by_id(db.get_ref(), claims.user_id).await {
         Ok(Some(_)) => {},
         Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding user by id", err)
+        Err(err) => return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding user by id", err)
     }
 
     // Return unauthorized response if refresh token is not found
@@ -422,7 +425,7 @@ async fn user_refresh(
                 token.unwrap()
             },
             Err(err) => {
-                return endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding refresh token by id", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding refresh token by id", Box::new(err));
             }
         };
 
@@ -446,7 +449,7 @@ async fn user_refresh(
     let new_refresh_token: RefreshToken = match recycle_refresh_token(refresh_token.id, claims.user_id, db).await {
         Ok(token) => token,
         Err(err) => {
-            return endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Recycling refresh token", Box::new(err));
+            return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Recycling refresh token", Box::new(err));
         }
     };
 
@@ -457,7 +460,7 @@ async fn user_refresh(
             refresh_token_id: new_refresh_token.id
         }),
         Err(err) => {
-            return endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Creating JWT token", Box::new(err));
+            return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Creating JWT token", Box::new(err));
         }
     };
 }
@@ -511,7 +514,7 @@ async fn user_update(
         .await {
             Ok(_) => {},
             Err(err) => {
-                return endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
             }
         };
 
@@ -573,7 +576,7 @@ async fn user_update_profile_picture(
 
     let update_result = user_active_model.update(db.get_ref()).await;
     if let Err(err) = update_result {
-        return endpoint_internal_server_error(USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, "Updating user", Box::new(err));
+        return HttpHelper::endpoint_internal_server_error(USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, "Updating user", Box::new(err));
     }
 
     return HttpResponse::Ok().finish();
@@ -612,7 +615,7 @@ async fn user_update_default_team(
     }
 
     // Make sure that team is valid
-    match find_team(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
+    match HttpHelper::find_team(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
         Ok(_) => {},
         Err(err) => { return err; }
     };
@@ -623,7 +626,7 @@ async fn user_update_default_team(
 
     let update_result = user_active_model.update(db.get_ref()).await;
     if let Err(err) = update_result {
-        return endpoint_internal_server_error(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, "Updating user", Box::new(err));
+        return HttpHelper::endpoint_internal_server_error(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, "Updating user", Box::new(err));
     }
 
     HttpResponse::Ok().finish()
@@ -640,58 +643,60 @@ async fn user_update_default_team(
 #[utoipa::path(
     get,
     path = VERIFY_EMAIL_ROUTE_PATH.0,
+    params(
+        ("email" = String, Path),
+        ("code" = String, Path),
+    ),
     responses(
         (status = 200, description = "Email verified"),
-        (status = 400, description = "Possible messages: User not found, 
-                                                         User already verified", body = SRouteError),
+        (status = 400, description = "Invalid code, User already verified", body = SRouteError),
         (status = 401, description = ""),
     )
 )]
-#[get("/user/email/verify/{token}")]
+#[get("/user/email/verify/{email}/{code}")]
 #[rustfmt::skip]
 async fn verify_email(
     db: Data<DatabaseConnection>,
-    path_token: Path<String> 
+    redis_pool: Data<RedisConnection>,
+    path_data: Path<(String, String)> 
 ) -> impl Responder {
 
     // Get ownership of incoming data
-    let token: String = path_token.into_inner();
+    let (email, code): (String, String) = path_data.into_inner();
 
-    // Try to decode token
-    let email_verification_claims: EmailVerifyClaims = match decode_email_verification_token(&token, false) {
-        Ok(token_data) => token_data.claims,
+    // Make sure that its valid code
+    // If code is not valid abort endpoint execution
+    let can_verify = match HttpHelper::verify_email_verification_code(redis_pool.get_ref(), &email, &code).await {
+        Ok(can_verify) => can_verify,
         Err(err) => {
-            return endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Decoding email verification token", Box::new(err));
+            return HttpHelper::endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err));
         }
     };
 
-    // Check if token is expired
-    if email_verification_claims.expire_time < Utc::now().naive_utc() {
-        return HttpResponse::Unauthorized().body("Token expired.");
+    if can_verify == false {
+        return HttpResponse::BadRequest().json(SRouteError { message: "Invalid code" });
     }
 
     // Try to find user
-    let user_model: User = match find_user(db.get_ref(), email_verification_claims.user_id).await {
+    let user_model: User = match HttpHelper::find_user_by_email(db.get_ref(), email).await {
         Ok(Some(user)) => user,
         Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+        Err(err) => return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
     };
 
     // Check if user is already verified
     if user_model.is_email_verified == true {
         return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
     }
-        
-    // Update email verified property of user
+
+    // Update user
     let mut user_active_model: UserActiveModel = user_model.into();
     user_active_model.is_email_verified = Set(true);
-    
-    match user_active_model.update(db.get_ref()).await {
-        Ok(_) => {},
-        Err(err) => {
-            return endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Updating user", Box::new(err));
-        }
-    };
+
+    let update_result = user_active_model.update(db.get_ref()).await;
+    if let Err(err) = update_result {
+        return HttpHelper::endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Updating user", Box::new(err));
+    }
 
     return HttpResponse::Ok().body("Verified.");
 }
@@ -704,37 +709,38 @@ async fn verify_email(
     path = SEND_VERIFICATION_EMAIL_ROUTE_PATH.0,
     responses(
         (status = 200, description = "Email sent"),
-        (status = 400, description = "Possible messages: User already verified", body = SRouteError),
+        (status = 400, description = "User already verified", body = SRouteError),
     )
 )]
 #[get("/user/email/send-verification")]
 #[rustfmt::skip]
 async fn send_email_verification(
-    _db: Data<DatabaseConnection>,
+    redis: Data<RedisConnection>,
     auth_user: AdvancedAuthenticatedUser
 ) -> impl Responder {
 
-    // Check if user is already verified
+    // If user is already verified there is no reason for verification code to be sent
     if auth_user.user.is_email_verified == true {
         return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
     }
 
-    // Generate email verification token
-    // Its used to verify user email
-    let email_verification_token: String = match create_email_verification_token(auth_user.user.id) {
-        Ok(token) => token,
+    // Generate token that will be use in link for verification or for use to manually verify
+    let code: String = HttpHelper::generate_random_email_verification_code();
+
+    match send_verification_email(&auth_user.user.username, &auth_user.user.email, &code).await {
+        Ok(_) => {},
         Err(err) => {
-            return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Creating email verification token", Box::new(err));
+            return HttpHelper::endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
         }
     };
 
-    // Send verification email to user
-    match send_verification_email(&auth_user.user.username, &auth_user.user.email, &email_verification_token).await {
+    // Store generated verification code in redis
+    match HttpHelper::store_email_verification_code(redis.get_ref(), auth_user.user.email, code).await {
         Ok(_) => {},
         Err(err) => {
-            return endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
+            return HttpHelper::endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err));
         }
-    };
+    }
 
     return HttpResponse::Ok().finish();
 }
@@ -777,7 +783,7 @@ async fn get_user_info(
                 .filter_map(|(_, team)| team.map(|t| TeamInfoDTO { id: t.id, name: t.name, description: t.description }))
                 .collect::<Vec<TeamInfoDTO>>()
         },
-        Err(err) => return endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err))
+        Err(err) => return HttpHelper::endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err))
     };
 
     // Create DTO object
@@ -889,52 +895,10 @@ fn hash_password_with_salt(salt_str: &str, password: &str) -> Result<String, Arg
 }
 
 #[rustfmt::skip]
-/// Creates email verification token <br/>
-/// Token contains basic data like **user_id** and **expiration time** that are used for email verification <br/>
-/// Returns **token** or **error**
-fn create_email_verification_token(user_id: Uuid) -> Result<String, JWTTokenError> {
-    
-    // Get JWT secret
-    let jwt_secret: &String = JWT_SECRET.get().unwrap();
-    
-    // Create claims
-    let claims: EmailVerifyClaims = EmailVerifyClaims { 
-        user_id: user_id, 
-        expire_time: Utc::now().naive_utc() + Duration::minutes(EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET), 
-    };
-
-    return encode(
-        &Header::default(), 
-        &claims, 
-        &EncodingKey::from_secret(jwt_secret.as_ref())
-    );
-}
-
-#[rustfmt::skip]
-/// Decodes email verification token <br/>
-/// Returns **token data** or **error**
-fn decode_email_verification_token(jwt_string: &str, validate_expire_time: bool) -> Result<TokenData<EmailVerifyClaims>, JWTTokenError> {
-    
-    // Get jwt secret
-    let jwt_secret: &String = JWT_SECRET.get().unwrap();
-
-    // Apply custom decode validation
-    let mut validation = Validation::default();
-    validation.validate_exp = validate_expire_time;
-
-    // Decode jwt string
-    return decode::<EmailVerifyClaims>(
-        jwt_string,
-        &DecodingKey::from_secret(jwt_secret.as_bytes()),
-        &validation,
-    );
-}
-
-#[rustfmt::skip]
 /// Sends email verification email <br/>
 /// Uses Resend API with custom domain to send verification email
 /// Returns **Ok** or **error**
-async fn send_verification_email(user_username: &str, user_email: &str, token: &str) -> Result<(), ResendError> {
+async fn send_verification_email(user_username: &str, user_email: &str, code: &str) -> Result<(), ResendError> {
 
     // Get resend instance
     let resend_instance: &Resend = RESEND_INSTANCE.get().unwrap();
@@ -946,7 +910,7 @@ async fn send_verification_email(user_username: &str, user_email: &str, token: &
 
     // Create email option instance
     let email = CreateEmailBaseOptions::new(&from, to, subject)
-        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/email/verify/{}'>HERE</a> to verify your email.</p>", user_username, token).as_str());
+        .with_html(format!("<p>Hello {}, please click <a href='http://127.0.0.1:8080/user/email/verify/{}/{}'>HERE</a> to verify your email.</p>", user_username, user_email, code).as_str());
 
     // Send email
     match resend_instance.emails.send(email).await {

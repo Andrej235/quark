@@ -15,10 +15,10 @@ use crate::{
 };
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
+use bb8::Pool;
+use bb8_redis::RedisConnectionManager;
 use dotenv::dotenv;
 use once_cell::sync::OnceCell;
-use redis::Client as RedisClient;
-use redis::Connection as RedisConnection;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::env;
@@ -145,14 +145,17 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to establish database connection.");
     
+
+    // Create redis connection
+    let redis_manager: RedisConnectionManager = RedisConnectionManager::new(redis_url).expect("Failed to create redis connection manager.");
+    let pool: Pool<RedisConnectionManager> = Pool::builder().build(redis_manager).await.expect("Failed to create redis connection pool.");
+
     
     // Start server
-    HttpServer::new(move || {
-
-        // Create redis connection
-        let redis_client: RedisClient = RedisClient::open(redis_url.clone()).expect("Failed to create redis client.");
-        let redis_connection: RedisConnection = redis_client.get_connection().expect("Failed to create redis connection.");
+    HttpServer::new(move|| {
         
+        let redis_connection_clone: Pool<RedisConnectionManager> = pool.clone();
+
         App::new()
             .wrap(
                 Cors::default()
@@ -162,7 +165,7 @@ async fn main() -> std::io::Result<()> {
                 .supports_credentials()
             )
             .app_data(WebData::new(database_connection.clone())) // Inject database into app state
-            .app_data(WebData::new(redis_connection))
+            .app_data(WebData::new(redis_connection_clone))
             .configure(routes) // Register endpoints
     })
     .workers(worker_threads.parse::<usize>().unwrap())

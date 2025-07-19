@@ -19,9 +19,7 @@ use crate::models::sroute_error::SRouteError;
 use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
-use crate::utils::http_helper::{
-    check_permission, endpoint_internal_server_error, get_user_team_permissions,
-};
+use crate::utils::http_helper::HttpHelper;
 use actix_web::web::Path;
 use actix_web::{delete, put};
 use actix_web::{post, web::Data, HttpResponse, Responder};
@@ -86,13 +84,13 @@ pub async fn team_create(
         .await {
         Ok(None) => (),
         Ok(Some(_)) => return HttpResponse::BadRequest().json(SRouteError { message: "Team already exists" }),
-        Err(err) => return endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
     }
 
     // Begin transaction
     let transaction = match db.begin().await {
         Ok(transaction) => transaction,
-        Err(err) => return endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
     };
 
     let transaction_result: Result<(), DbErr> = (|| async {
@@ -139,7 +137,7 @@ pub async fn team_create(
 
     match transaction_result {
         Ok(_) => (),
-        Err(err) => return endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
     }
 
     return HttpResponse::Ok().finish();
@@ -177,7 +175,7 @@ pub async fn team_update(
     let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
     // Prevent user from updating team if they dont have permission
-    let team_role: TeamRole = match get_user_team_permissions(
+    let team_role: TeamRole = match HttpHelper::get_user_team_permissions(
         TEAM_DELETE_ROUTE_PATH, db.get_ref(),
         auth_user.user.id, team_id,
     ).await {
@@ -185,7 +183,7 @@ pub async fn team_update(
         Err(err) => return err,
     };
 
-    match check_permission(team_role.permissions, Permission::CAN_EDIT_SETTINGS) {
+    match HttpHelper::check_permission(team_role.permissions, Permission::CAN_EDIT_SETTINGS) {
         Ok(_) => (),
         Err(err) => return err
     }
@@ -205,7 +203,7 @@ pub async fn team_update(
                     return HttpResponse::Conflict().json(SRouteError { message: "Team name already exists" });
                 }
                 Err(err) => {
-                    return endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
+                    return HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
                 }
             };
 
@@ -222,14 +220,14 @@ pub async fn team_update(
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
+                Err(err) => HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
             }
         }
         Ok(None) => HttpResponse::NotFound().json(SRouteError {
             message: "Team not found",
         }),
         Err(err) => {
-            endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err))
+            HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err))
         }
     }
 }
@@ -262,7 +260,7 @@ pub async fn team_delete(
     let team_id = team_id.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
-    let team_role: TeamRole = match get_user_team_permissions(
+    let team_role: TeamRole = match HttpHelper::get_user_team_permissions(
         TEAM_DELETE_ROUTE_PATH, db.get_ref(),
         auth_user.user.id, team_id,
     ).await {
@@ -270,7 +268,7 @@ pub async fn team_delete(
         Err(err) => return err,
     };
 
-    match check_permission(team_role.permissions, Permission::CAN_DELETE_TEAM) {
+    match HttpHelper::check_permission(team_role.permissions, Permission::CAN_DELETE_TEAM) {
         Ok(_) => (),
         Err(err) => return err
     }
@@ -281,7 +279,7 @@ pub async fn team_delete(
     match delete_result {
         Ok(_) => {},
         Err(err) => {
-            return endpoint_internal_server_error(
+            return HttpHelper::endpoint_internal_server_error(
                 TEAM_DELETE_ROUTE_PATH,
                 "Deleting team",
                 Box::new(err),
