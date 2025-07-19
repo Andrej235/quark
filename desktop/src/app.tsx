@@ -38,7 +38,7 @@ export default function App() {
 
   const setUser = useUserStore((state) => state.setUser);
   useEffect(() => {
-    if (!user.data) return;
+    if (!user.data || !isLoggedIn.isSuccess) return;
 
     if (user.error) {
       toast.error((user.error as Error).message ?? "Something went wrong");
@@ -55,7 +55,14 @@ export default function App() {
     if (!user.data?.teamsName?.length) {
       navigate("/first-team");
     }
-  }, [user.data, user.error, navigate, setUser]);
+  }, [
+    isLoggedIn.isSuccess,
+    user.data,
+    user.error,
+    navigate,
+    setUser,
+    location,
+  ]);
 
   return (
     <div className="min-w-svw bg-background min-h-svh">
