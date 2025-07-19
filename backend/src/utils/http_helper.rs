@@ -5,6 +5,7 @@ use crate::entity::team_members::{
     Column as TeamMemberColumn, Entity as TeamMemberEntity, Model as TeamMember,
 };
 use crate::entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole};
+use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
 use crate::{
@@ -53,9 +54,37 @@ pub async fn find_user(
 }
 
 #[rustfmt::skip]
+/// Tries to find team with specified team_id <br/>
+/// NOTE: if handle_not_found is true, it will return NotFound response <br/>
+/// Returns: NotFound response if team is not found <br/>
+/// Returns: InternalServerError if database query fails <br/>
+/// Returns: Found team
+pub async fn find_team(
+    endpoint_path: (&'static str, TypeOfRequest),
+    db: &DatabaseConnection, 
+    team_id: Uuid,
+    handle_not_found: bool
+) -> Result<Option<TeamModel>, HttpResponse> {
+
+    return match TeamEntity::find_by_id(team_id)
+        .one(db)
+        .await {
+            Ok(Some(team)) => Ok(Some(team)),
+            Ok(None) => {
+                if handle_not_found {
+                    Err(HttpResponse::NotFound().json(SRouteError { message: "Team not found" }))
+                } else {
+                    Ok(None)
+                }
+            },
+            Err(err) => Err(endpoint_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
+        }
+}
+
+#[rustfmt::skip]
 /// Gets user team permissions <br/>
 /// Returns: Forbidden response if user is not member of team <br/>
-/// Returns: Internal server error if database query fails <br/>
+/// Returns: InternalServerError if database query fails <br/>
 /// Returns: Tuple of team member and team role
 pub async fn get_user_team_permissions(
     endpoint_path: (&'static str, TypeOfRequest),
@@ -81,11 +110,7 @@ pub async fn get_user_team_permissions(
 
         // Something went to shit and return internal server error
         Err(err) => {
-            return Err(endpoint_internal_server_error(
-                endpoint_path,
-                "Finding team member",
-                Box::new(err),
-            ));
+            return Err(endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)));
         }
     };
 

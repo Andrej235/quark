@@ -3,6 +3,7 @@
 // ------------------------------------------------------------------------------------
 use serde::Serialize;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::models::dtos::team_info_dto::TeamInfoDTO;
 
@@ -20,5 +21,6 @@ pub struct UserInfoDTO {
     
     pub is_email_verified:  bool,
 
+    pub default_team_id:    Option<Uuid>,
     pub teams_name:         Vec<TeamInfoDTO>,
 }

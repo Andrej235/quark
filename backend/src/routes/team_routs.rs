@@ -127,10 +127,12 @@ pub async fn team_create(
             ..Default::default()
         }.insert(&transaction).await?;
 
-        // Update default team id of user
-        let mut user_active_model: UserActiveModel = auth_user.user.into();
-        user_active_model.default_team_id = Set(Some(team.id));
-        user_active_model.update(&transaction).await?;
+        // Update default team id of user if not already set
+        if auth_user.user.default_team_id.is_none() {
+            let mut user_active_model: UserActiveModel = auth_user.user.into();
+            user_active_model.default_team_id = Set(Some(team.id));
+            user_active_model.update(&transaction).await?;
+        }
 
         transaction.commit().await
     })().await; 
@@ -152,6 +154,9 @@ pub async fn team_create(
     post,
     path = TEAM_UPDATE_ROUTE_PATH.0,
     request_body = UpdateTeamDTO,
+    params(
+        ("team_id" = uuid::Uuid, Path)
+    ),
     responses(
         (status = 200, description = "Team created"),
         (status = 404, description = "Team not found", body = SRouteError),
@@ -238,7 +243,7 @@ pub async fn team_update(
     delete,
     path = TEAM_DELETE_ROUTE_PATH.0,
     params(
-        ("team_id" = Uuid, Path, description = "Team ID to delete"),
+        ("team_id" = Uuid, Path),
     ),
     responses(
         (status = 200, description = "Team deleted"),

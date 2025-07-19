@@ -24,9 +24,10 @@ use crate::utils::constants::{
     JWT_TOKEN_EXPIRATION_OFFSET, REFRESH_TOKEN_EXPIRATION_OFFSET,
     SEND_VERIFICATION_EMAIL_ROUTE_PATH, USER_LOG_IN_ROUTE_PATH, USER_LOG_OUT_ROUTE_PATH,
     USER_REFRESH_ROUTE_PATH, USER_RESET_PASSWORD_ROUTE_PATH, USER_SIGN_UP_ROUTE_PATH,
-    USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
+    USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH,
+    USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
-use crate::utils::http_helper::{endpoint_internal_server_error, find_user};
+use crate::utils::http_helper::{endpoint_internal_server_error, find_team, find_user};
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -463,22 +464,23 @@ async fn user_refresh(
 
 // ************************************************************************************
 //
-// ROUTES - PATCH
+// ROUTES - PUT
 //
 // ************************************************************************************
 /*
 **  update
 */
 #[utoipa::path(
-    patch,
+    put,
     path = USER_UPDATE_ROUTE_PATH.0,
+    request_body = UpdateUserDTO,
     responses(
         (status = 200, description = "User updated"),
         (status = 401, description = ""),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-#[patch("/user/me")]
+#[put("/user/me")]
 #[rustfmt::skip]
 async fn user_update(
     db: Data<DatabaseConnection>,
@@ -516,12 +518,18 @@ async fn user_update(
     return HttpResponse::Ok().finish();
 }
 
+// ************************************************************************************
+//
+// ROUTES - PATCH
+//
+// ************************************************************************************
 /*
 **  update profile picture
 */
 #[utoipa::path(
     patch,
     path = USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH.0,
+    request_body = UpdateProfilePictureDTO,
     responses(
         (status = 200, description = "Profile picture changed"),
         (status = 400, description = "Possible messages: Invalid base64 string
@@ -569,6 +577,56 @@ async fn user_update_profile_picture(
     }
 
     return HttpResponse::Ok().finish();
+}
+
+/*
+**  update default team
+*/
+#[utoipa::path(
+    patch,
+    path = USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH.0,
+    params(
+        ("team_id" = uuid::Uuid, Path)
+    ),
+    responses(
+        (status = 200, description = "Updated default team"),
+        (status = 401, description = ""),
+        (status = 404, description = "Team not found"),
+    )
+)]
+#[patch("/user/me/default-team/{team_id}")]
+#[rustfmt::skip]
+async fn user_update_default_team(
+    db: Data<DatabaseConnection>,
+    auth_user: AdvancedAuthenticatedUser,
+    team_id: Path<Uuid>
+) -> impl Responder {
+
+    let new_default_team_id: Uuid = team_id.into_inner();
+
+    // Prevent further endpoint execution if existing user default team id is same as new id
+    // We dont need to know if team is valid because this is simple check
+    if auth_user.user.default_team_id == Some(new_default_team_id) {
+        println!("Same");
+        return HttpResponse::Ok().finish();
+    }
+
+    // Make sure that team is valid
+    match find_team(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
+        Ok(_) => {},
+        Err(err) => { return err; }
+    };
+
+    // Update user
+    let mut user_active_model: UserActiveModel = auth_user.user.into();
+    user_active_model.default_team_id = Set(Some(new_default_team_id));
+
+    let update_result = user_active_model.update(db.get_ref()).await;
+    if let Err(err) = update_result {
+        return endpoint_internal_server_error(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, "Updating user", Box::new(err));
+    }
+
+    HttpResponse::Ok().finish()
 }
 
 // ************************************************************************************
@@ -730,7 +788,9 @@ async fn get_user_info(
         email: auth_user.user.email,
         is_email_verified: auth_user.user.is_email_verified,
         profile_picture: profile_picture_base64,
-        teams_name: teams_name
+        
+        teams_name: teams_name,
+        default_team_id: auth_user.user.default_team_id
     };
     
     return HttpResponse::Ok().json(user_info);

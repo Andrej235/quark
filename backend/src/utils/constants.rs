@@ -39,8 +39,10 @@ pub const USER_LOG_OUT_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/logou
 pub const USER_RESET_PASSWORD_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/reset-password", TypeOfRequest::POST);
 pub const USER_REFRESH_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/refresh", TypeOfRequest::POST);
 
-pub const USER_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/update", TypeOfRequest::PATCH);
+pub const USER_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me", TypeOfRequest::PUT);
+
 pub const USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me/profile-picture", TypeOfRequest::PATCH);
+pub const USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/me/default-team/{team_id}", TypeOfRequest::PATCH);
 
 pub const VERIFY_EMAIL_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/email/verify/{token}", TypeOfRequest::GET);
 pub const SEND_VERIFICATION_EMAIL_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/email/send-verification", TypeOfRequest::GET);
