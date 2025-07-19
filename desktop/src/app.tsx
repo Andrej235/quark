@@ -45,12 +45,12 @@ export default function App() {
       return;
     }
 
+    setUser(user.data);
+
     if (!user.data.isEmailVerified) {
       navigate("/verify-email");
       return;
     }
-
-    setUser(user.data);
 
     if (!user.data?.teamsName?.length) {
       navigate("/first-team");
