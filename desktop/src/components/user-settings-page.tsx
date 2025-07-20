@@ -17,6 +17,20 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 export default function UserSettingsPage() {
   const user = useUserStore((x) => x.user);
@@ -208,77 +222,150 @@ export default function UserSettingsPage() {
     }
   }
 
+  async function handleDefaultTeamChange(id: string) {
+    if (isWaitingForRequest.current) return;
+    if (!user) return;
+
+    const prevDefaultTeamId = user.defaultTeamId;
+    setUser({
+      ...user,
+      defaultTeamId: id,
+    });
+
+    isWaitingForRequest.current = true;
+    const { isOk } = await sendApiRequest(
+      "/user/me/default-team/{team_id}",
+      {
+        method: "patch",
+        parameters: {
+          team_id: id,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          success: "Successfully updated default team!",
+        },
+      },
+    );
+    isWaitingForRequest.current = false;
+
+    if (!isOk) {
+      setUser({
+        ...user,
+        defaultTeamId: prevDefaultTeamId,
+      });
+    }
+  }
+
   if (!user) return;
 
   return (
-    <div className="bg-muted/50 flex h-full min-h-[100vh] flex-row rounded-xl md:min-h-min">
-      <div className="w-md bg-secondary flex h-full flex-col items-center gap-2 rounded-xl p-12 shadow-[0_0_5px_rgba(59,130,246,0.5)]">
-        <div className="bg-muted group relative flex items-center justify-center rounded-full">
-          <img
-            src={user.profilePicture || "/default-profile-picture.png"}
-            className="size-40 rounded-full"
-          />
+    <div className="bg-muted/50 flex h-full min-h-[100vh] flex-row rounded-xl p-12 md:min-h-min">
+      <div className="w-md flex h-full flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile picture</CardTitle>
+            <CardDescription>
+              Change or remove your profile picture
+            </CardDescription>
+          </CardHeader>
 
-          <div className="bg-primary/50 absolute -inset-1 flex rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100">
-            <button
-              className="inset-0 grid flex-1 place-items-center"
-              onClick={(e) =>
-                (
-                  (e.target as HTMLButtonElement)
-                    .nextElementSibling as HTMLInputElement
-                )?.click()
+          <CardContent>
+            <div className="bg-muted group relative mx-auto flex size-max items-center justify-center rounded-full">
+              <img
+                src={user.profilePicture || "/default-profile-picture.png"}
+                className="size-40 rounded-full"
+              />
+
+              <div className="bg-primary/50 absolute -inset-1 flex rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100">
+                <button
+                  className="inset-0 grid flex-1 place-items-center"
+                  onClick={(e) =>
+                    (
+                      (e.target as HTMLButtonElement)
+                        .nextElementSibling as HTMLInputElement
+                    )?.click()
+                  }
+                >
+                  <Edit className="size-8" />
+                </button>
+
+                <Input
+                  type="file"
+                  className="hidden"
+                  onChange={handleChangeProfilePicture}
+                />
+              </div>
+            </div>
+
+            <h1 className="mt-4 text-center text-2xl">
+              {user.name} {user.lastName}
+            </h1>
+
+            <div className="mt-4 flex gap-2">
+              <Input
+                type="file"
+                className="hidden"
+                onChange={handleChangeProfilePicture}
+              />
+
+              <Button
+                className="flex-1 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
+                onClick={(e) =>
+                  (
+                    (e.target as HTMLButtonElement)
+                      .previousElementSibling as HTMLInputElement
+                  )?.click()
+                }
+              >
+                Change
+              </Button>
+
+              <Button
+                variant="destructive"
+                className="flex-1 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
+                onClick={handleRemoveProfilePicture}
+              >
+                Remove
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Default team</CardTitle>
+            <CardDescription>
+              This team will be active upon logging in or opening the app
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <Select
+              value={
+                user.teamsName.find((team) => team.id === user.defaultTeamId)
+                  ?.id
               }
+              onValueChange={handleDefaultTeamChange}
             >
-              <Edit className="size-8" />
-            </button>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a team" />
+              </SelectTrigger>
 
-            <Input
-              type="file"
-              className="hidden"
-              onChange={handleChangeProfilePicture}
-            />
-          </div>
-        </div>
-
-        <h1 className="mt-2 text-2xl">
-          {user.name} {user.lastName}
-        </h1>
-
-        <div className="mt-4 flex flex-col gap-2">
-          <Input
-            type="file"
-            className="hidden"
-            onChange={handleChangeProfilePicture}
-          />
-
-          <Button
-            className="shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-            onClick={(e) =>
-              (
-                (e.target as HTMLButtonElement)
-                  .previousElementSibling as HTMLInputElement
-              )?.click()
-            }
-          >
-            Change profile picture
-          </Button>
-
-          <Button
-            variant={"destructive"}
-            className="shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-            onClick={handleRemoveProfilePicture}
-          >
-            Remove profile picture
-          </Button>
-        </div>
-
-        <div className="mt-12 flex flex-col items-center gap-2">
-          <h1 className="text-lg">Default team: Eko Koko Farm</h1>
-          <h1 className="text-lg">Role: Programmer</h1>{" "}
-          {/* TODO: get role from backend */}
-        </div>
+              <SelectContent>
+                {user.teamsName.map((team) => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
       </div>
-      <div className="flex w-full flex-col gap-2 p-12">
+
+      <div className="flex w-full flex-col gap-2">
         <div className="flex flex-col gap-2 px-24">
           <h1 className="flex items-center gap-2 text-4xl">
             <Settings className="size-8" />
@@ -289,6 +376,7 @@ export default function UserSettingsPage() {
             Change you account settings
           </p>
         </div>
+
         <div className="flex flex-col gap-6 px-24 py-12">
           <div className="flex flex-col gap-2">
             <Label htmlFor="username">Username</Label>
