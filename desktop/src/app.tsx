@@ -1,59 +1,81 @@
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import sendApiRequest from "./api-dsl/send-api-request";
+import { useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import useQuery from "./api-dsl/use-query";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
-import { toast } from "sonner";
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const isWaiting = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation().pathname;
+
+  const isLoggedIn = useQuery("/user/check", {
+    queryKey: ["isLoggedIn"],
+    retry: false,
+  });
+
+  const user = useQuery("/user/me", {
+    queryKey: ["user"],
+    enabled: !isLoggedIn.isLoading && isLoggedIn.isSuccess,
+  });
 
   useEffect(() => {
-    if (isWaiting.current) return;
-    isWaiting.current = true;
+    if (isLoggedIn.isLoading) return;
 
-    sendApiRequest("/user/check", {
-      method: "get",
-    }).then(({ isOk }) => {
-      setIsLoading(false);
-      setIsLoggedIn(isOk);
+    if (
+      (location === "/login" || location === "/signup") &&
+      isLoggedIn.isSuccess
+    )
+      navigate("/");
 
-      if (!isOk) {
-        navigate("/login");
-        return;
-      }
-
-      // isWaiting.current = false;
-    });
-  }, [navigate]);
-
-  const user = useQuery({
-    queryKey: ["user"],
-    queryFn: () => sendApiRequest("/user/me", { method: "get" }),
-    enabled: !isLoading && isLoggedIn,
-  });
+    if (
+      location !== "/login" &&
+      location !== "/signup" &&
+      !isLoggedIn.isSuccess
+    )
+      navigate("/login");
+  }, [isLoggedIn.isSuccess, isLoggedIn.isLoading, navigate, location]);
 
   const setUser = useUserStore((state) => state.setUser);
   useEffect(() => {
-    if (!user.data) return;
+    if (!user.data || !isLoggedIn.isSuccess) return;
 
-    if (user.isError || !user.data.isOk) {
-      toast.error(user.data.error?.message ?? "Something went wrong");
+    if (user.error) {
+      toast.error((user.error as Error).message ?? "Something went wrong");
       return;
     }
 
-    setUser(user.data.response);
-  }, [user, navigate, setUser]);
+    setUser(user.data);
+
+    if (!user.data.isEmailVerified) {
+      navigate("/verify-email");
+      return;
+    }
+
+    if (
+      !user.data?.teamsName?.length &&
+      location !== "/first-team" &&
+      location !== "/payment" &&
+      location !== "/new-team"
+    ) {
+      navigate("/first-team");
+    }
+  }, [
+    isLoggedIn.isSuccess,
+    user.data,
+    user.error,
+    navigate,
+    setUser,
+    location,
+  ]);
 
   return (
     <div className="min-w-svw bg-background min-h-svh">
-      {!isLoading && (!isLoggedIn || !user.isLoading) && <Outlet />}
+      {!isLoggedIn.isLoading && (!isLoggedIn.isSuccess || !user.isLoading) && (
+        <Outlet />
+      )}
 
-      {(isLoading || user.isLoading) && (
+      {(isLoggedIn.isLoading || user.isLoading) && (
         <div className="flex h-full w-full flex-col items-center justify-center gap-4">
           <p className="text-lg font-medium">Loading...</p>
         </div>

@@ -22,7 +22,7 @@ export type RequestHelper<
     : never
   : never;
 
-type Parameters<
+export type Parameters<
   Path extends keyof Paths,
   Method extends keyof Paths[Path],
 > = "parameters" extends keyof Paths[Path][Method]

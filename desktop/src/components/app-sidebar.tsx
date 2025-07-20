@@ -8,77 +8,38 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-  Settings2,
-} from "lucide-react";
-import { ComponentProps } from "react";
+import { Settings2 } from "lucide-react";
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+const navigation = [
+  {
+    title: "Settings",
+    url: "#",
+    icon: Settings2,
+    items: [
+      {
+        title: "Team",
+        url: "/settings/team",
+      },
+      {
+        title: "Notifications",
+        url: "/settings/notifications",
+      },
+      {
+        title: "User",
+        url: "/settings/user",
+      },
+    ],
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "Team",
-          url: "/settings/team",
-        },
-        {
-          title: "Team Members",
-          url: "/settings/team-members",
-        },
-        {
-          title: "Team Roles",
-          url: "/settings/team-roles",
-        },
-        {
-          title: "Notifications",
-          url: "/settings/notifications",
-        },
-        {
-          title: "User",
-          url: "/settings/user",
-        },
-      ],
-    },
-  ],
-};
+];
 
-export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+export function AppSidebar() {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon">
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navigation} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

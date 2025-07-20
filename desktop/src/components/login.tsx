@@ -12,6 +12,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Errors = {
   email?: string;
@@ -64,6 +65,8 @@ export default function Login() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
+  const queryClient = useQueryClient();
+
   const handleSubmit = async (e: MouseEvent | FormEvent) => {
     e.preventDefault();
     setTouched({
@@ -95,7 +98,18 @@ export default function Login() {
 
     await setJwt(response.jwtToken);
     await setRefreshToken(response.refreshTokenId);
-    navigate("/");
+
+    // Force revalidation, without this app.tsx would just redirect the user back here after logging in
+    await queryClient.invalidateQueries({
+      queryKey: ["isLoggedIn"],
+      exact: true,
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["user"],
+      exact: true,
+    });
+
+    await navigate("/");
   };
 
   return (
