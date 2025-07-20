@@ -1,6 +1,7 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import { useUserStore } from "@/stores/user-store";
 import { CircleAlert, Edit, Settings } from "lucide-react";
-import { ChangeEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, MouseEvent, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -120,18 +121,39 @@ export default function UserSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (isWaitingForRequest.current) isWaitingForRequest.current = true;
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
+    reader.onload = async () => {
       const imageBase64 = reader.result as string;
       setUser({
         ...user!,
         profilePicture: imageBase64,
       });
+
+      await sendApiRequest(
+        "/user/me/profile-picture",
+        {
+          method: "patch",
+          payload: {
+            profilePicture: imageBase64,
+          },
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            success: "Successfully updated profile picture!",
+          },
+        },
+      );
+      isWaitingForRequest.current = false;
     };
   }
 
-  function handleUpdateInfo(e: MouseEvent) {
+  const isWaitingForRequest = useRef(false);
+  async function handleUpdateInfo(e: MouseEvent) {
+    if (isWaitingForRequest.current) return;
     if (!user) return;
 
     setUserDataTouched({
@@ -145,9 +167,31 @@ export default function UserSettingsPage() {
       e.preventDefault();
       return;
     }
+
+    isWaitingForRequest.current = true;
+    await sendApiRequest(
+      "/user/me",
+      {
+        method: "put",
+        payload: {
+          username: user.username,
+          name: user.name,
+          lastName: user.lastName,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          success: "Successfully updated user info!",
+        },
+      },
+    );
+
+    isWaitingForRequest.current = false;
   }
 
   function handleUpdatePassword(e: MouseEvent) {
+    if (isWaitingForRequest.current) return;
     if (!user) return;
 
     setPasswordTouched({
@@ -157,7 +201,6 @@ export default function UserSettingsPage() {
     });
 
     const isValid = validatePasswordData(passwordData);
-    console.log(isValid);
 
     if (!isValid) {
       e.preventDefault();
