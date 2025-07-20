@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useQuery from "./api-dsl/use-query";
 import { Toaster } from "./components/ui/sonner";
@@ -7,9 +7,11 @@ import { useUserStore } from "./stores/user-store";
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation().pathname;
 
   const isLoggedIn = useQuery("/user/check", {
     queryKey: ["isLoggedIn"],
+    retry: false,
   });
 
   const user = useQuery("/user/me", {
@@ -17,17 +19,55 @@ export default function App() {
     enabled: !isLoggedIn.isLoading && isLoggedIn.isSuccess,
   });
 
+  useEffect(() => {
+    if (isLoggedIn.isLoading) return;
+
+    if (
+      (location === "/login" || location === "/signup") &&
+      isLoggedIn.isSuccess
+    )
+      navigate("/");
+
+    if (
+      location !== "/login" &&
+      location !== "/signup" &&
+      !isLoggedIn.isSuccess
+    )
+      navigate("/login");
+  }, [isLoggedIn.isSuccess, isLoggedIn.isLoading, navigate, location]);
+
   const setUser = useUserStore((state) => state.setUser);
   useEffect(() => {
-    if (!user.data) return;
+    if (!user.data || !isLoggedIn.isSuccess) return;
 
-    if (user.isError || !user.isSuccess) {
+    if (user.error) {
       toast.error((user.error as Error).message ?? "Something went wrong");
       return;
     }
 
     setUser(user.data);
-  }, [user, navigate, setUser]);
+
+    if (!user.data.isEmailVerified) {
+      navigate("/verify-email");
+      return;
+    }
+
+    if (
+      !user.data?.teamsName?.length &&
+      location !== "/first-team" &&
+      location !== "/payment" &&
+      location !== "/new-team"
+    ) {
+      navigate("/first-team");
+    }
+  }, [
+    isLoggedIn.isSuccess,
+    user.data,
+    user.error,
+    navigate,
+    setUser,
+    location,
+  ]);
 
   return (
     <div className="min-w-svw bg-background min-h-svh">

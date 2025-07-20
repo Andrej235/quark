@@ -12,6 +12,9 @@ import SidebarContainer from "./components/sidebar-container";
 import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import "./globals.css";
+import VerifyEmailPage from "./components/verify-email-page";
+import FirstTeamPage from "./components/first-team-page";
+import NewTeamPage from "./components/new-team-page";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +56,18 @@ const router = createBrowserRouter([
       {
         path: "/signup",
         element: <Signup />,
+      },
+      {
+        path: "/verify-email",
+        element: <VerifyEmailPage />,
+      },
+      {
+        path: "/first-team",
+        element: <FirstTeamPage />,
+      },
+      {
+        path: "/new-team",
+        element: <NewTeamPage />,
       },
     ],
   },

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import useAuthStore from "@/stores/auth-store";
 import { useUserStore } from "@/stores/user-store";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BadgeCheck,
   Bell,
@@ -31,10 +32,22 @@ export function NavUser() {
   const user = useUserStore((x) => x.user);
   const logOut = useAuthStore((x) => x.logOut);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   async function handleLogOut() {
     await logOut();
-    navigate("/login");
+
+    // Force revalidation, without this app.tsx would just redirect the user to the dashboard
+    await queryClient.invalidateQueries({
+      queryKey: ["isLoggedIn"],
+      exact: true,
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["user"],
+      exact: true,
+    });
+
+    await navigate("/login");
   }
 
   if (!user) return null;
