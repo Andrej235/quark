@@ -21,7 +21,7 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::env;
+use std::{env, time::Duration};
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use web::Data as WebData;
@@ -139,6 +139,10 @@ async fn main() -> std::io::Result<()> {
     // Create database connection
     let mut database_options: ConnectOptions = ConnectOptions::new(database_url);
     database_options
+        .max_connections(100)
+        .min_connections(5)
+        .connect_timeout(Duration::from_secs(30))
+        .idle_timeout(Duration::from_secs(600))
         .sqlx_logging(database_logging.parse::<bool>().expect("Failed to cast DATABASE_LOGGING to bool."));
 
     let database_connection: DatabaseConnection = Database::connect(database_options)
