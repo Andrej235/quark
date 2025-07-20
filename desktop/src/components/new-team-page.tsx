@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   Building2,
@@ -18,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { ChangeEvent, FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const pricingPlans = [
@@ -75,6 +78,8 @@ function CreateTeam() {
   });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState("premium");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const queryClient = useQueryClient();
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,9 +104,40 @@ function CreateTeam() {
     setStep(2);
   };
 
-  const handlePlanSelection = () => {
+  const handlePlanSelection = async () => {
     setStep(3);
+
+    const { isOk } = await sendApiRequest(
+      "/team",
+      {
+        method: "post",
+        payload: {
+          name: teamData.name,
+          description: teamData.description,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Creating team, please wait...",
+          success: "Team created successfully!",
+          error: (x) => {
+            setStep(1);
+            return x.message || "Failed to create team, please try again";
+          },
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    await queryClient.invalidateQueries({
+      queryKey: ["user"],
+      exact: true,
+    });
   };
+
+  const handleInvite = () => {};
 
   const renderStepContent = () => {
     switch (step) {
@@ -283,7 +319,62 @@ function CreateTeam() {
         );
 
       case 3:
-        return <></>;
+        return (
+          <div className="space-y-8">
+            <div className="space-y-4 text-center">
+              <div className="bg-success mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                <Check className="text-success-foreground h-8 w-8" />
+              </div>
+              <h1 className="from-success to-success/70 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent">
+                Team Created Successfully!
+              </h1>
+              <p className="text-muted-foreground mx-auto max-w-2xl text-xl">
+                Your team &quot;{teamData.name}&quot; is ready to go. Invite
+                your first team member to get started.
+              </p>
+            </div>
+
+            <Card className="mx-auto max-w-2xl shadow-[var(--shadow-card)]">
+              <CardHeader>
+                <CardTitle>Invite Team Members</CardTitle>
+                <CardDescription>
+                  Send an invitation to your first team member. You can invite
+                  more people later from your team dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invite-email">Email Address</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="invite-email"
+                      type="email"
+                      placeholder="colleague@company.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button onClick={handleInvite}>Send Invite</Button>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                    asChild
+                  >
+                    <Link to={"/"}>
+                      Skip for now - Go to Dashboard
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
 
       default:
         return null;
