@@ -233,9 +233,7 @@ impl HttpHelper {
             }
         };
 
-        if permissions.is_some() { println!("Got from redis"); return Ok(permissions.unwrap()); }
-
-        println!("Got from database");
+        if permissions.is_some() { return Ok(permissions.unwrap()); }
 
         // In case that there is no cached permissions get fresh permissions from database and cache them
         let team_role: TeamRole = match TeamMemberEntity::find()
