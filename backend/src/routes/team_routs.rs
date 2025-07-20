@@ -4,7 +4,7 @@
 //
 // ************************************************************************************
 use crate::entity::team_members::ActiveModel as TeamMemberActiveModel;
-use crate::entity::team_roles::{ActiveModel as TeamRoleActiveModel, Model as TeamRole};
+use crate::entity::team_roles::ActiveModel as TeamRoleActiveModel;
 use crate::entity::teams::{
     ActiveModel as TeamActiveModel, Column as TeamColumn, Entity as TeamEntity,
 };
@@ -20,6 +20,7 @@ use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
 use crate::utils::http_helper::HttpHelper;
+use crate::utils::redis_service::RedisService;
 use actix_web::web::Path;
 use actix_web::{delete, put};
 use actix_web::{post, web::Data, HttpResponse, Responder};
@@ -70,6 +71,7 @@ lazy_static! {
 #[rustfmt::skip]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     team_json: ValidatedJson<CreateTeamDTO>,
 ) -> impl Responder {
@@ -88,6 +90,9 @@ pub async fn team_create(
     }
 
     // Begin transaction
+    let team_id: Uuid = Uuid::now_v7(); // We create here teams id because we need to use it later for caching users team permissions
+    let user_id: Uuid = auth_user.user.id; // Only reason that this is here is because of borrow checker
+
     let transaction = match db.begin().await {
         Ok(transaction) => transaction,
         Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
@@ -97,7 +102,7 @@ pub async fn team_create(
 
         // Create team
         let team = TeamActiveModel {
-            id: Set(Uuid::now_v7()),
+            id: Set(team_id.clone()),
             name: Set(team_data.name.clone()),
             description: Set(team_data.description.clone()),  
         }.insert(&transaction).await?;
@@ -119,7 +124,7 @@ pub async fn team_create(
 
         // Create team member
         _ = TeamMemberActiveModel {
-            user_id: Set(auth_user.user.id),
+            user_id: Set(user_id.clone()),
             team_id: Set(team.id),
             team_role_id: Set(owner_role.id),
             ..Default::default()
@@ -139,6 +144,12 @@ pub async fn team_create(
         Ok(_) => (),
         Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
     }
+
+    // Cache team permissions in redis
+    match HttpHelper::cache_user_team_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
+        Ok(_) => (),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
+    };
 
     return HttpResponse::Ok().finish();
 }
@@ -166,6 +177,7 @@ pub async fn team_create(
 #[rustfmt::skip]
 pub async fn team_update(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     team_id: Path<Uuid>,
     json_data: ValidatedJson<UpdateTeamDTO>,
@@ -175,15 +187,18 @@ pub async fn team_update(
     let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
     // Prevent user from updating team if they dont have permission
-    let team_role: TeamRole = match HttpHelper::get_user_team_permissions(
-        TEAM_DELETE_ROUTE_PATH, db.get_ref(),
-        auth_user.user.id, team_id,
+    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+        TEAM_DELETE_ROUTE_PATH, 
+        db.get_ref(), 
+        redis_service.get_ref(),
+        auth_user.user.id, 
+        team_id,
     ).await {
-        Ok((_, team_role)) => team_role,
+        Ok(permissions) => permissions,
         Err(err) => return err,
     };
 
-    match HttpHelper::check_permission(team_role.permissions, Permission::CAN_EDIT_SETTINGS) {
+    match HttpHelper::check_permission(team_permissions, Permission::CAN_EDIT_SETTINGS) {
         Ok(_) => (),
         Err(err) => return err
     }
@@ -253,6 +268,7 @@ pub async fn team_update(
 #[rustfmt::skip]
 pub async fn team_delete(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     team_id: Path<Uuid>,
 ) -> impl Responder {
@@ -260,15 +276,18 @@ pub async fn team_delete(
     let team_id = team_id.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
-    let team_role: TeamRole = match HttpHelper::get_user_team_permissions(
-        TEAM_DELETE_ROUTE_PATH, db.get_ref(),
-        auth_user.user.id, team_id,
+    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+        TEAM_DELETE_ROUTE_PATH, 
+        db.get_ref(), 
+        redis_service.get_ref(),
+        auth_user.user.id, 
+        team_id,
     ).await {
-        Ok((_, team_role)) => team_role,
+        Ok(permissions) => permissions,
         Err(err) => return err,
     };
 
-    match HttpHelper::check_permission(team_role.permissions, Permission::CAN_DELETE_TEAM) {
+    match HttpHelper::check_permission(team_permissions, Permission::CAN_DELETE_TEAM) {
         Ok(_) => (),
         Err(err) => return err
     }
@@ -286,6 +305,15 @@ pub async fn team_delete(
             );
         }
     }
+
+    // Delete all cached users team permissions
+    // There is no need for that cached data to exist anymore
+    match HttpHelper::delete_unused_cached_user_team_permissions(redis_service.get_ref(), team_id).await {
+        Ok(_) => (),
+        Err(err) => {
+            return HttpHelper::endpoint_internal_server_error(TEAM_DELETE_ROUTE_PATH, "Deleting cached user team permissions", Box::new(err));
+        }
+    };
 
     return HttpResponse::Ok().finish();
 }

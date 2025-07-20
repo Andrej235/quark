@@ -1,9 +1,7 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::entity::team_members::{
-    Column as TeamMemberColumn, Entity as TeamMemberEntity, Model as TeamMember,
-};
+use crate::entity::team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity};
 use crate::entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole};
 use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
 use crate::entity::users::Column as UserColumn;
@@ -11,6 +9,7 @@ use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
 use crate::utils::constants::{
     EMAIL_VERIFICATION_REDIS_KEY_PREFIX, REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION,
+    REDIS_USER_TEAM_PERMISSIONS_EXPIRATION, USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX,
 };
 use crate::utils::redis_service::RedisService;
 use crate::{
@@ -18,11 +17,9 @@ use crate::{
     enums::type_of_request::TypeOfRequest,
 };
 use actix_web::HttpResponse;
-use bb8::{Pool, PooledConnection};
-use bb8_redis::RedisConnectionManager;
 use rand::distr::Alphanumeric;
 use rand::Rng;
-use redis::{AsyncCommands, RedisError};
+use redis::RedisError;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::error::Error;
 use tracing::error;
@@ -60,14 +57,16 @@ impl HttpHelper {
         random_string.to_uppercase()
     }
     
+
+
     // ************************************************************************************
     //
-    // REDIS QUIERIES
+    // REDIS QUERIES
     //
     // ************************************************************************************
     /// Tries to store email verification code in redis <br/>
     /// Returns **Ok** or **RedisError**
-    pub async fn store_email_verification_code(
+    pub async fn cache_email_verification_code(
         redis_service: &RedisService,
         user_email: &str,
         email_verification_code: String
@@ -81,7 +80,7 @@ impl HttpHelper {
 
     /// Tries to verify email verification code in redis <br/>
     /// Returns **true** if code is valid or **false**, otherwise **RedisError**
-    pub async fn verify_email_verification_code(
+    pub async fn verify_cached_email_verification_code(
         redis_service: &RedisService,
         user_email: &str,
         email_verification_code: &str
@@ -104,6 +103,55 @@ impl HttpHelper {
         return Ok(false);
     }
     
+
+    pub async fn cache_user_team_permissions(
+        redis_service: &RedisService,
+        user_id: Uuid,
+        team_id: Uuid,
+        permissions: i32
+    ) -> Result<(), RedisError> {
+
+        let redis_key: String = RedisService::create_key(USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX, format!("{}:{}", user_id, team_id).as_str());
+        let _: () = redis_service.save_value::<String, i32, ()>(redis_key, permissions, REDIS_USER_TEAM_PERMISSIONS_EXPIRATION).await?;
+
+        return Ok(());
+    }
+    
+    pub async fn get_cached_user_team_permissions(
+        redis_service: &RedisService,
+        user_id: Uuid,
+        team_id: Uuid
+    ) -> Result<Option<i32>, RedisError> {
+
+        let redis_key: String = RedisService::create_key(USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX, format!("{}:{}", user_id, team_id).as_str());
+        return redis_service.get_value(redis_key).await;
+    }
+
+    pub async fn delete_cached_user_team_permissions(
+        redis_service: &RedisService,
+        user_id: Uuid,
+        team_id: Uuid,
+    ) -> Result<(), RedisError> {
+
+        let redis_key: String = RedisService::create_key(USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX, format!("{}:{}", user_id, team_id).as_str());
+        let _: () = redis_service.delete_value::<String, ()>(redis_key).await?;
+
+        return Ok(());
+    }
+
+    pub async fn delete_unused_cached_user_team_permissions(
+        redis_service: &RedisService,
+        team_id: Uuid
+    ) -> Result<(), RedisError> {
+        
+        let redis_pattern: String = format!("{}:*:{}", USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX, team_id);
+        let _: () = redis_service.delete_matching_keys(redis_pattern).await?;
+
+        return Ok(());
+    }
+
+
+
     // ************************************************************************************
     //
     // PREDIFINED DATABASE QUERIES
@@ -172,33 +220,53 @@ impl HttpHelper {
     pub async fn get_user_team_permissions(
         endpoint_path: (&'static str, TypeOfRequest),
         db: &DatabaseConnection,
+        redis: &RedisService,
         user_id: Uuid,
         team_id: Uuid,
-    ) -> Result<(TeamMember, TeamRole), HttpResponse> {
+    ) -> Result<i32, HttpResponse> {
     
-        let (team_member, team_role): (TeamMember, TeamRole) = match TeamMemberEntity::find()
+        // Check if there is cached permissions
+        let permissions: Option<i32> = match HttpHelper::get_cached_user_team_permissions(redis, user_id, team_id).await {
+            Ok(permissions) => permissions,
+            Err(err) => {
+                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
+            }
+        };
+
+        if permissions.is_some() { println!("Got from redis"); return Ok(permissions.unwrap()); }
+
+        println!("Got from database");
+
+        // In case that there is no cached permissions get fresh permissions from database and cache them
+        let team_role: TeamRole = match TeamMemberEntity::find()
             .filter(TeamMemberColumn::UserId.eq(user_id))
             .filter(TeamMemberColumn::TeamId.eq(team_id))
             .find_also_related(TeamRoleEntity)
             .one(db)
             .await {
     
-            // If everything is ok return both team member and team role objects
-            Ok(Some((member, Some(role)))) => (member, role),
+            Ok(Some((_, Some(role)))) => role,
     
-            // If team role is not found or team member is not found return forbidden response
             Ok(Some((_, None))) | Ok(None) => {
                 return Err(HttpResponse::Forbidden().json(SRouteError { message: "Not memeber of team" }));
             },
     
-            // Something went to shit and return internal server error
             Err(err) => {
                 return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)));
             }
         };
+
+        match HttpHelper::cache_user_team_permissions(redis, user_id, team_id, team_role.permissions).await {
+            Ok(_) => {},
+            Err(err) => {
+                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Caching user team permissions", Box::new(err)));
+            }
+        }
     
-        return Ok((team_member, team_role));
+        return Ok(team_role.permissions);
     }
+
+
     
     // ************************************************************************************
     //
