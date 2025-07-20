@@ -1,4 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,20 +8,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import useAuthStore from "@/stores/auth-store";
+import { useUserStore } from "@/stores/user-store";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeft,
   ArrowRight,
   Building2,
   Check,
+  ChevronsUpDown,
   Crown,
+  LogOut,
   Upload,
   Users,
 } from "lucide-react";
 import { ChangeEvent, FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const pricingPlans = [
@@ -80,6 +94,10 @@ function CreateTeam() {
   const [selectedPlan, setSelectedPlan] = useState("premium");
   const [inviteEmail, setInviteEmail] = useState("");
   const queryClient = useQueryClient();
+
+  const user = useUserStore((x) => x.user);
+  const logOut = useAuthStore((x) => x.logOut);
+  const navigate = useNavigate();
 
   const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -381,8 +399,97 @@ function CreateTeam() {
     }
   };
 
+  async function handleLogOut() {
+    await logOut();
+
+    // Force revalidation, without this app.tsx would just redirect the user to the dashboard
+    await queryClient.invalidateQueries({
+      queryKey: ["isLoggedIn"],
+      exact: true,
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["user"],
+      exact: true,
+    });
+
+    await navigate("/login");
+  }
+
+  // User is loading or not logged in
+  if (!user) return null;
+
   return (
-    <div className="from-background via-background to-accent/5 grid min-h-screen place-items-center bg-gradient-to-br px-4 py-8">
+    <div className="from-background via-background to-accent/5 grid min-h-screen bg-gradient-to-br">
+      <header className="bg-card flex h-16 w-full items-center justify-between place-self-start px-4 py-8">
+        <Button variant="ghost" asChild>
+          <Link to="..">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              tabIndex={0}
+              className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex w-full max-w-64 items-center gap-2 rounded-lg px-2 py-1.5"
+            >
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage
+                  src={user.profilePicture ?? undefined}
+                  alt={user.name}
+                />
+                <AvatarFallback className="rounded-lg">
+                  {user.name.slice(0, 1).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate text-xs">{user.email}</span>
+              </div>
+
+              <ChevronsUpDown className="ml-auto size-4" />
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            side="bottom"
+            align="end"
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="p-0 font-normal">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage
+                    src={user.profilePicture ?? undefined}
+                    alt={user.name}
+                  />
+                  <AvatarFallback className="rounded-lg">
+                    {user.username.slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate text-xs">{user.email}</span>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem asChild>
+              <button onClick={handleLogOut} className="w-full">
+                <LogOut />
+                Log out
+              </button>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
+
       <div>
         {/* Progress Indicator */}
         <div className="mx-auto mb-16 max-w-md">
