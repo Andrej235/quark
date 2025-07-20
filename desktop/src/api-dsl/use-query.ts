@@ -12,7 +12,7 @@ import {
 import { UnwrappedApiResponse } from "./types/endpoints/response-parser";
 
 type GetRoutes = keyof {
-  [K in Endpoints as Methods<K> extends "get" ? K : never]: undefined;
+  [K in Endpoints as "get" extends Methods<K> ? K : never]: undefined;
 };
 
 type Options<Route extends GetRoutes> = OmitKeyof<
@@ -49,6 +49,7 @@ export default function useQuery<Route extends GetRoutes>(
 
         throw new Error(x?.error?.message ?? "Something went wrong");
       }),
+    refetchOnWindowFocus: false,
     ...options,
     queryKey: options?.queryKey ?? [route],
   }) as ReturnType<typeof useTanQuery<UnwrappedApiResponse<Route, "get">>>;
