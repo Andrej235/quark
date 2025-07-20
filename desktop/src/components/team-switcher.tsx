@@ -1,4 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useTeamStore } from "@/stores/team-store";
 import { useUserStore } from "@/stores/user-store";
 import {
   ChevronsUpDown,
@@ -24,8 +26,9 @@ import {
   Plus,
   Star,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -33,13 +36,13 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
-import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
-import { toast } from "sonner";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
   const user = useUserStore((x) => x.user);
   const setUser = useUserStore((x) => x.setUser);
+  const activeTeam = useTeamStore((x) => x.activeTeam);
+  const setActiveTeam = useTeamStore((x) => x.setActiveTeam);
 
   const teams = useMemo(() => user?.teamsName ?? [], [user?.teamsName]);
   const defaultTeam = useMemo(
@@ -47,8 +50,10 @@ export function TeamSwitcher() {
     [teams, user?.defaultTeamId],
   );
 
-  const [activeTeam, setActiveTeam] = useState<typeof defaultTeam | null>(null);
-  useEffect(() => setActiveTeam(defaultTeam ?? null), [defaultTeam]);
+  useEffect(
+    () => setActiveTeam(defaultTeam ?? null),
+    [defaultTeam, setActiveTeam],
+  );
 
   async function handleSetSetDefault(team: Schema<"TeamInfoDTO">) {
     if (team.id === user?.defaultTeamId) {
