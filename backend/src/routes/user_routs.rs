@@ -26,6 +26,7 @@ use crate::utils::constants::{
     USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, USER_UPDATE_ROUTE_PATH, VERIFY_EMAIL_ROUTE_PATH,
 };
 use crate::utils::http_helper::HttpHelper;
+use crate::utils::redis_service::RedisService;
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -654,7 +655,7 @@ async fn user_update_default_team(
 #[rustfmt::skip]
 async fn verify_email(
     db: Data<DatabaseConnection>,
-    redis_pool: Data<RedisConnection>,
+    redis_service: Data<RedisService>,
     path_data: Path<(String, String)> 
 ) -> impl Responder {
 
@@ -663,7 +664,7 @@ async fn verify_email(
 
     // Make sure that its valid code
     // If code is not valid abort endpoint execution
-    let can_verify = match HttpHelper::verify_email_verification_code(redis_pool.get_ref(), &email, &code).await {
+    let can_verify = match HttpHelper::verify_email_verification_code(redis_service.get_ref(), &email, &code).await {
         Ok(can_verify) => can_verify,
         Err(err) => {
             return HttpHelper::endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err));
@@ -712,7 +713,7 @@ async fn verify_email(
 #[get("/user/email/send-verification")]
 #[rustfmt::skip]
 async fn send_email_verification(
-    redis: Data<RedisConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser
 ) -> impl Responder {
 
@@ -732,7 +733,7 @@ async fn send_email_verification(
     };
 
     // Store generated verification code in redis
-    match HttpHelper::store_email_verification_code(redis.get_ref(), auth_user.user.email, code).await {
+    match HttpHelper::store_email_verification_code(redis_service.get_ref(), auth_user.user.email.as_str(), code).await {
         Ok(_) => {},
         Err(err) => {
             return HttpHelper::endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err));

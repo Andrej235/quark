@@ -12,6 +12,7 @@ use crate::{
             user_update_profile_picture, verify_email,
         },
     },
+    utils::redis_service::RedisService,
 };
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
@@ -158,7 +159,8 @@ async fn main() -> std::io::Result<()> {
     // Start server
     HttpServer::new(move|| {
         
-        let redis_connection_clone: Pool<RedisConnectionManager> = pool.clone();
+        // Create redis service
+        let redis_service: RedisService = RedisService::set_pool(pool.clone());
 
         App::new()
             .wrap(
@@ -169,7 +171,7 @@ async fn main() -> std::io::Result<()> {
                 .supports_credentials()
             )
             .app_data(WebData::new(database_connection.clone())) // Inject database into app state
-            .app_data(WebData::new(redis_connection_clone))
+            .app_data(WebData::new(redis_service))
             .configure(routes) // Register endpoints
     })
     .workers(worker_threads.parse::<usize>().unwrap())

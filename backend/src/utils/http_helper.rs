@@ -9,7 +9,10 @@ use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
 use crate::entity::users::Column as UserColumn;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
-use crate::utils::constants::REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION;
+use crate::utils::constants::{
+    EMAIL_VERIFICATION_REDIS_KEY_PREFIX, REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION,
+};
+use crate::utils::redis_service::RedisService;
 use crate::{
     entity::users::{Entity as UserEntity, Model as User},
     enums::type_of_request::TypeOfRequest,
@@ -57,16 +60,6 @@ impl HttpHelper {
         random_string.to_uppercase()
     }
     
-    /// Tries to get redis connection from connections pool <br/>
-    /// Returns **connection**, otherwise returns **RedisError**
-    pub async fn get_redis_connection(redis_pool: &Pool<RedisConnectionManager>) -> Result<PooledConnection<'_, RedisConnectionManager>, RedisError> {
-        let redis_connection = redis_pool.get().await.map_err(|e| {
-            RedisError::from((redis::ErrorKind::IoError, "Redis Pool Error", format!("{}", e)))
-        })?;
-
-        return Ok(redis_connection);
-    }
-
     // ************************************************************************************
     //
     // REDIS QUIERIES
@@ -75,43 +68,33 @@ impl HttpHelper {
     /// Tries to store email verification code in redis <br/>
     /// Returns **Ok** or **RedisError**
     pub async fn store_email_verification_code(
-        redis_pool: &Pool<RedisConnectionManager>,
-        user_email: String,
+        redis_service: &RedisService,
+        user_email: &str,
         email_verification_code: String
     ) -> Result<(), RedisError> {
     
-        let mut redis_connection: PooledConnection<'_, RedisConnectionManager> = match HttpHelper::get_redis_connection(redis_pool).await {
-            Ok(connection) => connection,
-            Err(err) => { return Err(err); }
-        };
-    
-        let key = format!("email_verif:{}", user_email);
-        redis_connection.set_ex::<_, _, ()>(key, email_verification_code, REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION).await?;
-                    
+        let redis_key: String = RedisService::create_key(EMAIL_VERIFICATION_REDIS_KEY_PREFIX, user_email);
+        let _: () = redis_service.save_value::<String, String, ()>(redis_key, email_verification_code, REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION).await?;
+
         return Ok(());
     }
 
     /// Tries to verify email verification code in redis <br/>
     /// Returns **true** if code is valid or **false**, otherwise **RedisError**
     pub async fn verify_email_verification_code(
-        redis_pool: &Pool<RedisConnectionManager>,
+        redis_service: &RedisService,
         user_email: &str,
         email_verification_code: &str
     ) -> Result<bool, RedisError> {
 
-        let mut redis_connection: PooledConnection<'_, RedisConnectionManager> = match HttpHelper::get_redis_connection(redis_pool).await {
-            Ok(connection) => connection,
-            Err(err) => { return Err(err); }
-        };
-
-        let key = format!("email_verif:{}", user_email);
-        let stored_code: Option<String> = redis_connection.get(key.clone()).await?;
+        let redis_key: String = RedisService::create_key(EMAIL_VERIFICATION_REDIS_KEY_PREFIX, user_email);
+        let stored_code: Option<String> = redis_service.get_value(&redis_key).await?;
 
         match stored_code {
             Some(code) => {
                 if code == email_verification_code {
                     // Delete the code after successful verification (optional but recommended)
-                    let _: () = redis_connection.del(key).await?;
+                    let _: () = redis_service.delete_value(redis_key).await?;
                     return Ok(true);
                 }
             },
