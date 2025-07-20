@@ -1,6 +1,6 @@
 import { useUserStore } from "@/stores/user-store";
 import { CircleAlert, Edit, Settings } from "lucide-react";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, MouseEvent, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,16 @@ import { Separator } from "./ui/separator";
 export default function UserSettingsPage() {
   const user = useUserStore((x) => x.user);
   const setUser = useUserStore((x) => x.setUser);
+  const [userDataTouched, setUserDataTouched] = useState<{
+    username?: boolean;
+    firstName?: boolean;
+    lastName?: boolean;
+  }>({});
+  const [userDataErrors, setUserDataErrors] = useState<{
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+  }>({});
 
   const [passwordData, setPasswordData] = useState<{
     newPassword?: string;
@@ -37,36 +47,65 @@ export default function UserSettingsPage() {
     currentPassword?: string;
   }>({});
 
-  function handleChange(
+  function handleUserChange(
+    e: ChangeEvent<HTMLInputElement>,
+    field: "username" | "name" | "lastName",
+  ) {
+    if (!user) return;
+
+    const newUserData = { ...user, [field]: e.target.value };
+    setUser(newUserData);
+
+    validateUserData(newUserData);
+  }
+
+  function validateUserData(newUserData: NonNullable<typeof user>) {
+    const newErrors: typeof userDataErrors = {};
+    if (!newUserData.username || newUserData.username.length < 3)
+      newErrors.username = "Username must be at least 3 characters";
+
+    if (!newUserData.name || newUserData.name.length < 1)
+      newErrors.firstName = "First name is required";
+
+    if (!newUserData.lastName || newUserData.lastName.length < 1)
+      newErrors.lastName = "Last name is required";
+
+    setUserDataErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  }
+
+  function handleUserBlur(field: keyof typeof userDataTouched) {
+    setUserDataTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function handlePasswordDataChange(
     e: ChangeEvent<HTMLInputElement>,
     field: keyof typeof passwordData,
   ) {
     const newPasswordData = { ...passwordData, [field]: e.target.value };
     setPasswordData(newPasswordData);
 
-    const newErrors: typeof passwordErrors = {};
-    if (!newPasswordData.newPassword || newPasswordData.newPassword.length < 8)
-      newErrors.newPassword = "Password must be at least 8 characters";
-    else delete newErrors.newPassword;
-
-    if (
-      !newPasswordData.repeatPassword ||
-      newPasswordData.repeatPassword !== newPasswordData.newPassword
-    )
-      newErrors.repeatPassword = "Passwords do not match";
-    else delete newErrors.repeatPassword;
-
-    if (
-      !newPasswordData.currentPassword ||
-      newPasswordData.currentPassword.length < 8
-    )
-      newErrors.currentPassword = "Password must be at least 8 characters";
-    else newErrors.currentPassword = "";
-
-    setPasswordErrors(newErrors);
+    validatePasswordData(newPasswordData);
   }
 
-  function handleBlur(field: keyof typeof passwordTouched) {
+  function validatePasswordData(data: typeof passwordData) {
+    const newErrors: typeof passwordErrors = {};
+    if (!data.newPassword || data.newPassword.length < 8)
+      newErrors.newPassword = "Password must be at least 8 characters";
+
+    if (!data.repeatPassword || data.repeatPassword !== data.newPassword)
+      newErrors.repeatPassword = "Passwords do not match";
+
+    if (!data.currentPassword || data.currentPassword.length < 8)
+      newErrors.currentPassword = "Password must be at least 8 characters";
+
+    setPasswordErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  }
+
+  function handlePasswordBlur(field: keyof typeof passwordTouched) {
     setPasswordTouched((prev) => ({ ...prev, [field]: true }));
   }
 
@@ -90,6 +129,40 @@ export default function UserSettingsPage() {
         profilePicture: imageBase64,
       });
     };
+  }
+
+  function handleUpdateInfo(e: MouseEvent) {
+    if (!user) return;
+
+    setUserDataTouched({
+      username: true,
+      firstName: true,
+      lastName: true,
+    });
+
+    const isValid = validateUserData(user);
+    if (!isValid) {
+      e.preventDefault();
+      return;
+    }
+  }
+
+  function handleUpdatePassword(e: MouseEvent) {
+    if (!user) return;
+
+    setPasswordTouched({
+      currentPassword: true,
+      repeatPassword: true,
+      newPassword: true,
+    });
+
+    const isValid = validatePasswordData(passwordData);
+    console.log(isValid);
+
+    if (!isValid) {
+      e.preventDefault();
+      return;
+    }
   }
 
   if (!user) return;
@@ -180,14 +253,17 @@ export default function UserSettingsPage() {
               name="username"
               autoComplete="off"
               className="bg-input w-md"
-              value={user.username}
+              value={user.username || ""}
               onChange={(e) => {
-                setUser({
-                  ...user,
-                  username: e.target.value.replace(/[^a-zA-Z0-9-]+/g, ""),
-                });
+                handleUserChange(e, "username");
               }}
+              onBlur={() => handleUserBlur("username")}
             />
+            {userDataTouched.username && userDataErrors.username && (
+              <p className="text-destructive flex flex-row items-center gap-2 text-xs">
+                <CircleAlert /> {userDataErrors.username}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -196,14 +272,17 @@ export default function UserSettingsPage() {
               name="first-name"
               autoComplete="off"
               className="bg-input w-md"
-              value={user.name}
+              value={user.name || ""}
               onChange={(e) => {
-                setUser({
-                  ...user,
-                  name: e.target.value.replace(/[^a-zA-Z ]+/g, ""),
-                });
+                handleUserChange(e, "name");
               }}
+              onBlur={() => handleUserBlur("firstName")}
             />
+            {userDataTouched.firstName && userDataErrors.firstName && (
+              <p className="text-destructive flex flex-row items-center gap-2 text-xs">
+                <CircleAlert /> {userDataErrors.firstName}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -212,17 +291,23 @@ export default function UserSettingsPage() {
               name="last-name"
               autoComplete="off"
               className="bg-input w-md"
-              value={user.lastName}
+              value={user.lastName || ""}
               onChange={(e) => {
-                setUser({
-                  ...user,
-                  lastName: e.target.value.replace(/[^a-zA-Z ]+/g, ""),
-                });
+                handleUserChange(e, "lastName");
               }}
+              onBlur={() => handleUserBlur("lastName")}
             />
+            {userDataTouched.lastName && userDataErrors.lastName && (
+              <p className="text-destructive flex flex-row items-center gap-2 text-xs">
+                <CircleAlert /> {userDataErrors.lastName}
+              </p>
+            )}
           </div>
 
-          <Button className="w-fit px-12 py-4 shadow-[0_0_5px_rgba(59,130,246,0.5)]">
+          <Button
+            className="w-fit px-12 py-4 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
+            onClick={handleUpdateInfo}
+          >
             Update info
           </Button>
         </div>
@@ -235,9 +320,9 @@ export default function UserSettingsPage() {
               name="new-password"
               autoComplete="off"
               className="bg-input w-md"
-              value={passwordData.newPassword}
-              onChange={(e) => handleChange(e, "newPassword")}
-              onBlur={() => handleBlur("newPassword")}
+              value={passwordData.newPassword || ""}
+              onChange={(e) => handlePasswordDataChange(e, "newPassword")}
+              onBlur={() => handlePasswordBlur("newPassword")}
             />
             {passwordTouched.newPassword && passwordErrors.newPassword && (
               <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -253,9 +338,9 @@ export default function UserSettingsPage() {
               name="repeat-password"
               autoComplete="off"
               className="bg-input w-md"
-              value={passwordData.repeatPassword}
-              onChange={(e) => handleChange(e, "repeatPassword")}
-              onBlur={() => handleBlur("repeatPassword")}
+              value={passwordData.repeatPassword || ""}
+              onChange={(e) => handlePasswordDataChange(e, "repeatPassword")}
+              onBlur={() => handlePasswordBlur("repeatPassword")}
             />
             {passwordTouched.repeatPassword &&
               passwordErrors.repeatPassword && (
@@ -283,7 +368,8 @@ export default function UserSettingsPage() {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  Are you sure you want to update your password?
+                  Are you sure you want to update Are you sure you want to
+                  update your password?
                 </AlertDialogTitle>
 
                 <AlertDialogDescription>
@@ -304,9 +390,11 @@ export default function UserSettingsPage() {
                   name="current-password"
                   autoComplete="current-password"
                   className="bg-input w-md"
-                  value={passwordData.currentPassword}
-                  onChange={(e) => handleChange(e, "currentPassword")}
-                  onBlur={() => handleBlur("currentPassword")}
+                  value={passwordData.currentPassword || ""}
+                  onChange={(e) =>
+                    handlePasswordDataChange(e, "currentPassword")
+                  }
+                  onBlur={() => handlePasswordBlur("currentPassword")}
                 />
 
                 {passwordTouched.currentPassword &&
@@ -319,16 +407,7 @@ export default function UserSettingsPage() {
 
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  disabled={
-                    !passwordData.currentPassword ||
-                    passwordData.currentPassword.length < 8 ||
-                    !passwordData.newPassword ||
-                    passwordData.newPassword.length < 8 ||
-                    !passwordData.repeatPassword ||
-                    passwordData.repeatPassword.length < 8
-                  }
-                >
+                <AlertDialogAction onClick={handleUpdatePassword}>
                   Update password
                 </AlertDialogAction>
               </AlertDialogFooter>
