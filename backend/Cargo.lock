@@ -3151,6 +3151,7 @@ dependencies = [
  "futures-util",
  "itoa",
  "log",
+ "native-tls",
  "num-bigint",
  "percent-encoding",
  "pin-project-lite",

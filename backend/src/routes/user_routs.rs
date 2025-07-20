@@ -12,7 +12,6 @@ use crate::models::dtos::update_profile_picture_dto::UpdateProfilePictureDTO;
 use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
-use crate::models::email_verify_claims::EmailVerifyClaims;
 use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
 use crate::models::middleware::basic_authenticated_user::BasicAuthenticatedUser;
 use crate::models::middleware::validated_json::ValidatedJson;
@@ -39,7 +38,7 @@ use crate::{
     },
     models::dtos::create_user_dto::CreateUserDTO,
 };
-use crate::{main, JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
+use crate::{JWT_SECRET, RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::error::Error as ActixWebError;
 use actix_web::web::{Data, Path};
 use actix_web::*;
