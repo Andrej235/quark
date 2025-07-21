@@ -33,7 +33,7 @@ use crate::{
         Entity as RefreshTokenEntity, Model as RefreshToken,
     },
     entity::team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity},
-    entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole},
+    entity::team_roles::Entity as TeamRoleEntity,
     entity::teams::Entity as TeamEntity,
     entity::users::{
         ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, Model as User,

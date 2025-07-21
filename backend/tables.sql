@@ -18,6 +18,11 @@ CREATE TABLE "users" (
   "default_team_id" UUID REFERENCES "teams"("id") ON DELETE SET NULL
 );
 
+CREATE TABLE "user_settings" (
+  "id" BIGINT PRIMARY KEY NOT NULL,
+  "user_id" UUID NOT NULL REFERENCES "users"("id")
+);
+
 CREATE TABLE "refresh_tokens" (
   "id" UUID PRIMARY KEY NOT NULL,
   "expire_time" TIMESTAMP NOT NULL,

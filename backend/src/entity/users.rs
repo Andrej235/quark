@@ -36,9 +36,11 @@ pub enum Relation {
         from = "Column::DefaultTeamId",
         to = "super::teams::Column::Id",
         on_update = "NoAction",
-        on_delete = "Cascade"
+        on_delete = "SetNull"
     )]
     Teams,
+    #[sea_orm(has_many = "super::user_settings::Entity")]
+    UserSettings,
 }
 
 impl Related<super::refresh_tokens::Entity> for Entity {
@@ -56,6 +58,12 @@ impl Related<super::team_members::Entity> for Entity {
 impl Related<super::teams::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Teams.def()
+    }
+}
+
+impl Related<super::user_settings::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserSettings.def()
     }
 }
 
