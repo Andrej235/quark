@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import useQuery from "./api-dsl/use-query";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
+import LoadingIndicator from "./components/loading-indicator";
 
 export default function App() {
   const navigate = useNavigate();
@@ -76,8 +77,8 @@ export default function App() {
       )}
 
       {(isLoggedIn.isLoading || user.isLoading) && (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-          <p className="text-lg font-medium">Loading...</p>
+        <div className="bg-background fixed inset-0 z-50 grid place-items-center">
+          <LoadingIndicator className="size-8" />
         </div>
       )}
 
