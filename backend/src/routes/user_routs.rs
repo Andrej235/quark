@@ -61,7 +61,7 @@ use resend_rs::{Error as ResendError, Resend};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
-    QueryFilter,
+    PaginatorTrait, QueryFilter,
 };
 use std::error::Error;
 use std::io::Cursor;
@@ -93,57 +93,53 @@ pub async fn user_sign_up(
     json_data: ValidatedJson<CreateUserDTO>
 ) -> impl Responder {
 
-    // Get json data
     let user_data: &CreateUserDTO = json_data.get_data();
 
     // Check if user already exists
-    let existing_user_fetch_result: Option<User> = match UserEntity::find()
+    let matching_users: u64 = match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
         .filter(UserColumn::Email.eq(&user_data.email))
-        .one(db.get_ref())
+        .count(db.get_ref())
         .await {
-            Ok(user) => user,
+            Ok(count) => count,
             Err(err) => {
                 return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Finding user with filterting", Box::new(err));
             }
         };
 
-    match existing_user_fetch_result {
-            
-        Some(_) => { return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" }); },
-            
-        // Create new user if it doesn't exist
-        None => {
-
-            // Hash password
-            let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
-                Ok((salt, password_hash)) => (salt, password_hash),
-                Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
-                }
-            };
-
-            // Create user
-            let user_insertion_result: Result<User, DbErr> = UserActiveModel {
-                id:                 Set(Uuid::now_v7()),
-                username:           Set(user_data.username.clone()),
-                name:               Set(user_data.name.clone()),
-                last_name:          Set(user_data.last_name.clone()),
-                email:              Set(user_data.email.clone()),
-                hashed_password:    Set(password_hash),
-                salt:               Set(salt),
-                is_email_verified:  Set(false),
-                profile_picture:    Set(None), // no default profile picture
-                default_team_id:    Set(None), // no default team
-            }.insert(db.get_ref()).await;
-
-            if let Err(err) = user_insertion_result {
-                return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
-            }
-
-            return HttpResponse::Ok().finish();
-        }
+    // If there us more than 0 users found return error
+    // We cant allow multiple users with same username or email
+    if matching_users > 0 {
+        return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" });
     }
+
+    // Hash password
+    let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
+        Ok((salt, password_hash)) => (salt, password_hash),
+        Err(err) => {
+            return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
+        }
+    };
+
+    // Create user
+    let user_insertion_result: Result<User, DbErr> = UserActiveModel {
+        id:                 Set(Uuid::now_v7()),
+        username:           Set(user_data.username.clone()),
+        name:               Set(user_data.name.clone()),
+        last_name:          Set(user_data.last_name.clone()),
+        email:              Set(user_data.email.clone()),
+        hashed_password:    Set(password_hash),
+        salt:               Set(salt),
+        is_email_verified:  Set(false),
+        profile_picture:    Set(None), // no default profile picture
+        default_team_id:    Set(None), // no default team
+    }.insert(db.get_ref()).await;
+
+    if let Err(err) = user_insertion_result {
+        return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
+    }
+
+    return HttpResponse::Ok().finish();
 }
 
 /*
@@ -161,111 +157,117 @@ pub async fn user_sign_up(
 )]
 #[post("/user/login")]
 #[rustfmt::skip]
-async fn user_log_in(    
+async fn user_log_in(
     db: Data<DatabaseConnection>,
-    json_data: ValidatedJson<LoginUserDTO>
+    json_data: ValidatedJson<LoginUserDTO>,
 ) -> impl Responder {
-    
-    // Get json data
+
     let user_data: &LoginUserDTO = json_data.get_data();
-    
+
     // Check if user already exists in database
-    let existing_user: Option<User>  = match UserEntity::find()
+    let existing_user: Option<User> = match UserEntity::find()
         .filter(UserColumn::Email.eq(&user_data.email))
         .one(db.get_ref())
-        .await {
-            Ok(user) => user,
+        .await
+    {
+        Ok(user) => user,
+        Err(err) => {
+            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding user with filtering", Box::new(err));
+        }
+    };
+
+    // Abort endpoint execution if no user is found
+    if existing_user.is_none() {
+        return HttpResponse::BadRequest().json(SRouteError {
+            message: "User not found",
+        });
+    }
+
+    let user: User = existing_user.unwrap();
+
+    // Hash pasword and check if it correct
+    let provided_password_hash: String =
+        match hash_password_with_salt(&user.salt, &user_data.password) {
+            Ok(password_hash) => password_hash,
             Err(err) => {
-                return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding user with filtering", Box::new(err));
+                return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
             }
         };
 
-    match existing_user {
+    if provided_password_hash != user.hashed_password {
+        return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
+    }
 
-        None => { return HttpResponse::BadRequest().json(SRouteError { message: "User not found" }); },
+    // Try to get refresh token from database
+    let existing_refresh_token_result: Option<RefreshToken> = match RefreshTokenEntity::find()
+        .filter(RefreshTokenColumn::UserId.eq(user.id))
+        .one(db.get_ref())
+        .await
+    {
+        Ok(refresh_token) => refresh_token,
+        Err(err) => {
+            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding refresh token", Box::new(err));
+        }
+    };
+
+    match existing_refresh_token_result {
+
+        // Create JWT token if refresh token exists
+        Some(mut refresh_token) => {
         
-        Some(user) => {
-            // Hash provided password 
-            let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
-                Ok(password_hash) => password_hash,
+            // If refresh token is expired recycle it
+            if refresh_token.expire_time < Utc::now().naive_utc() {
+                match recycle_refresh_token(refresh_token.id, user.id, db).await {
+                    Ok(token) => refresh_token = token,
+                    Err(err) => {
+                        return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Recycling refresh token", Box::new(err));
+                    }
+                };
+            }
+
+            // Create and return new jwt token
+            match create_jwt_token(&refresh_token, user.id) {
+                Ok(token) => {
+                    return HttpResponse::Ok().json(LogInResultDTO {
+                        jwt_token: token,
+                        refresh_token_id: refresh_token.id,
+                    });
+                }
                 Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
+                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
+                }
+            };
+        }
+
+        // If refresh token doesn't exist create new refresh token and JWT token
+        None => {
+
+            // Try to create and add new refresh token to database
+            let new_refresh_token_active_model: RefreshTokenActiveModel =
+                create_refresh_token(user.id);
+                
+            let add_refresh_token_result: Result<RefreshToken, DbErr> =
+                new_refresh_token_active_model.insert(db.get_ref()).await;
+
+            let refresh_token = match add_refresh_token_result {
+                Ok(token) => token,
+                Err(err) => {
+                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Adding new refresh token to database", Box::new(err));
                 }
             };
 
-            // Check if password is same as in database
-            if provided_password_hash != user.hashed_password {
-                return  HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
-            }
-
-            // Try to get refresh token from database
-            let existing_refresh_token_result: Option<RefreshToken> = match RefreshTokenEntity::find()
-                .filter(RefreshTokenColumn::UserId.eq(user.id))
-                .one(db.get_ref())
-                .await {
-                    Ok(refresh_token) => refresh_token,
-                    Err(err) => {
-                        return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding refresh token with filtering", Box::new(err));
-                    }
-                };
-
-            match existing_refresh_token_result {
-                
-                // Create JWT token if refresh token exists
-                Some(mut refresh_token) => {
-
-                    // If refresh token is expired recycle it
-                    if refresh_token.expire_time < Utc::now().naive_utc() {
-
-                        match recycle_refresh_token(refresh_token.id, user.id, db).await {
-                            Ok(token) => refresh_token = token,
-                            Err(err) => {
-                                return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Recycling refresh token", Box::new(err));
-                            }
-                        };
-                    }
-
-                    // Create and return new jwt token
-                    match create_jwt_token(&refresh_token, user.id) {
-                        Ok(token) => {
-                            return HttpResponse::Ok().json(LogInResultDTO {
-                                jwt_token: token,
-                                refresh_token_id: refresh_token.id
-                            });
-                        },
-                        Err(err) => {
-                            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
-                        }
-                    };
-                },
-
-                // If refresh token doesn't exist create new refresh token and JWT token
-                None => {
-                    // Try to create and add new refresh token to database
-                    let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user.id);
-                    let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
-
-                    let refresh_token = match add_refresh_token_result {
-                        Ok(token) => token,
-                        Err(err) => {
-                            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Adding new refresh token to database", Box::new(err));
-                        }
-                    };
-
-                    // Create and return new jwt token
-                    match create_jwt_token(&refresh_token, user.id) {
-                        Ok(token) => {
-                            return HttpResponse::Ok().json(LogInResultDTO {
-                                jwt_token: token,
-                                refresh_token_id: refresh_token.id
-                            });
-                        },
-                        Err(err) => {
-                            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
-                        }
-                    };
+            // Create and return new jwt token
+            match create_jwt_token(&refresh_token, user.id) {
+                Ok(token) => {
+                    return HttpResponse::Ok().json(LogInResultDTO {
+                        jwt_token: token,
+                        refresh_token_id: refresh_token.id,
+                    });
                 }
-            }
+                Err(err) => {
+                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
+                }
+            };
         }
     }
 }
