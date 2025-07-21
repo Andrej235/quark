@@ -120,15 +120,15 @@ export default function LoginPage() {
 
     if (error || !response) return;
 
-    await setJwt(response.jwtToken);
-    await setRefreshToken(response.refreshTokenId);
+    setJwt(response.jwtToken);
+    setRefreshToken(response.refreshTokenId);
 
     // Force revalidation, without this app.tsx would just redirect the user back here after logging in
-    await queryClient.invalidateQueries({
+    await queryClient.resetQueries({
       queryKey: ["isLoggedIn"],
       exact: true,
     });
-    await queryClient.invalidateQueries({
+    await queryClient.resetQueries({
       queryKey: ["user"],
       exact: true,
     });

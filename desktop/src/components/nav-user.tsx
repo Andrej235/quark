@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -38,11 +37,11 @@ export function NavUser() {
     await logOut();
 
     // Force revalidation, without this app.tsx would just redirect the user to the dashboard
-    await queryClient.invalidateQueries({
+    await queryClient.resetQueries({
       queryKey: ["isLoggedIn"],
       exact: true,
     });
-    await queryClient.invalidateQueries({
+    await queryClient.resetQueries({
       queryKey: ["user"],
       exact: true,
     });

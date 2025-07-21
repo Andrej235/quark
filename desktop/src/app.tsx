@@ -17,17 +17,12 @@ export default function App() {
 
   const user = useQuery("/user/me", {
     queryKey: ["user"],
-    enabled: !isLoggedIn.isLoading && isLoggedIn.isSuccess,
+    enabled: isLoggedIn.isSuccess,
+    retry: false,
   });
 
   useEffect(() => {
     if (isLoggedIn.isLoading) return;
-
-    if (
-      (location === "/login" || location === "/signup") &&
-      isLoggedIn.isSuccess
-    )
-      navigate("/");
 
     if (
       location !== "/login" &&
@@ -42,7 +37,7 @@ export default function App() {
     if (!user.data || !isLoggedIn.isSuccess) return;
 
     if (user.error) {
-      toast.error(user.error.message ?? "Something went wrong");
+      toast.error(user.error.message ?? "Something went wrong < app");
       return;
     }
 
