@@ -1,6 +1,6 @@
 import Homepage from "@/components/dashboard-page";
-import Login from "@/components/login";
-import Signup from "@/components/signup";
+import Login from "@/components/login-page";
+import SignUpPage from "@/components/sign-up-page";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -75,7 +75,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/signup",
-        element: <Signup />,
+        element: <SignUpPage />,
       },
       {
         path: "/verify-email",

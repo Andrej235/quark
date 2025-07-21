@@ -1,5 +1,6 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import useAuthStore from "@/stores/auth-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
@@ -12,7 +13,6 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useQueryClient } from "@tanstack/react-query";
 
 type Errors = {
   email?: string;
@@ -24,7 +24,7 @@ type Touched = {
   password?: boolean;
 };
 
-export default function Login() {
+export default function LoginPage() {
   const [fields, setFields] = useState({
     email: "",
     password: "",
@@ -115,7 +115,7 @@ export default function Login() {
   return (
     <div className="bg-background flex min-h-screen w-full flex-col items-center justify-center">
       <div className="bg-background z-10 flex h-fit w-full flex-col items-center justify-center gap-20 p-10">
-        <div className="bg-secondary h-xl w-md shadow-muted border-muted rounded-xl border-2 shadow-lg">
+        <div className="bg-secondary w-lg shadow-muted border-muted rounded-xl border-2 shadow-lg">
           <form
             className="p-15 flex h-full flex-col items-center justify-center gap-4"
             onSubmit={handleSubmit}
@@ -161,33 +161,27 @@ export default function Login() {
             >
               Forgot password?
             </Link>
+
             <Button
               type="submit"
-              className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
+              className="bg-input hover:bg-input/80 mt-5 h-12 w-full p-2 disabled:opacity-50"
               onClick={handleSubmit}
               disabled={!isValid}
-              asChild
             >
-              <Link to={"/home"}>Log in</Link>
+              Log in
             </Button>
+
             <Button
               type="submit"
-              className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
-              asChild
+              className="bg-input hover:bg-input/80 h-12 w-full p-2"
             >
-              <Link
-                to={"/auth/google"}
-                className="flex items-center justify-center gap-2"
-              >
-                <img
-                  className="h-5 w-5"
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="Google logo"
-                />
-                <span className="font-medium text-white">
-                  Login with Google
-                </span>
-              </Link>
+              <img
+                className="h-5 w-5"
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google logo"
+              />
+
+              <span className="font-medium text-white">Login with Google</span>
             </Button>
 
             <div className="ml-auto mt-5 flex w-full flex-row items-center justify-center gap-3">
