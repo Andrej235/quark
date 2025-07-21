@@ -27,8 +27,8 @@ use actix_web::{post, web::Data, HttpResponse, Responder};
 use lazy_static::lazy_static;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -183,13 +183,16 @@ pub async fn team_update(
     json_data: ValidatedJson<UpdateTeamDTO>,
 ) -> impl Responder {
     
+    println!("Team Update");
+
     let team_id: Uuid = team_id.into_inner();
     let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
     // Prevent user from updating team if they dont have permission
+    // Also checks if user is member of team
     let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
         TEAM_DELETE_ROUTE_PATH, 
-        db.get_ref(), 
+        db.get_ref(),
         redis_service.get_ref(),
         auth_user.user.id, 
         team_id,
@@ -207,26 +210,27 @@ pub async fn team_update(
     match TeamEntity::find_by_id(team_id).one(db.get_ref()).await {
         Ok(Some(existing)) => {
             
-            // Check for name conflict
-            match TeamEntity::find()
-                .filter(TeamColumn::Name.eq(new_team_info.name.clone()))
-                .filter(TeamColumn::Id.ne(team_id))
-                .one(db.get_ref())
-                .await {
-                Ok(None) => {},
-                Ok(Some(_)) => {
-                    return HttpResponse::Conflict().json(SRouteError { message: "Team name already exists" });
-                }
-                Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
-                }
-            };
-
             // Abort updating team if new team data is same as before
             // Prevents unnecessary database updates
             if existing.name == new_team_info.name && existing.description == new_team_info.description {
                 return HttpResponse::Ok().finish();
             }
+
+            // Check for name conflict
+            match TeamEntity::find()
+                .filter(TeamColumn::Name.eq(new_team_info.name.clone()))
+                .filter(TeamColumn::Id.ne(team_id))
+                .count(db.get_ref())
+                .await {
+                Ok(count) => {
+                    if count > 0 {
+                        return HttpResponse::Conflict().json(SRouteError { message: "Team name already exists" });
+                    }
+                }
+                Err(err) => {
+                    return HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
+                }
+            };
 
             // Update existing team
             let mut model: TeamActiveModel = existing.into();
@@ -238,12 +242,8 @@ pub async fn team_update(
                 Err(err) => HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
             }
         }
-        Ok(None) => HttpResponse::NotFound().json(SRouteError {
-            message: "Team not found",
-        }),
-        Err(err) => {
-            HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err))
-        }
+        Ok(None) => HttpResponse::NotFound().json(SRouteError { message: "Team not found" }),
+        Err(err) => { HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err)) }
     }
 }
 
