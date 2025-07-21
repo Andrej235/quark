@@ -60,7 +60,7 @@ const router = createBrowserRouter([
             element: <NotificationSettingsPage />,
           },
           {
-            path: "/settings/user",
+            path: "/settings",
             element: <UserSettingsPage />,
           },
           {
