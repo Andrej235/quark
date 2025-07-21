@@ -38,7 +38,7 @@ export default function HeaderBreadcrumbs() {
             ...acc,
             {
               link: (acc[acc.length - 1]?.link ?? "") + "/" + item,
-              name: toTitleCase(item),
+              name: toTitleCase(item.split("-").join(" ")),
             },
           ],
           [],
