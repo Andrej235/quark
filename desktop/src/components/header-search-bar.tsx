@@ -1,6 +1,7 @@
-import { useClickAway } from "@uidotdev/usehooks";
+import { useShortcut } from "@/lib/use-shortcut";
 import { LucideSearch } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
+import { useOnClickOutside } from "usehooks-ts";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,16 +14,14 @@ import { Input } from "./ui/input";
 
 export default function HeaderSearchBar() {
   const [isActive, setIsActive] = useState(false);
-  const alertDialogRef = useClickAway<HTMLDivElement>(() => setIsActive(false));
+  const alertDialogRef = useRef<HTMLDivElement>(null!);
+  useOnClickOutside(alertDialogRef, () => setIsActive(false));
 
-  useEffect(() => {
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "/") {
-        setIsActive(true);
-        event.preventDefault();
-      }
-    });
-  }, []);
+  useShortcut({
+    key: "/",
+    callback: () => setIsActive(true),
+    preventDefault: true,
+  });
 
   return (
     <AlertDialog open={isActive} onOpenChange={setIsActive}>
@@ -35,7 +34,9 @@ export default function HeaderSearchBar() {
       >
         <LucideSearch />
 
-        <span className="hidden md:block text-sm text-muted-foreground">Press / to search</span>
+        <span className="text-muted-foreground hidden text-sm md:block">
+          Press / to search
+        </span>
       </AlertDialogTrigger>
 
       <AlertDialogContent className="p-4" ref={alertDialogRef}>

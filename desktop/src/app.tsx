@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useQuery from "./api-dsl/use-query";
+import LoadingIndicator from "./components/loading-indicator";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
-import LoadingIndicator from "./components/loading-indicator";
 
 export default function App() {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ export default function App() {
     if (!user.data || !isLoggedIn.isSuccess) return;
 
     if (user.error) {
-      toast.error((user.error as Error).message ?? "Something went wrong");
+      toast.error(user.error.message ?? "Something went wrong");
       return;
     }
 
