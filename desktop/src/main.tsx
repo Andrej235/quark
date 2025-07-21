@@ -1,4 +1,4 @@
-import Homepage from "@/components/homepage";
+import Homepage from "@/components/dashboard-page";
 import Login from "@/components/login";
 import Signup from "@/components/signup";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
