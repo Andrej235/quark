@@ -6,15 +6,19 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
+import EditRolePage from "./components/edit-role-page";
 import ErrorPage from "./components/error-page";
+import FirstTeamPage from "./components/first-team-page";
+import NewRolePage from "./components/new-role-page";
+import NewTeamPage from "./components/new-team-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
 import SidebarContainer from "./components/sidebar-container";
+import TeamMemberSettingsTab from "./components/team-member-settings-page";
+import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
-import "./globals.css";
 import VerifyEmailPage from "./components/verify-email-page";
-import FirstTeamPage from "./components/first-team-page";
-import NewTeamPage from "./components/new-team-page";
+import "./globals.css";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +38,22 @@ const router = createBrowserRouter([
           {
             path: "/settings/team",
             element: <TeamSettingsPage />,
+          },
+          {
+            path: "/settings/team-members",
+            element: <TeamMemberSettingsTab />,
+          },
+          {
+            path: "/settings/team-roles",
+            element: <TeamRolesSettings />,
+          },
+          {
+            path: "/settings/team-roles/new",
+            element: <NewRolePage />,
+          },
+          {
+            path: "/settings/team-roles/:roleId",
+            element: <EditRolePage />,
           },
           {
             path: "/settings/notifications",
