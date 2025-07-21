@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 
 export default function ErrorPage() {
   return (
-    <div className="h-screen space-y-8 px-8 py-20 text-center md:px-32 md:py-32 lg:px-16 xl:px-32 2xl:px-64">
+    <div className="h-full space-y-8 px-8 py-20 text-center md:px-32 md:py-32 lg:px-16 xl:px-32 2xl:px-64">
       <div className="mb-8 grid w-full place-items-center">
         <div className="bg-primary/20 flex size-16 items-center justify-center rounded-full">
           <FileQuestion className="text-primary size-8" />
@@ -51,7 +51,7 @@ export default function ErrorPage() {
             asChild
             className="min-w-[160px] bg-transparent"
           >
-            <Link to="/docs">
+            <Link to="/documentation">
               <BookOpen className="mr-2 h-4 w-4" />
               Browse Documentation
             </Link>

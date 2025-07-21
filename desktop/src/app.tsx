@@ -71,7 +71,7 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-w-svw bg-background min-h-svh">
+    <div className="min-w-svw bg-background max-w-svw max-h-svh min-h-svh">
       {!isLoggedIn.isLoading && (!isLoggedIn.isSuccess || !user.isLoading) && (
         <Outlet />
       )}
