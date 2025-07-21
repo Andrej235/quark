@@ -33,6 +33,7 @@ use crate::{
         Entity as RefreshTokenEntity, Model as RefreshToken,
     },
     entity::team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity},
+    entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole},
     entity::teams::Entity as TeamEntity,
     entity::users::{
         ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, Model as User,
@@ -768,18 +769,35 @@ async fn get_user_info(
     };
 
     // Get all teams name in which user is member
-    let teams_name = match TeamMemberEntity::find()
+    let team_info = match TeamMemberEntity::find()
         .filter(TeamMemberColumn::UserId.eq(auth_user.user.id))
         .find_also_related(TeamEntity)
+        .find_also_related(TeamRoleEntity)
         .all(db.get_ref())
-        .await {
+        .await 
+    {
         Ok(team_records) => {
             team_records
                 .into_iter()
-                .filter_map(|(_, team)| team.map(|t| TeamInfoDTO { id: t.id, name: t.name, description: t.description }))
+                .filter_map(|(_, team, team_role)| {
+                    match (team, team_role) {
+                        (Some(t), Some(role)) => Some(TeamInfoDTO { 
+                            id: t.id, 
+                            name: t.name, 
+                            description: t.description,
+                            role_name: role.name,
+                            permissions: role.permissions
+                        }),
+                        _ => None, // Skip if either team or role is missing
+                    }
+                })
                 .collect::<Vec<TeamInfoDTO>>()
         },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err))
+        Err(err) => return HttpHelper::endpoint_internal_server_error(
+            GET_USER_INFO_ROUTE_PATH,
+            "Finding team records",
+            Box::new(err)
+        ),
     };
 
     // Create DTO object
@@ -791,7 +809,7 @@ async fn get_user_info(
         is_email_verified: auth_user.user.is_email_verified,
         profile_picture: profile_picture_base64,
         
-        teams_name: teams_name,
+        teams_info: team_info,
         default_team_id: auth_user.user.default_team_id
     };
     
