@@ -1,4 +1,12 @@
-sea-orm-cli migrate init  -->  migration init
-sea-orm-cli migrate generate initial_schema  -->  new migration
-sea-orm-cli migrate up  -->  push migrations
-sea-orm-cli generate entity -o src/entity  -->  generate entities
+SEA ORM:
+    sea-orm-cli migrate init   # migration init
+    sea-orm-cli migrate generate initial_schema   # new migration
+    sea-orm-cli migrate up   # push migrations
+    sea-orm-cli generate entity -o src/entity   # generate entities
+
+DOCKER:
+    docker build -t quark-backend -f backend/Dockerfile .   # Run this to build image
+    docker run -p 8080:8080 --env-file backend/.env quark-backend   # Run this to start docker
+
+    docker image prune -f   # Remove dangling images
+    docker ps -a   # List all docker images

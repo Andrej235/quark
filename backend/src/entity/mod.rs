@@ -6,4 +6,5 @@ pub mod refresh_tokens;
 pub mod team_members;
 pub mod team_roles;
 pub mod teams;
+pub mod user_settings;
 pub mod users;

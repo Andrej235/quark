@@ -4,4 +4,5 @@ pub use super::refresh_tokens::Entity as RefreshTokens;
 pub use super::team_members::Entity as TeamMembers;
 pub use super::team_roles::Entity as TeamRoles;
 pub use super::teams::Entity as Teams;
+pub use super::user_settings::Entity as UserSettings;
 pub use super::users::Entity as Users;

@@ -4,7 +4,7 @@
 //
 // ************************************************************************************
 use crate::entity::team_members::ActiveModel as TeamMemberActiveModel;
-use crate::entity::team_roles::{ActiveModel as TeamRoleActiveModel, Model as TeamRole};
+use crate::entity::team_roles::ActiveModel as TeamRoleActiveModel;
 use crate::entity::teams::{
     ActiveModel as TeamActiveModel, Column as TeamColumn, Entity as TeamEntity,
 };
@@ -19,17 +19,16 @@ use crate::models::sroute_error::SRouteError;
 use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
-use crate::utils::http_helper::{
-    check_permission, endpoint_internal_server_error, get_user_team_permissions,
-};
+use crate::utils::http_helper::HttpHelper;
+use crate::utils::redis_service::RedisService;
 use actix_web::web::Path;
 use actix_web::{delete, put};
 use actix_web::{post, web::Data, HttpResponse, Responder};
 use lazy_static::lazy_static;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -72,6 +71,7 @@ lazy_static! {
 #[rustfmt::skip]
 pub async fn team_create(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     team_json: ValidatedJson<CreateTeamDTO>,
 ) -> impl Responder {
@@ -86,20 +86,23 @@ pub async fn team_create(
         .await {
         Ok(None) => (),
         Ok(Some(_)) => return HttpResponse::BadRequest().json(SRouteError { message: "Team already exists" }),
-        Err(err) => return endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
     }
 
     // Begin transaction
+    let team_id: Uuid = Uuid::now_v7(); // We create here teams id because we need to use it later for caching users team permissions
+    let user_id: Uuid = auth_user.user.id; // Only reason that this is here is because of borrow checker
+
     let transaction = match db.begin().await {
         Ok(transaction) => transaction,
-        Err(err) => return endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
     };
 
     let transaction_result: Result<(), DbErr> = (|| async {
 
         // Create team
         let team = TeamActiveModel {
-            id: Set(Uuid::now_v7()),
+            id: Set(team_id.clone()),
             name: Set(team_data.name.clone()),
             description: Set(team_data.description.clone()),  
         }.insert(&transaction).await?;
@@ -121,7 +124,7 @@ pub async fn team_create(
 
         // Create team member
         _ = TeamMemberActiveModel {
-            user_id: Set(auth_user.user.id),
+            user_id: Set(user_id.clone()),
             team_id: Set(team.id),
             team_role_id: Set(owner_role.id),
             ..Default::default()
@@ -139,8 +142,14 @@ pub async fn team_create(
 
     match transaction_result {
         Ok(_) => (),
-        Err(err) => return endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
     }
+
+    // Cache team permissions in redis
+    match HttpHelper::cache_user_team_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
+        Ok(_) => (),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
+    };
 
     return HttpResponse::Ok().finish();
 }
@@ -168,24 +177,31 @@ pub async fn team_create(
 #[rustfmt::skip]
 pub async fn team_update(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     team_id: Path<Uuid>,
     json_data: ValidatedJson<UpdateTeamDTO>,
 ) -> impl Responder {
     
+    println!("Team Update");
+
     let team_id: Uuid = team_id.into_inner();
     let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
     // Prevent user from updating team if they dont have permission
-    let team_role: TeamRole = match get_user_team_permissions(
-        TEAM_DELETE_ROUTE_PATH, db.get_ref(),
-        auth_user.user.id, team_id,
+    // Also checks if user is member of team
+    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+        TEAM_DELETE_ROUTE_PATH, 
+        db.get_ref(),
+        redis_service.get_ref(),
+        auth_user.user.id, 
+        team_id,
     ).await {
-        Ok((_, team_role)) => team_role,
+        Ok(permissions) => permissions,
         Err(err) => return err,
     };
 
-    match check_permission(team_role.permissions, Permission::CAN_EDIT_SETTINGS) {
+    match HttpHelper::check_permission(team_permissions, Permission::CAN_EDIT_SETTINGS) {
         Ok(_) => (),
         Err(err) => return err
     }
@@ -194,26 +210,27 @@ pub async fn team_update(
     match TeamEntity::find_by_id(team_id).one(db.get_ref()).await {
         Ok(Some(existing)) => {
             
-            // Check for name conflict
-            match TeamEntity::find()
-                .filter(TeamColumn::Name.eq(new_team_info.name.clone()))
-                .filter(TeamColumn::Id.ne(team_id))
-                .one(db.get_ref())
-                .await {
-                Ok(None) => {},
-                Ok(Some(_)) => {
-                    return HttpResponse::Conflict().json(SRouteError { message: "Team name already exists" });
-                }
-                Err(err) => {
-                    return endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
-                }
-            };
-
             // Abort updating team if new team data is same as before
             // Prevents unnecessary database updates
             if existing.name == new_team_info.name && existing.description == new_team_info.description {
                 return HttpResponse::Ok().finish();
             }
+
+            // Check for name conflict
+            match TeamEntity::find()
+                .filter(TeamColumn::Name.eq(new_team_info.name.clone()))
+                .filter(TeamColumn::Id.ne(team_id))
+                .count(db.get_ref())
+                .await {
+                Ok(count) => {
+                    if count > 0 {
+                        return HttpResponse::Conflict().json(SRouteError { message: "Team name already exists" });
+                    }
+                }
+                Err(err) => {
+                    return HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
+                }
+            };
 
             // Update existing team
             let mut model: TeamActiveModel = existing.into();
@@ -222,15 +239,11 @@ pub async fn team_update(
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
+                Err(err) => HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
             }
         }
-        Ok(None) => HttpResponse::NotFound().json(SRouteError {
-            message: "Team not found",
-        }),
-        Err(err) => {
-            endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err))
-        }
+        Ok(None) => HttpResponse::NotFound().json(SRouteError { message: "Team not found" }),
+        Err(err) => { HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err)) }
     }
 }
 
@@ -255,6 +268,7 @@ pub async fn team_update(
 #[rustfmt::skip]
 pub async fn team_delete(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     team_id: Path<Uuid>,
 ) -> impl Responder {
@@ -262,15 +276,18 @@ pub async fn team_delete(
     let team_id = team_id.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
-    let team_role: TeamRole = match get_user_team_permissions(
-        TEAM_DELETE_ROUTE_PATH, db.get_ref(),
-        auth_user.user.id, team_id,
+    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+        TEAM_DELETE_ROUTE_PATH, 
+        db.get_ref(), 
+        redis_service.get_ref(),
+        auth_user.user.id, 
+        team_id,
     ).await {
-        Ok((_, team_role)) => team_role,
+        Ok(permissions) => permissions,
         Err(err) => return err,
     };
 
-    match check_permission(team_role.permissions, Permission::CAN_DELETE_TEAM) {
+    match HttpHelper::check_permission(team_permissions, Permission::CAN_DELETE_TEAM) {
         Ok(_) => (),
         Err(err) => return err
     }
@@ -281,13 +298,22 @@ pub async fn team_delete(
     match delete_result {
         Ok(_) => {},
         Err(err) => {
-            return endpoint_internal_server_error(
+            return HttpHelper::endpoint_internal_server_error(
                 TEAM_DELETE_ROUTE_PATH,
                 "Deleting team",
                 Box::new(err),
             );
         }
     }
+
+    // Delete all cached users team permissions
+    // There is no need for that cached data to exist anymore
+    match HttpHelper::delete_unused_cached_user_team_permissions(redis_service.get_ref(), team_id).await {
+        Ok(_) => (),
+        Err(err) => {
+            return HttpHelper::endpoint_internal_server_error(TEAM_DELETE_ROUTE_PATH, "Deleting cached user team permissions", Box::new(err));
+        }
+    };
 
     return HttpResponse::Ok().finish();
 }
