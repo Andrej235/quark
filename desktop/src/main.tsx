@@ -12,7 +12,7 @@ import FirstTeamPage from "./components/first-team-page";
 import NewRolePage from "./components/new-role-page";
 import NewTeamPage from "./components/new-team-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
-import SidebarContainer from "./components/sidebar-container";
+import DashboardLayout from "./components/dashboard-layout";
 import TeamMemberSettingsTab from "./components/team-member-settings-page";
 import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
@@ -29,7 +29,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <SidebarContainer />,
+        element: <DashboardLayout />,
         children: [
           {
             path: "/",
