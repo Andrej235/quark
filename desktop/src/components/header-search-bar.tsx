@@ -1,4 +1,4 @@
-import { useShortcut } from "@/lib/use-shortcut";
+import { useShortcut } from "@/hooks/use-shortcut";
 import { LucideSearch } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
