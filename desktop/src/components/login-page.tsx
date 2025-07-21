@@ -4,10 +4,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
-  FormEvent,
-  MouseEvent,
+  KeyboardEvent,
+  SyntheticEvent,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -25,6 +26,8 @@ type Touched = {
 };
 
 export default function LoginPage() {
+  const queryClient = useQueryClient();
+
   const [fields, setFields] = useState({
     email: "",
     password: "",
@@ -37,6 +40,8 @@ export default function LoginPage() {
   const setJwt = useAuthStore((x) => x.setJwt);
   const setRefreshToken = useAuthStore((x) => x.setRefreshToken);
 
+  const formRef = useRef<HTMLFormElement>(null);
+
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
 
@@ -47,6 +52,8 @@ export default function LoginPage() {
       newErrors.email = "Please enter a valid email address";
 
     if (!fields.password.trim()) newErrors.password = "Please enter a password";
+    else if (fields.password.trim().length < 8)
+      newErrors.password = "Password must be at least 8 characters long";
 
     setErrors(newErrors);
     setIsValid(Object.keys(newErrors).length === 0);
@@ -65,9 +72,26 @@ export default function LoginPage() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const queryClient = useQueryClient();
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Enter") return;
 
-  const handleSubmit = async (e: MouseEvent | FormEvent) => {
+    e.preventDefault();
+    const inputs = formRef.current?.querySelectorAll("input");
+    if (!inputs) return;
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+
+      if (input === e.target) {
+        if (i < inputs.length - 1) inputs[i + 1].focus();
+        else handleSubmit(e);
+
+        break;
+      }
+    }
+  };
+
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     setTouched({
       email: true,
@@ -119,6 +143,7 @@ export default function LoginPage() {
           <form
             className="p-15 flex h-full flex-col items-center justify-center gap-4"
             onSubmit={handleSubmit}
+            ref={formRef}
           >
             <h1 className="text-foreground mb-1 text-3xl">Welcome to Quark!</h1>
             <p className="mb-5">Ready for a new day?</p>
@@ -131,6 +156,7 @@ export default function LoginPage() {
                 value={fields.email}
                 onChange={handleChange("email")}
                 onBlur={handleBlur("email")}
+                onKeyDown={handleKeyDown}
               />
               {touched.email && errors.email && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -147,6 +173,7 @@ export default function LoginPage() {
                 value={fields.password}
                 onChange={handleChange("password")}
                 onBlur={handleBlur("password")}
+                onKeyDown={handleKeyDown}
               />
               {touched.password && errors.password && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">

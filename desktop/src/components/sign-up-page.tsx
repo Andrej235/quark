@@ -5,9 +5,11 @@ import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
   FormEvent,
+  KeyboardEvent,
   MouseEvent,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -46,6 +48,8 @@ export default function SignUpPage() {
 
   const navigate = useNavigate();
 
+  const formRef = useRef<HTMLFormElement>(null);
+
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
 
@@ -68,6 +72,8 @@ export default function SignUpPage() {
       newErrors.email = "Please enter a valid email address";
 
     if (!fields.password.trim()) newErrors.password = "Please enter a password";
+    else if (fields.password.trim().length < 8)
+      newErrors.password = "Password must be at least 8 characters long";
 
     if (fields.password !== fields.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
@@ -122,6 +128,25 @@ export default function SignUpPage() {
     navigate("/login");
   };
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+    const inputs = formRef.current?.querySelectorAll("input");
+    if (!inputs) return;
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+
+      if (input === e.target) {
+        if (i < inputs.length - 1) inputs[i + 1].focus();
+        else handleSubmit(e);
+
+        break;
+      }
+    }
+  };
+
   return (
     <div className="bg-background flex min-h-screen w-full flex-col items-center justify-center">
       <div className="bg-background z-10 flex h-fit w-full flex-col items-center justify-center gap-20 p-10">
@@ -129,6 +154,7 @@ export default function SignUpPage() {
           <form
             onSubmit={handleSubmit}
             className="p-15 flex h-full flex-col items-center justify-center gap-2 transition-all duration-300"
+            ref={formRef}
           >
             <h1 className="text-3xl">Welcome to Quark!</h1>
             <h3 className="text-muted-foreground mb-5 text-lg">
@@ -143,6 +169,7 @@ export default function SignUpPage() {
                 value={fields.username}
                 onChange={handleChange("username")}
                 onBlur={handleBlur("username")}
+                onKeyDown={handleKeyDown}
               />
               {touched.username && errors.username && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -160,6 +187,7 @@ export default function SignUpPage() {
                   value={fields.name}
                   onChange={handleChange("name")}
                   onBlur={handleBlur("name")}
+                  onKeyDown={handleKeyDown}
                 />
                 {touched.name && errors.name && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -175,6 +203,7 @@ export default function SignUpPage() {
                   value={fields.lastName}
                   onChange={handleChange("lastName")}
                   onBlur={handleBlur("lastName")}
+                  onKeyDown={handleKeyDown}
                 />
                 {touched.lastName && errors.lastName && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -192,6 +221,7 @@ export default function SignUpPage() {
                 value={fields.email}
                 onChange={handleChange("email")}
                 onBlur={handleBlur("email")}
+                onKeyDown={handleKeyDown}
               />
               {touched.email && errors.email && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -208,6 +238,7 @@ export default function SignUpPage() {
                 value={fields.password}
                 onChange={handleChange("password")}
                 onBlur={handleBlur("password")}
+                onKeyDown={handleKeyDown}
               />
               {touched.password && errors.password && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -224,6 +255,7 @@ export default function SignUpPage() {
                 value={fields.confirmPassword}
                 onChange={handleChange("confirmPassword")}
                 onBlur={handleBlur("confirmPassword")}
+                onKeyDown={handleKeyDown}
               />
               {touched.confirmPassword && errors.confirmPassword && (
                 <p className="text-destructive text-xs">
