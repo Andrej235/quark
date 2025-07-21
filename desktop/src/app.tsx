@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useQuery from "./api-dsl/use-query";
+import LoadingIndicator from "./components/loading-indicator";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
 
@@ -16,17 +17,12 @@ export default function App() {
 
   const user = useQuery("/user/me", {
     queryKey: ["user"],
-    enabled: !isLoggedIn.isLoading && isLoggedIn.isSuccess,
+    enabled: isLoggedIn.isSuccess,
+    retry: false,
   });
 
   useEffect(() => {
     if (isLoggedIn.isLoading) return;
-
-    if (
-      (location === "/login" || location === "/signup") &&
-      isLoggedIn.isSuccess
-    )
-      navigate("/");
 
     if (
       location !== "/login" &&
@@ -41,7 +37,7 @@ export default function App() {
     if (!user.data || !isLoggedIn.isSuccess) return;
 
     if (user.error) {
-      toast.error((user.error as Error).message ?? "Something went wrong");
+      toast.error(user.error.message ?? "Something went wrong < app");
       return;
     }
 
@@ -70,14 +66,14 @@ export default function App() {
   ]);
 
   return (
-    <div className="min-w-svw bg-background min-h-svh">
+    <div className="min-w-svw bg-background max-w-svw max-h-svh min-h-svh">
       {!isLoggedIn.isLoading && (!isLoggedIn.isSuccess || !user.isLoading) && (
         <Outlet />
       )}
 
       {(isLoggedIn.isLoading || user.isLoading) && (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-          <p className="text-lg font-medium">Loading...</p>
+        <div className="bg-background fixed inset-0 z-50 grid place-items-center">
+          <LoadingIndicator className="size-8" />
         </div>
       )}
 

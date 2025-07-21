@@ -1,6 +1,6 @@
-import Homepage from "@/components/homepage";
-import Login from "@/components/login";
-import Signup from "@/components/signup";
+import Homepage from "@/components/dashboard-page";
+import Login from "@/components/login-page";
+import SignUpPage from "@/components/sign-up-page";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -12,7 +12,7 @@ import FirstTeamPage from "./components/first-team-page";
 import NewRolePage from "./components/new-role-page";
 import NewTeamPage from "./components/new-team-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
-import SidebarContainer from "./components/sidebar-container";
+import DashboardLayout from "./components/dashboard-layout";
 import TeamMemberSettingsTab from "./components/team-member-settings-page";
 import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
@@ -29,7 +29,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <SidebarContainer />,
+        element: <DashboardLayout />,
         children: [
           {
             path: "/",
@@ -60,7 +60,7 @@ const router = createBrowserRouter([
             element: <NotificationSettingsPage />,
           },
           {
-            path: "/settings/user",
+            path: "/settings",
             element: <UserSettingsPage />,
           },
           {
@@ -75,7 +75,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/signup",
-        element: <Signup />,
+        element: <SignUpPage />,
       },
       {
         path: "/verify-email",

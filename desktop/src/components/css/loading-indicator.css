@@ -1,4 +1,4 @@
-@import "../../app/globals.css";
+@import "../../globals.css";
 
 .dot-spinner {
   --uib-speed: 0.9s;

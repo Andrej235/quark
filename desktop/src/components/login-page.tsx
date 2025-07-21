@@ -1,18 +1,19 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import useAuthStore from "@/stores/auth-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
-  FormEvent,
-  MouseEvent,
+  KeyboardEvent,
+  SyntheticEvent,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useQueryClient } from "@tanstack/react-query";
 
 type Errors = {
   email?: string;
@@ -24,7 +25,9 @@ type Touched = {
   password?: boolean;
 };
 
-export default function Login() {
+export default function LoginPage() {
+  const queryClient = useQueryClient();
+
   const [fields, setFields] = useState({
     email: "",
     password: "",
@@ -37,6 +40,8 @@ export default function Login() {
   const setJwt = useAuthStore((x) => x.setJwt);
   const setRefreshToken = useAuthStore((x) => x.setRefreshToken);
 
+  const formRef = useRef<HTMLFormElement>(null);
+
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
 
@@ -47,6 +52,8 @@ export default function Login() {
       newErrors.email = "Please enter a valid email address";
 
     if (!fields.password.trim()) newErrors.password = "Please enter a password";
+    else if (fields.password.trim().length < 8)
+      newErrors.password = "Password must be at least 8 characters long";
 
     setErrors(newErrors);
     setIsValid(Object.keys(newErrors).length === 0);
@@ -65,9 +72,26 @@ export default function Login() {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const queryClient = useQueryClient();
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Enter") return;
 
-  const handleSubmit = async (e: MouseEvent | FormEvent) => {
+    e.preventDefault();
+    const inputs = formRef.current?.querySelectorAll("input");
+    if (!inputs) return;
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+
+      if (input === e.target) {
+        if (i < inputs.length - 1) inputs[i + 1].focus();
+        else handleSubmit(e);
+
+        break;
+      }
+    }
+  };
+
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     setTouched({
       email: true,
@@ -96,15 +120,15 @@ export default function Login() {
 
     if (error || !response) return;
 
-    await setJwt(response.jwtToken);
-    await setRefreshToken(response.refreshTokenId);
+    setJwt(response.jwtToken);
+    setRefreshToken(response.refreshTokenId);
 
     // Force revalidation, without this app.tsx would just redirect the user back here after logging in
-    await queryClient.invalidateQueries({
+    await queryClient.resetQueries({
       queryKey: ["isLoggedIn"],
       exact: true,
     });
-    await queryClient.invalidateQueries({
+    await queryClient.resetQueries({
       queryKey: ["user"],
       exact: true,
     });
@@ -115,10 +139,11 @@ export default function Login() {
   return (
     <div className="bg-background flex min-h-screen w-full flex-col items-center justify-center">
       <div className="bg-background z-10 flex h-fit w-full flex-col items-center justify-center gap-20 p-10">
-        <div className="bg-secondary h-xl w-md shadow-muted border-muted rounded-xl border-2 shadow-lg">
+        <div className="bg-secondary w-lg shadow-muted border-muted rounded-xl border-2 shadow-lg">
           <form
             className="p-15 flex h-full flex-col items-center justify-center gap-4"
             onSubmit={handleSubmit}
+            ref={formRef}
           >
             <h1 className="text-foreground mb-1 text-3xl">Welcome to Quark!</h1>
             <p className="mb-5">Ready for a new day?</p>
@@ -131,6 +156,7 @@ export default function Login() {
                 value={fields.email}
                 onChange={handleChange("email")}
                 onBlur={handleBlur("email")}
+                onKeyDown={handleKeyDown}
               />
               {touched.email && errors.email && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -147,6 +173,7 @@ export default function Login() {
                 value={fields.password}
                 onChange={handleChange("password")}
                 onBlur={handleBlur("password")}
+                onKeyDown={handleKeyDown}
               />
               {touched.password && errors.password && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -161,33 +188,27 @@ export default function Login() {
             >
               Forgot password?
             </Link>
+
             <Button
               type="submit"
-              className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
+              className="bg-input hover:bg-input/80 mt-5 h-12 w-full p-2 disabled:opacity-50"
               onClick={handleSubmit}
               disabled={!isValid}
-              asChild
             >
-              <Link to={"/home"}>Log in</Link>
+              Log in
             </Button>
+
             <Button
               type="submit"
-              className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
-              asChild
+              className="bg-input hover:bg-input/80 h-12 w-full p-2"
             >
-              <Link
-                to={"/auth/google"}
-                className="flex items-center justify-center gap-2"
-              >
-                <img
-                  className="h-5 w-5"
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="Google logo"
-                />
-                <span className="font-medium text-white">
-                  Login with Google
-                </span>
-              </Link>
+              <img
+                className="h-5 w-5"
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+                alt="Google logo"
+              />
+
+              <span className="font-medium text-white">Login with Google</span>
             </Button>
 
             <div className="ml-auto mt-5 flex w-full flex-row items-center justify-center gap-3">
