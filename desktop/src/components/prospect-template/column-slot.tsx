@@ -4,7 +4,7 @@ import RenderSlot from "./render-slot";
 
 export default function ColumnSlot({ slot }: RenderSlotProps<ColumnSlotType>) {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 p-2">
       {slot.content.map((member, i) =>
         "flex" in member ? (
           <div style={{ flex: member.flex }} key={i}>

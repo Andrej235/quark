@@ -4,7 +4,7 @@ import RenderSlot from "./render-slot";
 
 export default function RowSlot({ slot }: RenderSlotProps<RowSlotType>) {
   return (
-    <div className="flex gap-8">
+    <div className="flex gap-8 p-2">
       {slot.content.map((member, i) =>
         "flex" in member ? (
           <div style={{ flex: member.flex }} key={i}>

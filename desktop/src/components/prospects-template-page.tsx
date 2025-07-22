@@ -1,5 +1,5 @@
 import { Slot } from "@/lib/prospect-template/slot";
-import RenderSlot from "./prospect-template/render-slot";
+import RenderSlotTree from "./prospect-template/render-slot-tree";
 import {
   Card,
   CardContent,
@@ -87,7 +87,7 @@ export default function ProspectsTemplatePage() {
       </CardHeader>
 
       <CardContent className="bg-transparent">
-        <RenderSlot slot={exampleSlot} />
+        <RenderSlotTree slot={exampleSlot} editMode />
       </CardContent>
     </Card>
   );
