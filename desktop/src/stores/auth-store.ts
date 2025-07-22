@@ -1,19 +1,21 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { LocalDataStore } from "@/lib/local-data-store";
+import { localStorageStore } from "@/lib/local-storage-store";
 import { appDataDir } from "@tauri-apps/api/path";
 import { Client, Stronghold } from "@tauri-apps/plugin-stronghold";
 import { create } from "zustand";
 
-const VAULT_PATH = `${await appDataDir()}/vault.hold`;
-const VAULT_KEY = "vault-key";
-const CLIENT_NAME = "auth-client";
+const appType = "__TAURI_INTERNALS__" in window ? "desktop" : "web";
+
 const REFRESH_TOKEN_KEY = "refresh_token";
 const JWT_KEY = "jwt";
 
 type AuthStore = {
   stronghold: Stronghold | null;
   client: Client | null;
-  initStronghold: () => Promise<void>;
+  initStorage: () => Promise<void>;
   localJwt: string | null;
+  getStore: () => Promise<LocalDataStore>;
   getJwt: () => Promise<string | null>;
   setJwt: (jwt: string | null) => Promise<void>;
   setRefreshToken: (refreshToken: string | null) => Promise<void>;
@@ -25,8 +27,14 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   client: null,
   localJwt: null,
 
-  initStronghold: async () => {
+  initStorage: async () => {
     get().stronghold?.unload();
+
+    if (appType !== "desktop") return;
+
+    const VAULT_PATH = `${await appDataDir()}/vault.hold`;
+    const VAULT_KEY = "vault-key";
+    const CLIENT_NAME = "auth-client";
 
     try {
       const stronghold = await Stronghold.load(VAULT_PATH, VAULT_KEY);
@@ -46,9 +54,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
   getJwt: async () => {
     try {
-      const { client, stronghold } = get();
-      if (!client || !stronghold) await get().initStronghold();
-      const store = get().client!.getStore();
+      const store = await get().getStore();
 
       // Get user's current JWT, prioritizing the local one
       let jwt = get().localJwt;
@@ -130,9 +136,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
     set({ localJwt: jwt });
 
     try {
-      const { client, stronghold } = get();
-      if (!client || !stronghold) await get().initStronghold();
-      const store = get().client!.getStore();
+      const store = await get().getStore();
 
       if (jwt) {
         const data = Array.from(new TextEncoder().encode(jwt));
@@ -140,7 +144,6 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       } else {
         await store.remove(JWT_KEY);
       }
-      await stronghold!.save();
     } catch (error) {
       console.error("Failed to save jwt:", error);
     }
@@ -148,22 +151,15 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
   setRefreshToken: async (refreshToken) => {
     try {
-      const { client, stronghold } = get();
-      if (!client || !stronghold) {
-        await get().initStronghold();
-      }
-
-      const store = get().client!.getStore();
+      const store = await get().getStore();
 
       if (!refreshToken) {
         await store.remove(REFRESH_TOKEN_KEY);
-        await stronghold!.save();
         return;
       }
 
       const data = Array.from(new TextEncoder().encode(refreshToken));
       await store.insert(REFRESH_TOKEN_KEY, data);
-      await stronghold!.save();
     } catch (error) {
       console.error("Failed to save refresh token:", error);
     }
@@ -173,10 +169,10 @@ const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       const { client, stronghold } = get();
       if (!client || !stronghold) {
-        await get().initStronghold();
+        await get().initStorage();
       }
 
-      const store = get().client!.getStore();
+      const store = await get().getStore();
 
       const refreshTokenData = await store.get(REFRESH_TOKEN_KEY);
       if (!refreshTokenData) return;
@@ -206,6 +202,26 @@ const useAuthStore = create<AuthStore>((set, get) => ({
     } catch (error) {
       console.error("Failed to save refresh token:", error);
     }
+  },
+
+  getStore: async () => {
+    if (appType === "web") return localStorageStore;
+
+    const { client, stronghold } = get();
+    if (!client || !stronghold) await get().initStorage();
+    const store = get().client!.getStore();
+
+    return {
+      get: (key: string) => store.get(key),
+      insert: async (key: string, value: number[]) => {
+        await store.insert(key, value);
+        await stronghold!.save();
+      },
+      remove: async (key: string) => {
+        await store.remove(key);
+        await stronghold!.save();
+      },
+    };
   },
 }));
 
