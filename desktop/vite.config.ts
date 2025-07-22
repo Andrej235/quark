@@ -9,7 +9,7 @@ export default defineConfig(async () => ({
   plugins: [react(), tailwindcss(), svgr()],
   clearScreen: false,
   server: {
-    port: 1420,
+    port: 3000,
     strictPort: true,
     host: true,
     hmr: {
