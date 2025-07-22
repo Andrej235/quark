@@ -45,8 +45,11 @@ CREATE TABLE "team_members" (
 );
 
 CREATE TABLE "team_invitations" (
-  "token" UUID NOT NULL PRIMARY KEY,
+  "token" TEXT NOT NULL PRIMARY KEY,
+  "expires_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "status" INTEGER NOT NULL,
+
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
-  "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "status" INTEGER NOT NULL
+  "sender_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "receiver_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE
 );

@@ -25,6 +25,8 @@ pub static TEAM_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9\
 pub const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
 pub const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 pub const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
+pub const TEAM_INVITATION_EXPIRATION_OFFSET: i64 = 5; // days
+
 pub const REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION: u64 = 300; // seconds (5 minutes)
 pub const REDIS_USER_TEAM_PERMISSIONS_EXPIRATION: u64 = 3_600; // seconds (1 hour)
 
@@ -68,3 +70,6 @@ pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_
 pub const TEAM_ROLE_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/create", TypeOfRequest::POST);
 pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);
 pub const TEAM_ROLE_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/update/{team_role_id}", TypeOfRequest::PUT);
+
+
+pub const TEAM_INVITATION_SEND_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations", TypeOfRequest::POST);

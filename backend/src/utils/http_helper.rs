@@ -16,10 +16,13 @@ use crate::{
     entity::users::{Entity as UserEntity, Model as User},
     enums::type_of_request::TypeOfRequest,
 };
+use crate::{RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::HttpResponse;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use redis::RedisError;
+use resend_rs::types::CreateEmailBaseOptions;
+use resend_rs::Resend;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use std::error::Error;
 use tracing::error;
@@ -56,7 +59,45 @@ impl HttpHelper {
     
         random_string.to_uppercase()
     }
+
+    /// Creates random 8 character long string <br/>
+    /// String contains letters and number <br/>
+    /// Returns **random string**
+    pub fn generate_team_invitation_code() -> String {
+        let random_string: String = rand::rng()
+            .sample_iter(&Alphanumeric)
+            .take(8)
+            .map(char::from)
+            .collect();
     
+        random_string.to_uppercase()
+    }
+    
+    // Sends email with provided subject and html content
+    /// Returns **Ok** or **ResendError**
+    pub async fn send_email(
+        reciever_email: &str, 
+        email_subject: &'static str,
+        html: &str
+    ) -> Result<(), resend_rs::Error> {
+
+        let resend_instance: &Resend = RESEND_INSTANCE.get().unwrap();
+
+        // Prep email data
+        let from: String = format!("Quark <{}>", RESEND_EMAIL.get().unwrap());
+        let to: [&str; 1] = [reciever_email];
+
+        // Generate email
+        let email: CreateEmailBaseOptions = CreateEmailBaseOptions::new(&from, to, email_subject)
+            .with_html(html);
+
+        // Send email
+        match resend_instance.emails.send(email).await {
+            Ok(_) => Ok(()),
+            Err(err) => return Err(err),
+        }
+    }
+
 
 
     // ************************************************************************************
@@ -171,27 +212,40 @@ impl HttpHelper {
             };
     }
 
+    /// Tries to find user by specified **email** <br/>
+    /// NOTE: if handle_not_found is true, it will return NotFound response <br/>
+    /// Returns: NotFound response if user is not found <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: Found user
     pub async fn find_user_by_email(
+        endpoint_path: (&'static str, TypeOfRequest),
         db: &DatabaseConnection,
-        user_email: String
-    ) -> Result<Option<User>, Box<dyn Error>> {
+        user_email: &str,
+        handle_not_found: bool
+    ) -> Result<Option<User>, HttpResponse> {
+
         return match UserEntity::find()
             .filter(UserColumn::Email.eq(user_email))
             .one(db)
             .await {
-                Ok(user) => Ok(user),
-                Err(err) => {
-                    return Err(Box::new(err));
-                }
+                Ok(Some(user)) => Ok(Some(user)),
+                Ok(None) => {
+                    if handle_not_found {
+                        Err(HttpResponse::NotFound().json(SRouteError { message: "Team not found" }))
+                    } else {
+                        Ok(None)
+                    }
+                },
+                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
             };
     }
     
-    /// Tries to find team with specified team_id <br/>
+    /// Tries to find team by specified **id** <br/>
     /// NOTE: if handle_not_found is true, it will return NotFound response <br/>
     /// Returns: NotFound response if team is not found <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team
-    pub async fn find_team(
+    pub async fn find_team_by_id(
         endpoint_path: (&'static str, TypeOfRequest),
         db: &DatabaseConnection, 
         team_id: Uuid,
@@ -212,7 +266,7 @@ impl HttpHelper {
                 Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
             }
     }
-    
+
     /// Gets user team permissions <br/>
     /// Returns: Forbidden response if user is not member of team <br/>
     /// Returns: InternalServerError if database query fails <br/>

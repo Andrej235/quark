@@ -2,6 +2,7 @@ use crate::models::dtos::create_team_dto::CreateTeamDTO;
 use crate::models::dtos::create_team_role_dto::CreateTeamRoleDTO;
 use crate::models::dtos::jwt_refresh_token_pair_dto::JWTRefreshTokenPairDTO;
 use crate::models::dtos::login_result_dto::LogInResultDTO;
+use crate::models::dtos::team_invitation_dto::TeamInvitationDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
 use crate::models::route_error::RouteError;
@@ -16,6 +17,7 @@ use crate::routes::user_routs::{
 use utoipa::OpenApi;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::team_info_dto::TeamInfoDTO;
+use crate::routes::team_invitations_routes::__path_team_invitation_send;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -34,7 +36,11 @@ use crate::models::dtos::team_info_dto::TeamInfoDTO;
         team_create, team_delete,
 
         // team role routes
-        team_role_create),
+        team_role_create,
+
+        // team invitation routes
+        team_invitation_send
+    ),
         
     components(schemas(
         // Common
@@ -47,6 +53,10 @@ use crate::models::dtos::team_info_dto::TeamInfoDTO;
         CreateTeamDTO,
     
         // team role routes
-        CreateTeamRoleDTO))
+        CreateTeamRoleDTO,
+    
+        // team invitation routes
+        TeamInvitationDTO
+    ))
 )]
 pub struct ApiDoc;

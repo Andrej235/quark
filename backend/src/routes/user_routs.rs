@@ -612,7 +612,7 @@ async fn user_update_default_team(
     }
 
     // Make sure that team is valid
-    match HttpHelper::find_team(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
+    match HttpHelper::find_team_by_id(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
         Ok(_) => {},
         Err(err) => { return err; }
     };
@@ -675,10 +675,10 @@ async fn verify_email(
     }
 
     // Try to find user
-    let user_model: User = match HttpHelper::find_user_by_email(db.get_ref(), email).await {
+    let user_model: User = match HttpHelper::find_user_by_email(VERIFY_EMAIL_ROUTE_PATH, db.get_ref(), &email, false).await {
         Ok(Some(user)) => user,
         Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+        Err(err) => return err
     };
 
     // Check if user is already verified
@@ -793,11 +793,7 @@ async fn get_user_info(
                 })
                 .collect::<Vec<TeamInfoDTO>>()
         },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(
-            GET_USER_INFO_ROUTE_PATH,
-            "Finding team records",
-            Box::new(err)
-        ),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err)),
     };
 
     // Create DTO object
