@@ -43,3 +43,10 @@ CREATE TABLE "team_members" (
   "team_role_id" BIGINT NOT NULL REFERENCES "team_roles"("id"),
   PRIMARY KEY ("user_id", "team_id")
 );
+
+CREATE TABLE "team_invitations" (
+  "token" UUID NOT NULL PRIMARY KEY,
+  "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+  "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "accepted" BOOLEAN NOT NULL DEFAULT FALSE
+);
