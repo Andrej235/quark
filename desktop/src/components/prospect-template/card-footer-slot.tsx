@@ -1,7 +1,7 @@
 import { CardFooterSlot as CardFooterSlotType } from "@/lib/prospect-template/card-footer-slot";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import { CardFooter } from "../ui/card";
-import ButtonSlot from "./button-slot";
+import RenderSlot from "./render-slot";
 
 export default function CardFooterSlot({
   slot,
@@ -9,7 +9,7 @@ export default function CardFooterSlot({
   return (
     <CardFooter>
       {slot.buttons.map((button, index) => (
-        <ButtonSlot key={index} slot={button} />
+        <RenderSlot key={index} slot={button} />
       ))}
     </CardFooter>
   );
