@@ -7,7 +7,7 @@ export default function CardFooterSlot({
   slot,
 }: RenderSlotProps<CardFooterSlotType>) {
   return (
-    <CardFooter>
+    <CardFooter className="px-2">
       {slot.buttons.map((button, index) => (
         <RenderSlot key={index} slot={button} />
       ))}

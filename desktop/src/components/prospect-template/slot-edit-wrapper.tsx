@@ -13,7 +13,7 @@ export default function SlotEditWrapper({
   return (
     <div
       className={cn(
-        "outline-border/0 rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
+        "outline-border/0 **:disabled:opacity-100 rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
         topSlot === slot && "outline-border",
       )}
       onPointerEnter={() => {

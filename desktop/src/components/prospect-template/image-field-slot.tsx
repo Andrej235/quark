@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
 import { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospect-template/image-field-slot";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import { Upload } from "lucide-react";
@@ -9,6 +10,7 @@ export default function ImageFieldSlot({
   slot,
 }: RenderSlotProps<ImageFieldSlotType>) {
   const { name } = slot;
+  const isEditing = useIsSlotInEditMode();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleImageInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -25,7 +27,7 @@ export default function ImageFieldSlot({
   return (
     <>
       <Label htmlFor={name}>{name}</Label>
-      <div className="flex items-center gap-4 mt-2">
+      <div className="mt-2 flex items-center gap-4">
         {imagePreview ? (
           <div className="border-border bg-muted h-16 w-16 overflow-hidden rounded-lg border-2">
             <img
@@ -46,6 +48,7 @@ export default function ImageFieldSlot({
             accept="image/*"
             onChange={handleImageInput}
             className="cursor-pointer"
+            disabled={isEditing}
           />
           <p className="text-muted-foreground mt-1 text-sm">
             Upload a square image (PNG, JPG, or SVG)
