@@ -44,7 +44,7 @@ export function TeamSwitcher() {
   const activeTeam = useTeamStore((x) => x.activeTeam);
   const setActiveTeam = useTeamStore((x) => x.setActiveTeam);
 
-  const teams = useMemo(() => user?.teamsName ?? [], [user?.teamsName]);
+  const teams = useMemo(() => user?.teamsInfo ?? [], [user?.teamsInfo]);
   const defaultTeam = useMemo(
     () => teams.find((x) => x.id === (user?.defaultTeamId ?? teams[0]?.id)),
     [teams, user?.defaultTeamId],
@@ -86,7 +86,7 @@ export function TeamSwitcher() {
   function handleLeaveTeam(team: Schema<"TeamInfoDTO">) {
     setUser({
       ...user!,
-      teamsName: user!.teamsName.filter((x) => x.id !== team.id),
+      teamsInfo: user!.teamsInfo.filter((x) => x.id !== team.id),
     });
   }
 

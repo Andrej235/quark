@@ -14,9 +14,6 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Separator } from "./ui/separator";
 import {
   Card,
   CardContent,
@@ -24,6 +21,8 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import {
   Select,
   SelectContent,
@@ -31,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Separator } from "./ui/separator";
 
 export default function UserSettingsPage() {
   const user = useUserStore((x) => x.user);
@@ -344,7 +344,7 @@ export default function UserSettingsPage() {
           <CardContent>
             <Select
               value={
-                user.teamsName.find((team) => team.id === user.defaultTeamId)
+                user.teamsInfo.find((team) => team.id === user.defaultTeamId)
                   ?.id
               }
               onValueChange={handleDefaultTeamChange}
@@ -354,7 +354,7 @@ export default function UserSettingsPage() {
               </SelectTrigger>
 
               <SelectContent>
-                {user.teamsName.map((team) => (
+                {user.teamsInfo.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}
                   </SelectItem>

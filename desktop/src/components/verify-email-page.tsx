@@ -25,6 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function ConfirmEmailInstructions() {
   const user = useUserStore((x) => x.user);
+  const setUser = useUserStore((x) => x.setUser);
   const [otp, setOtp] = useState("");
 
   const navigate = useNavigate();
@@ -70,14 +71,16 @@ export default function ConfirmEmailInstructions() {
   }
 
   async function handleSubmitCode() {
+    if (!user) return;
     setOtp("");
 
     const { isOk } = await sendApiRequest(
-      "/user/email/verify/{token}",
+      "/user/email/verify/{email}/{code}",
       {
         method: "get",
         parameters: {
-          token: otp,
+          email: user.email,
+          code: otp,
         },
       },
       {
@@ -90,7 +93,9 @@ export default function ConfirmEmailInstructions() {
       },
     );
 
-    if (isOk) await navigate("/first-team");
+    if (!isOk) return;
+    setUser({ ...user, isEmailVerified: true });
+    await navigate("/first-team");
   }
 
   return (

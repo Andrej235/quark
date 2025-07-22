@@ -49,7 +49,7 @@ export default function App() {
     }
 
     if (
-      !user.data?.teamsName?.length &&
+      !user.data?.teamsInfo?.length &&
       location !== "/first-team" &&
       location !== "/payment" &&
       location !== "/new-team"
@@ -81,3 +81,4 @@ export default function App() {
     </div>
   );
 }
+Math.random();
