@@ -6,13 +6,14 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
+import DashboardLayout from "./components/dashboard-layout";
 import EditRolePage from "./components/edit-role-page";
 import ErrorPage from "./components/error-page";
 import FirstTeamPage from "./components/first-team-page";
 import NewRolePage from "./components/new-role-page";
 import NewTeamPage from "./components/new-team-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
-import DashboardLayout from "./components/dashboard-layout";
+import ProspectsTemplatePage from "./components/prospects-template-page";
 import TeamMemberSettingsTab from "./components/team-member-settings-page";
 import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
@@ -62,6 +63,10 @@ const router = createBrowserRouter([
           {
             path: "/settings",
             element: <UserSettingsPage />,
+          },
+          {
+            path: "/prospects/template",
+            element: <ProspectsTemplatePage />,
           },
           {
             path: "*",
