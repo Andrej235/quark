@@ -1,7 +1,9 @@
+import { LayoutSlots } from "@/lib/prospect-template/layout-slots";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
+import { useSlotLayoutEditStore } from "@/stores/slot-layout-edit-store";
 import {
   AlignEndHorizontal,
   AlignStartHorizontal,
@@ -12,7 +14,7 @@ import {
   Text,
   Trash2,
 } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -40,15 +42,29 @@ export default function SlotEditWrapper({
   const isInputSlot = slot.type.endsWith("-field");
   const isInteractiveSlot = slot.type === "button";
 
+  const editingLayoutRoot = useSlotLayoutEditStore((x) => x.layoutRoot);
+  const enterEditLayoutMode = useSlotLayoutEditStore(
+    (x) => x.enterEditLayoutMode,
+  );
+
+  useEffect(() => {
+    console.log(editingLayoutRoot);
+  }, [editingLayoutRoot]);
+
+  const isActive =
+    editingLayoutRoot === slot || (topSlot === slot && !editingLayoutRoot);
+
   return (
     <ContextMenu
       onOpenChange={(newOpen) => freezeHoverStack(newOpen ? slot : null)}
     >
-      <ContextMenuTrigger>
+      <ContextMenuTrigger
+        disabled={!!editingLayoutRoot && editingLayoutRoot !== slot}
+      >
         <div
           className={cn(
             "outline-border/0 **:disabled:opacity-100 relative rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
-            topSlot === slot && "outline-border",
+            isActive && "outline-border",
           )}
           onPointerEnter={() => {
             addToHoverStack(slot);
@@ -62,7 +78,7 @@ export default function SlotEditWrapper({
           <div
             className={cn(
               "text-muted-foreground absolute bottom-full right-0 flex -translate-y-4 items-center gap-1 opacity-0 transition-opacity",
-              topSlot === slot && "opacity-100",
+              isActive && "opacity-100",
             )}
           >
             <p className="text-xs">{typeName}</p>
@@ -90,6 +106,7 @@ export default function SlotEditWrapper({
           <ContextMenuItem
             onClick={() => {
               console.log("layout", slot.type);
+              enterEditLayoutMode(slot as LayoutSlots);
             }}
           >
             <span>Change Layout</span>

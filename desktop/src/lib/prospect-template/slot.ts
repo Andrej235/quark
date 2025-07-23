@@ -18,6 +18,6 @@ type Slot =
   | TextFieldSlot
   | ImageFieldSlot;
 
-type SafeSlot = Slot extends { type: SlotType } ? Slot : never;
+type SafeSlot = Extract<Slot, Slot extends { type: SlotType } ? Slot : never>;
 
 export type { SafeSlot as Slot };
