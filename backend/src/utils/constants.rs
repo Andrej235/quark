@@ -73,3 +73,4 @@ pub const TEAM_ROLE_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-r
 
 pub const TEAM_INVITATION_SEND_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations", TypeOfRequest::POST);
 pub const TEAM_INVITATION_ACCEPT_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations/accept/{code}", TypeOfRequest::PATCH);
+pub const TEAM_INVITATION_DECLINE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations/decline/{code}", TypeOfRequest::PATCH);
