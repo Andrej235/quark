@@ -89,8 +89,8 @@ pub async fn team_invitation_send(
         Ok(Some((inv, Some(team)))) => { // In case that invitation already exists update expires_at and send email again
 
             // SPECIAL CASE
-            // If status of invitation is DECLINED create new invitation instead of updating old new
-            if inv.status == TeamInvitationStatus::DECLINED {
+            // If status of invitation is DECLINED or ACCEPTED create new invitation instead of updating old new
+            if inv.status == TeamInvitationStatus::DECLINED || inv.status == TeamInvitationStatus::ACCEPTED {
                 match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
                     Ok(_) => return HttpResponse::Ok().finish(),
                     Err(err) => return err,

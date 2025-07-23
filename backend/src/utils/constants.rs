@@ -65,6 +65,7 @@ pub const CHECK_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/check", Type
 pub const TEAM_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team", TypeOfRequest::POST);
 pub const TEAM_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::PUT);
 pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::DELETE);
+pub const TEAM_GET_MEMBERS_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/members/{team_id}", TypeOfRequest::GET);
 pub const TEAM_LEAVE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/leave/{team_id}", TypeOfRequest::DELETE);
 
 

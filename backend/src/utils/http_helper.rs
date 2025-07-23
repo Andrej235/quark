@@ -1,26 +1,20 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::entity::team_roles::{
-    Column as TeamRoleColumn, Entity as TeamRoleEntity, Model as TeamRole,
-};
 use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
 use crate::{RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::HttpResponse;
+use base64::Engine;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::Resend;
 use sea_orm::error::DbErr;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter,
-    TransactionTrait,
-};
+use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
 use std::error::Error;
 use tracing::error;
-use uuid::Uuid;
 
 pub struct HttpHelper;
 
@@ -131,50 +125,22 @@ impl HttpHelper {
         }
     }
 
-
-
-    // ************************************************************************************
-    //
-    // PREDIFINED DATABASE QUERIES
-    //
-    // ************************************************************************************
-    /// Tries to find team role by specified **name** <br/>
-    /// Returns: NotFound response if team role is not found <br/>
-    /// Returns: InternalServerError if database query fails <br/>
-    /// Returns: Found team role
-    pub async fn find_team_role_by_name(
-        endpoint_path: (&'static str, TypeOfRequest),
-        db: &DatabaseConnection,
-        team_id: Uuid,
-        role_name: &str
-    ) -> Result<Option<TeamRole>, HttpResponse> {
-
-        return match TeamRoleEntity::find()
-            .filter(TeamRoleColumn::TeamId.eq(team_id))
-            .filter(TeamRoleColumn::Name.eq(role_name))
-            .one(db)
-            .await {
-                Ok(Some(team_role)) => Ok(Some(team_role)),
-                Ok(None) => Err(HttpResponse::NotFound().json(SRouteError { message: "Team role not found" })),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
-            };
+    /// Converts image to base64 string
+    pub fn convert_image_to_base64(image: Option<Vec<u8>>) -> Option<String> {
+        match image {
+            None => None,
+            Some(image_bytes) => {
+                Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes))
+            }
+        }
     }
 
-
-    
-    // ************************************************************************************
-    //
-    // PERMISSIONS FUNCTIONS
-    //
-    // ************************************************************************************
     /// Checks if all required permissions are present
     /// Returns (), otherwise status forbidden
     pub fn check_permissions(
         permissions: i32,
         required_permissions: Vec<Permission>
     ) -> Result<(), HttpResponse> {
-    
-        // TODO: Improve performance by caching
     
         let perm = Permission::from_bits(permissions)
             .ok_or_else(|| HttpResponse::Forbidden().json(SRouteError { message: "Invalid permissions" }))?;
@@ -194,8 +160,6 @@ impl HttpHelper {
         permissions: i32,
         required_permission: Permission
     ) -> Result<(), HttpResponse> {
-    
-        // TODO: Improve performance by caching
     
         let perm: Permission = match Permission::from_bits(permissions) {
             Some(perm) => perm,
