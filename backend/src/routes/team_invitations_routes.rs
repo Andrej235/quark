@@ -191,6 +191,7 @@ pub async fn team_invitation_accept(
             user_id: Set(auth_user.user.id),
             team_id: Set(team_id),
             team_role_id: Set(team_role_id),
+            joined_at: Set(Utc::now().naive_utc()),
         };
 
         team_member_active_model.insert(db.get_ref()).await?;

@@ -41,6 +41,9 @@ CREATE TABLE "team_members" (
   "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
   "team_role_id" BIGINT NOT NULL REFERENCES "team_roles"("id"),
+
+  "joined_at" TIMESTAMP NOT NULL,
+
   PRIMARY KEY ("user_id", "team_id")
 );
 
