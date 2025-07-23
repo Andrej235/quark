@@ -3,26 +3,19 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "team_members")]
+#[sea_orm(table_name = "team_invitations")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub user_id: Uuid,
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
+    pub token: String,
+    pub expires_at: DateTime,
+    pub status: i16,
     pub team_id: Uuid,
-    pub team_role_id: i64,
-    pub joined_at: DateTime,
+    pub sender_id: Uuid,
+    pub receiver_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::team_roles::Entity",
-        from = "Column::TeamRoleId",
-        to = "super::team_roles::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    TeamRoles,
     #[sea_orm(
         belongs_to = "super::teams::Entity",
         from = "Column::TeamId",
@@ -33,29 +26,25 @@ pub enum Relation {
     Teams,
     #[sea_orm(
         belongs_to = "super::users::Entity",
-        from = "Column::UserId",
+        from = "Column::ReceiverId",
         to = "super::users::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Users,
-}
-
-impl Related<super::team_roles::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::TeamRoles.def()
-    }
+    Users2,
+    #[sea_orm(
+        belongs_to = "super::users::Entity",
+        from = "Column::SenderId",
+        to = "super::users::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    Users1,
 }
 
 impl Related<super::teams::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Teams.def()
-    }
-}
-
-impl Related<super::users::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Users.def()
     }
 }
 

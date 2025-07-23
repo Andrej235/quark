@@ -25,6 +25,8 @@ pub static TEAM_NAME_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9\
 pub const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
 pub const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 pub const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
+pub const TEAM_INVITATION_EXPIRATION_OFFSET: i64 = 5; // days
+
 pub const REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION: u64 = 300; // seconds (5 minutes)
 pub const REDIS_USER_TEAM_PERMISSIONS_EXPIRATION: u64 = 3_600; // seconds (1 hour)
 
@@ -41,7 +43,7 @@ pub const USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX: &'static str = "utpr";
 // ENDPOINTS PATH
 //
 // ************************************************************************************
-pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 2] = ["/team", "/team-role"];
+pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 3] = ["/team", "/team-role", "/team-invitations"];
 
 pub const USER_SIGN_UP_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/signup", TypeOfRequest::POST);
 pub const USER_LOG_IN_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/login", TypeOfRequest::POST);
@@ -61,10 +63,16 @@ pub const CHECK_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/check", Type
 
 
 pub const TEAM_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team", TypeOfRequest::POST);
-pub const TEAM_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::POST);
-pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::POST);
+pub const TEAM_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::PUT);
+pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::DELETE);
+pub const TEAM_LEAVE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/leave/{team_id}", TypeOfRequest::DELETE);
 
 
 pub const TEAM_ROLE_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/create", TypeOfRequest::POST);
 pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);
 pub const TEAM_ROLE_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/update/{team_role_id}", TypeOfRequest::PUT);
+
+
+pub const TEAM_INVITATION_SEND_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations", TypeOfRequest::POST);
+pub const TEAM_INVITATION_ACCEPT_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations/accept/{code}", TypeOfRequest::PATCH);
+pub const TEAM_INVITATION_DECLINE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations/decline/{code}", TypeOfRequest::PATCH);

@@ -43,3 +43,4 @@ redis = { version = "0.32.4", features = ["cluster-async", "connection-manager",
 bb8 = "0.9.0"
 bb8-redis = "0.24.0"
 dotenv = "0.15.0"
+num_enum = "0.7.4"
