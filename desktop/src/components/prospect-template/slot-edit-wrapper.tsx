@@ -1,10 +1,7 @@
-import {
-  useSelectedSlot,
-  useSlotHoverStack,
-} from "@/contexts/slot-edit-context";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
+import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
 import {
   AlignEndHorizontal,
   AlignStartHorizontal,
@@ -31,14 +28,17 @@ export default function SlotEditWrapper({
   children,
 }: RenderSlotProps & { children?: ReactNode }) {
   const typeName = toTitleCase(slot.type.replace("-", " "));
-  const { topSlot, addToHoverStack, removeFromHoverStack, freezeHoverStack } =
-    useSlotHoverStack();
+
+  const topSlot = useSlotHoverStackStore((x) => x.topSlot);
+  const addToHoverStack = useSlotHoverStackStore((x) => x.addToHoverStack);
+  const removeFromHoverStack = useSlotHoverStackStore(
+    (x) => x.removeFromHoverStack,
+  );
+  const freezeHoverStack = useSlotHoverStackStore((x) => x.freezeHoverStack);
 
   const isLayoutSlot = "content" in slot && Array.isArray(slot.content);
   const isInputSlot = slot.type.endsWith("-field");
   const isInteractiveSlot = slot.type === "button";
-
-  const [, selectSlot] = useSelectedSlot();
 
   return (
     <ContextMenu
@@ -79,9 +79,7 @@ export default function SlotEditWrapper({
       <ContextMenuContent className="w-64">
         <ContextMenuItem
           onClick={() => {
-            setTimeout(() => {
-              selectSlot(slot);
-            }, 150);
+            console.log("edit", slot.type);
           }}
         >
           <span>Edit</span>
