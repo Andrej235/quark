@@ -7,6 +7,7 @@ export const slotEditContext = createContext<{
   selectedSlot: BaseSlot | null;
   addToHoverStack: (slot: BaseSlot) => void;
   removeFromHoverStack: (slot: BaseSlot) => void;
+  freezeHoverStack: (slot: BaseSlot | null) => void;
   selectSlot: (slot: BaseSlot | null) => void;
 }>({
   isEditModeActive: false,
@@ -15,6 +16,7 @@ export const slotEditContext = createContext<{
   // No-op by default
   addToHoverStack: () => {},
   removeFromHoverStack: () => {},
+  freezeHoverStack: () => {},
   selectSlot: () => {},
 });
 
@@ -28,6 +30,7 @@ export const useSlotHoverStack = () => {
     topSlot: context.topSlot,
     addToHoverStack: context.addToHoverStack,
     removeFromHoverStack: context.removeFromHoverStack,
+    freezeHoverStack: context.freezeHoverStack,
   } as const;
 };
 

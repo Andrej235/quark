@@ -10,18 +10,22 @@ export default function RenderSlotTree({
   editMode,
 }: RenderSlotProps & { editMode?: boolean }) {
   const [hoverStack, setHoverStack] = useState<BaseSlot[]>([]);
+  const [frozenStackSlot, setFrozenStackSlot] = useState<BaseSlot | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<BaseSlot | null>(null);
 
   return (
     <slotEditContext.Provider
       value={{
         isEditModeActive: editMode ?? false,
-        topSlot: hoverStack[hoverStack.length - 1] ?? null,
+        topSlot: frozenStackSlot ?? hoverStack[hoverStack.length - 1] ?? null,
         addToHoverStack: (slot: BaseSlot) => {
           setHoverStack((prev) => [...prev, slot]);
         },
         removeFromHoverStack: (slot: BaseSlot) => {
           setHoverStack((prev) => prev.filter((s) => s !== slot));
+        },
+        freezeHoverStack: (slot) => {
+          setFrozenStackSlot(slot);
         },
         selectedSlot,
         selectSlot: setSelectedSlot,

@@ -31,7 +31,7 @@ export default function SlotEditWrapper({
   children,
 }: RenderSlotProps & { children?: ReactNode }) {
   const typeName = toTitleCase(slot.type.replace("-", " "));
-  const { topSlot, addToHoverStack, removeFromHoverStack } =
+  const { topSlot, addToHoverStack, removeFromHoverStack, freezeHoverStack } =
     useSlotHoverStack();
 
   const isLayoutSlot = "content" in slot && Array.isArray(slot.content);
@@ -41,7 +41,9 @@ export default function SlotEditWrapper({
   const [, selectSlot] = useSelectedSlot();
 
   return (
-    <ContextMenu>
+    <ContextMenu
+      onOpenChange={(newOpen) => freezeHoverStack(newOpen ? slot : null)}
+    >
       <ContextMenuTrigger>
         <div
           className={cn(
