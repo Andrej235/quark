@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
     pub token: String,
     pub expires_at: DateTime,
-    pub status: i32,
+    pub status: i16,
     pub team_id: Uuid,
     pub sender_id: Uuid,
     pub receiver_id: Uuid,

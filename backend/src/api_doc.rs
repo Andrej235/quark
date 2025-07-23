@@ -17,7 +17,7 @@ use crate::routes::user_routs::{
 use utoipa::OpenApi;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::team_info_dto::TeamInfoDTO;
-use crate::routes::team_invitations_routes::__path_team_invitation_send;
+use crate::routes::team_invitations_routes::{__path_team_invitation_send, __path_team_invitation_accept};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -39,7 +39,7 @@ use crate::routes::team_invitations_routes::__path_team_invitation_send;
         team_role_create,
 
         // team invitation routes
-        team_invitation_send
+        team_invitation_send, team_invitation_accept
     ),
         
     components(schemas(

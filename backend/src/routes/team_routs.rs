@@ -38,8 +38,8 @@ use uuid::Uuid;
 //
 // ************************************************************************************
 lazy_static! {
-    static ref OWNER_PERMISSIONS: i32 = Permission::all().bits();
-    static ref MODERATOR_PERMISSIONS: i32 = (Permission::CAN_VIEW_USERS
+    pub static ref OWNER_PERMISSIONS: i32 = Permission::all().bits();
+    pub static ref MODERATOR_PERMISSIONS: i32 = (Permission::CAN_VIEW_USERS
         | Permission::CAN_VIEW_PROSPECTS
         | Permission::CAN_CREATE_PROSPECTS
         | Permission::CAN_EDIT_PROSPECTS
@@ -50,6 +50,7 @@ lazy_static! {
         | Permission::CAN_DELETE_EMAILS
         | Permission::CAN_SEND_EMAILS)
         .bits();
+    pub static ref MEMBER_PERMISSIONS: i32 = Permission::CAN_VIEW_USERS.bits();
 }
 
 // ************************************************************************************
@@ -122,6 +123,13 @@ pub async fn team_create(
             ..Default::default()
         }.insert(&transaction).await?;
 
+        _ = TeamRoleActiveModel {
+            name: Set("Member".to_string()),
+            team_id: Set(team.id),
+            permissions: Set(MEMBER_PERMISSIONS.clone()),
+            ..Default::default()
+        }.insert(&transaction).await?;
+
         // Create team member
         _ = TeamMemberActiveModel {
             user_id: Set(user_id.clone()),
@@ -137,12 +145,12 @@ pub async fn team_create(
             user_active_model.update(&transaction).await?;
         }
 
-        transaction.commit().await
+        Ok(())
     })().await; 
 
-    match transaction_result {
+    match HttpHelper::commit_transaction(TEAM_CREATE_ROUTE_PATH, transaction, transaction_result).await {
         Ok(_) => (),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
+        Err(err) => return err,
     }
 
     // Cache team permissions in redis

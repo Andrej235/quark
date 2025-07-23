@@ -2,7 +2,9 @@
 // IMPORTS
 // ------------------------------------------------------------------------------------
 use crate::entity::team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity};
-use crate::entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole};
+use crate::entity::team_roles::{
+    Column as TeamRoleColumn, Entity as TeamRoleEntity, Model as TeamRole,
+};
 use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
 use crate::entity::users::Column as UserColumn;
 use crate::models::permission::Permission;
@@ -23,7 +25,11 @@ use rand::Rng;
 use redis::RedisError;
 use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::Resend;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::error::DbErr;
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter,
+    TransactionTrait,
+};
 use std::error::Error;
 use tracing::error;
 use uuid::Uuid;
@@ -95,6 +101,45 @@ impl HttpHelper {
         match resend_instance.emails.send(email).await {
             Ok(_) => Ok(()),
             Err(err) => return Err(err),
+        }
+    }
+
+    /// Begins transaction <br/>
+    /// Returns: InternalServerError transaction creation fails
+    /// Returns: DatabaseTransaction
+    pub async fn begin_transaction(
+        endpoint_path: (&'static str, TypeOfRequest),
+        db: &DatabaseConnection
+    ) -> Result<DatabaseTransaction, HttpResponse> {
+        match db.begin().await {
+            Ok(transaction) => Ok(transaction),
+            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating transaction", Box::new(err))),
+        }
+    }
+
+    /// Commits transaction <br/>
+    /// Returns: InternalServerError transaction commit or rollback fails <br/>
+    /// Returns: Ok 
+    pub async fn commit_transaction(
+        endpoint_path: (&'static str, TypeOfRequest),
+        transaction: DatabaseTransaction,
+        transaction_result: Result<(), DbErr>
+    ) -> Result<(), HttpResponse> {
+        match transaction_result {
+            Ok(_) => {
+                if let Err(e) = transaction.commit().await {
+                    return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Committing transaction", Box::new(e)));
+                }
+
+                return Ok(());
+            }
+            Err(err) => {
+                if let Err(e) = transaction.rollback().await {
+                    return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Rolling back transaction", Box::new(e)));
+                }
+
+                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating team", Box::new(err)));
+            }
         }
     }
 
@@ -265,6 +310,28 @@ impl HttpHelper {
                 },
                 Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
             }
+    }
+
+    /// Tries to find team role by specified **name** <br/>
+    /// Returns: NotFound response if team role is not found <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: Found team role
+    pub async fn find_team_role_by_name(
+        endpoint_path: (&'static str, TypeOfRequest),
+        db: &DatabaseConnection,
+        team_id: Uuid,
+        role_name: &str
+    ) -> Result<Option<TeamRole>, HttpResponse> {
+
+        return match TeamRoleEntity::find()
+            .filter(TeamRoleColumn::TeamId.eq(team_id))
+            .filter(TeamRoleColumn::Name.eq(role_name))
+            .one(db)
+            .await {
+                Ok(Some(team_role)) => Ok(Some(team_role)),
+                Ok(None) => Err(HttpResponse::NotFound().json(SRouteError { message: "Team role not found" })),
+                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
+            };
     }
 
     /// Gets user team permissions <br/>

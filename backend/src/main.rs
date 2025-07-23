@@ -4,7 +4,7 @@
 use crate::{
     api_doc::ApiDoc,
     routes::{
-        team_invitations_routes::team_invitation_send, team_roles_routes::{team_role_create, team_role_delete, team_role_update}, team_routs::{team_create, team_delete, team_update}, user_routs::{
+        team_invitations_routes::{team_invitation_accept, team_invitation_send}, team_roles_routes::{team_role_create, team_role_delete, team_role_update}, team_routs::{team_create, team_delete, team_update}, user_routs::{
             check, get_user_info, send_email_verification, user_log_in, user_log_out,
             user_password_reset, user_refresh, user_sign_up, user_update, user_update_default_team,
             user_update_profile_picture, verify_email,
@@ -78,6 +78,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(team_role_update);
 
     cfg.service(team_invitation_send);
+    cfg.service(team_invitation_accept);
 }
 
 /*

@@ -5,11 +5,18 @@
 // ************************************************************************************
 use crate::entity::team_invitations::{
     ActiveModel as TeamInvitationActiveModel, Column as TeamInvitationColumn,
-    Entity as TeamInvitationEntity,
+    Entity as TeamInvitationEntity, Model as TeamInvitation,
 };
-use crate::entity::teams::{Entity as TeamEntity, Model as Team};
+use crate::entity::team_members::{ActiveModel as TeamMemberActiveModel};
+use crate::entity::team_roles::{
+    Column as TeamRoleColumn, Entity as TeamRoleEntity,
+};
+use crate::entity::teams::{
+    Entity as TeamEntity, Model as Team,
+};
 use crate::entity::users::Model as User;
 use crate::models::sroute_error::SRouteError;
+use crate::utils::constants::TEAM_INVITATION_ACCEPT_ROUTE_PATH;
 use crate::{
     models::{
         dtos::team_invitation_dto::TeamInvitationDTO,
@@ -23,13 +30,17 @@ use crate::{
         http_helper::HttpHelper,
     },
 };
+use actix_web::patch;
+use actix_web::web::Path;
 use actix_web::{post, web::Data, HttpResponse, Responder};
 use chrono::{Duration, Utc};
 use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
+use sea_orm::{DbErr, QuerySelect};
 use std::io::Error as StdError;
 use std::io::ErrorKind;
+use uuid::Uuid;
 
 // ************************************************************************************
 //
@@ -41,7 +52,7 @@ use std::io::ErrorKind;
     path = TEAM_INVITATION_SEND_ROUTE_PATH.0,
     responses(
         (status = 200, description = "Invitation sent"),
-        (status = 401, description = "User not logged in"),
+        (status = 400, description = "User not verified", body = SRouteError),
         (status = 404, description = "User not found, Team not found", body = SRouteError),
     )   
 )]
@@ -61,6 +72,11 @@ pub async fn team_invitation_send(
         Err(err) => return err,
     };
 
+    // Users without verified email cant be invited to teams
+    if reciever.is_email_verified == false {
+        return HttpResponse::BadRequest().json(SRouteError { message: "User not verified" });
+    }
+
     // Check if invitation already exists
     match TeamInvitationEntity::find()
         .filter(TeamInvitationColumn::TeamId.eq(team_invitation_data.team_id))
@@ -73,7 +89,7 @@ pub async fn team_invitation_send(
 
             // SPECIAL CASE
             // If status of invitation is DECLINED create new invitation instead of updating old new
-            if inv.status == TeamInvitationStatus::DECLINED.bits() {
+            if inv.status == TeamInvitationStatus::DECLINED {
                 match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
                     Ok(_) => return HttpResponse::Ok().finish(),
                     Err(err) => return err,
@@ -81,7 +97,8 @@ pub async fn team_invitation_send(
             }
 
             let inv_code: String = inv.token.clone();
-            
+
+            // **** Update invitation
             let mut inv_active_model: TeamInvitationActiveModel = inv.into();
             inv_active_model.expires_at = Set(Utc::now().naive_utc() + Duration::days(TEAM_INVITATION_EXPIRATION_OFFSET));
 
@@ -89,6 +106,7 @@ pub async fn team_invitation_send(
                 Ok(_) => {},
                 Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Updating invitation", Box::new(err)),
             };
+            // ****************
 
             match send_invitation_email(&auth_user.user.username, &reciever.name, &reciever.email, &team.name, inv_code).await {
                 Ok(_) => {},
@@ -107,6 +125,108 @@ pub async fn team_invitation_send(
         },
         Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Checking if invitation exists", Box::new(err)),
     };
+
+    return HttpResponse::Ok().finish();
+}
+
+#[utoipa::path(
+    post,
+    path = TEAM_INVITATION_SEND_ROUTE_PATH.0,
+    responses(
+        (status = 200, description = "Invitation accepted"),
+        (status = 400, description = "Invalid code", body = SRouteError),
+        (status = 404, description = "Invitation not found, Team role not found", body = SRouteError),
+        (status = 409, description = "Invitation already accepted, Invitation already declined", body = SRouteError),
+        (status = 410, description = "Invitation expired", body = SRouteError),
+    )   
+)]
+#[patch("/team-invitations/accept/{code}")]
+#[rustfmt::skip]
+pub async fn team_invitation_accept(
+    db: Data<DatabaseConnection>,
+    auth_user: AdvancedAuthenticatedUser,
+    path: Path<String>
+) -> impl Responder {
+
+    // Make sure that lenght of code if correct
+    let code: String = path.into_inner();
+
+    if code.len() != 8 {
+        return HttpResponse::BadRequest().json(SRouteError { message: "Invalid code" });
+    }
+
+    // Check if invitation exists
+    let invitation: TeamInvitation = match TeamInvitationEntity::find() 
+        .filter(TeamInvitationColumn::Token.eq(code))
+        .filter(TeamInvitationColumn::ReceiverId.eq(auth_user.user.id))
+        .one(db.get_ref()).await
+    {
+        Ok(Some(invitation)) => invitation,
+        Ok(None) => return HttpResponse::NotFound().json(SRouteError { message: "Invitation not found" }),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_ACCEPT_ROUTE_PATH, "Checking if invitation exists", Box::new(err)),
+    };
+
+    // Handle all status codes
+    let inv_status = match TeamInvitationStatus::try_from(invitation.status) {
+        Ok(inv_status) => inv_status,
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_ACCEPT_ROUTE_PATH, "Converting invitation status", Box::new(err)),
+    };
+
+    match inv_status {
+        TeamInvitationStatus::SENT => {},
+        TeamInvitationStatus::ACCEPTED => return HttpResponse::Conflict().json(SRouteError { message: "Invitation already accepted" }),
+        TeamInvitationStatus::DECLINED => return HttpResponse::Conflict().json(SRouteError { message: "Invitation already declined" }),
+    }
+
+    if invitation.expires_at == Utc::now().naive_utc() {
+        return HttpResponse::Gone().json(SRouteError { message: "Invitation expired" });
+    }
+
+    // Update invitation and add user to team
+    let team_role_id: i64 = match TeamRoleEntity::find()
+        .select_only()
+        .column(TeamRoleColumn::Id)
+        .filter(TeamRoleColumn::TeamId.eq(invitation.team_id))
+        .filter(TeamRoleColumn::Name.eq("Member"))
+        .into_tuple()
+        .one(db.get_ref())
+        .await
+        {
+            Ok(Some(team_role_id)) => team_role_id,
+            Ok(None) => return HttpResponse::NotFound().json(SRouteError { message: "Team role not found" }),
+            Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_ACCEPT_ROUTE_PATH, "Finding team role", Box::new(err)),    
+        };
+
+    let transaction = match HttpHelper::begin_transaction(TEAM_INVITATION_ACCEPT_ROUTE_PATH, db.get_ref()).await {
+        Ok(transaction) => transaction,
+        Err(err) => return err,
+    };
+
+    let transaction_result: Result<(), DbErr> = (|| async {
+
+        let team_id: Uuid = invitation.team_id;
+
+        // Update invitation
+        let mut inv_active_model: TeamInvitationActiveModel = invitation.into();
+        inv_active_model.status = Set(TeamInvitationStatus::ACCEPTED.into());
+        inv_active_model.update(db.get_ref()).await?;
+
+        // Create team member
+        let team_member_active_model = TeamMemberActiveModel {
+            user_id: Set(auth_user.user.id),
+            team_id: Set(team_id),
+            team_role_id: Set(team_role_id),
+        };
+
+        team_member_active_model.insert(db.get_ref()).await?;
+
+        Ok(())
+    })().await;
+
+    match HttpHelper::commit_transaction(TEAM_INVITATION_ACCEPT_ROUTE_PATH, transaction, transaction_result).await {
+        Ok(_) => (),
+        Err(err) => return err,
+    }
 
     return HttpResponse::Ok().finish();
 }
@@ -142,7 +262,7 @@ async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_dat
     let new_inv: TeamInvitationActiveModel = TeamInvitationActiveModel {
         token: Set(new_inv_code.clone()),
         expires_at: Set(Utc::now().naive_utc() + Duration::days(TEAM_INVITATION_EXPIRATION_OFFSET)),
-        status: Set(TeamInvitationStatus::SENT.bits()),
+        status: Set(TeamInvitationStatus::SENT.into()),
         team_id: Set(team_invitation_data.team_id),
         sender_id: Set(auth_user.user.id),
         receiver_id: Set(reciever.id),

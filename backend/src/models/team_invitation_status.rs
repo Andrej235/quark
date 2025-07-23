@@ -1,10 +1,21 @@
-use bitflags::bitflags;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-bitflags! {
-    #[derive(Default, PartialEq, Eq, Clone, Copy)]
-    pub struct TeamInvitationStatus: i32 {
-        const SENT = 1<<0;
-        const ACCEPTED = 1<<1;
-        const DECLINED = 1<<2;
+// ------------------------------------------------------------------------------------
+// ENUM
+// ------------------------------------------------------------------------------------
+#[derive(Debug, Clone, Copy, TryFromPrimitive, IntoPrimitive)]
+#[repr(i16)]
+pub enum TeamInvitationStatus {
+    SENT = 0,
+    ACCEPTED = 1,
+    DECLINED = 2,
+}
+
+// ------------------------------------------------------------------------------------
+// IMPLEMENTATIONS
+// ------------------------------------------------------------------------------------
+impl PartialEq<TeamInvitationStatus> for i16 {
+    fn eq(&self, other: &TeamInvitationStatus) -> bool {
+        *self == *other as i16
     }
 }

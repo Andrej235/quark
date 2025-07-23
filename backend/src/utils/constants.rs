@@ -43,7 +43,7 @@ pub const USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX: &'static str = "utpr";
 // ENDPOINTS PATH
 //
 // ************************************************************************************
-pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 2] = ["/team", "/team-role"];
+pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 3] = ["/team", "/team-role", "/team-invitations"];
 
 pub const USER_SIGN_UP_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/signup", TypeOfRequest::POST);
 pub const USER_LOG_IN_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/login", TypeOfRequest::POST);
@@ -71,5 +71,5 @@ pub const TEAM_ROLE_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-r
 pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);
 pub const TEAM_ROLE_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/update/{team_role_id}", TypeOfRequest::PUT);
 
-
 pub const TEAM_INVITATION_SEND_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations", TypeOfRequest::POST);
+pub const TEAM_INVITATION_ACCEPT_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations/accept/{code}", TypeOfRequest::PATCH);
