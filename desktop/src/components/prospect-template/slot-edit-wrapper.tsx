@@ -3,8 +3,18 @@ import {
   useSlotHoverStack,
 } from "@/contexts/slot-edit-context";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
-import { Edit3, LayoutTemplate, Sparkles, Trash2 } from "lucide-react";
+import {
+  AlignEndHorizontal,
+  AlignStartHorizontal,
+  Edit3,
+  LayoutTemplate,
+  MousePointerClick,
+  Sparkles,
+  Text,
+  Trash2,
+} from "lucide-react";
 import { ReactNode } from "react";
 import {
   ContextMenu,
@@ -20,8 +30,13 @@ export default function SlotEditWrapper({
   slot,
   children,
 }: RenderSlotProps & { children?: ReactNode }) {
+  const typeName = toTitleCase(slot.type.replace("-", " "));
   const { topSlot, addToHoverStack, removeFromHoverStack } =
     useSlotHoverStack();
+
+  const isLayoutSlot = "content" in slot && Array.isArray(slot.content);
+  const isInputSlot = slot.type.endsWith("-field");
+  const isInteractiveSlot = slot.type === "button";
 
   const [, selectSlot] = useSelectedSlot();
 
@@ -30,7 +45,7 @@ export default function SlotEditWrapper({
       <ContextMenuTrigger>
         <div
           className={cn(
-            "outline-border/0 **:disabled:opacity-100 rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
+            "outline-border/0 **:disabled:opacity-100 relative rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
             topSlot === slot && "outline-border",
           )}
           onPointerEnter={() => {
@@ -41,6 +56,21 @@ export default function SlotEditWrapper({
           }}
         >
           {children}
+
+          <div
+            className={cn(
+              "text-muted-foreground absolute bottom-full right-0 flex -translate-y-4 items-center gap-1 opacity-0 transition-opacity",
+              topSlot === slot && "opacity-100",
+            )}
+          >
+            <p className="text-xs">{typeName}</p>
+
+            {isLayoutSlot && <LayoutTemplate className="size-4" />}
+
+            {isInputSlot && <Text className="size-4" />}
+
+            {isInteractiveSlot && <MousePointerClick className="size-4" />}
+          </div>
         </div>
       </ContextMenuTrigger>
 
@@ -56,7 +86,7 @@ export default function SlotEditWrapper({
           <Edit3 className="ml-auto" />
         </ContextMenuItem>
 
-        {"content" in slot && Array.isArray(slot.content) && (
+        {isLayoutSlot && (
           <ContextMenuItem
             onClick={() => {
               console.log("layout", slot.type);
@@ -73,8 +103,20 @@ export default function SlotEditWrapper({
               console.log("ai", slot.type);
             }}
           >
-            <span>AI</span>
+            <span>AI Settings</span>
             <Sparkles className="ml-auto" />
+          </ContextMenuItem>
+        )}
+
+        {isInteractiveSlot && (
+          <ContextMenuItem
+            onClick={() => {
+              console.log("interact", slot.type);
+            }}
+          >
+            <span>Change Action</span>
+
+            <MousePointerClick className="ml-auto" />
           </ContextMenuItem>
         )}
 
@@ -86,11 +128,17 @@ export default function SlotEditWrapper({
               Card Options
             </ContextMenuLabel>
 
-            <ContextMenuCheckboxItem checked>
+            <ContextMenuCheckboxItem checked={!!slot.header}>
               <span>Header</span>
+
+              <AlignStartHorizontal className="ml-auto" />
             </ContextMenuCheckboxItem>
 
-            <ContextMenuCheckboxItem>Footer</ContextMenuCheckboxItem>
+            <ContextMenuCheckboxItem checked={!!slot.footer}>
+              <span>Footer</span>
+
+              <AlignEndHorizontal className="ml-auto" />
+            </ContextMenuCheckboxItem>
           </>
         )}
 
