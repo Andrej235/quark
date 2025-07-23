@@ -18,6 +18,9 @@ use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::route_error::RouteError;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
+use crate::repositories::team_repository::TeamRepository;
+use crate::repositories::user_repository::UserRepository;
+use crate::utils::cache::email_verification_cache::EmailVerificationCache;
 use crate::utils::constants::{
     CHECK_ROUTE_PATH, GET_USER_INFO_ROUTE_PATH, JWT_TOKEN_EXPIRATION_OFFSET,
     REFRESH_TOKEN_EXPIRATION_OFFSET, SEND_VERIFICATION_EMAIL_ROUTE_PATH, USER_LOG_IN_ROUTE_PATH,
@@ -407,10 +410,10 @@ async fn user_refresh(
 
 
     // Check if user exists with same id from claims
-    match HttpHelper::find_user_by_id(db.get_ref(), claims.user_id).await {
+    match UserRepository::find_by_id(USER_REFRESH_ROUTE_PATH, db.get_ref(), claims.user_id, false).await {
         Ok(Some(_)) => {},
         Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding user by id", err)
+        Err(err) => return err
     }
 
     // Return unauthorized response if refresh token is not found
@@ -612,7 +615,7 @@ async fn user_update_default_team(
     }
 
     // Make sure that team is valid
-    match HttpHelper::find_team_by_id(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
+    match TeamRepository::find_by_id(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
         Ok(_) => {},
         Err(err) => { return err; }
     };
@@ -663,7 +666,7 @@ async fn verify_email(
 
     // Make sure that its valid code
     // If code is not valid abort endpoint execution
-    let can_verify = match HttpHelper::verify_cached_email_verification_code(redis_service.get_ref(), &email, &code).await {
+    let can_verify = match EmailVerificationCache::verify_code(redis_service.get_ref(), &email, &code).await {
         Ok(can_verify) => can_verify,
         Err(err) => {
             return HttpHelper::endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err));
@@ -675,7 +678,7 @@ async fn verify_email(
     }
 
     // Try to find user
-    let user_model: User = match HttpHelper::find_user_by_email(VERIFY_EMAIL_ROUTE_PATH, db.get_ref(), &email, false).await {
+    let user_model: User = match UserRepository::find_by_email(VERIFY_EMAIL_ROUTE_PATH, db.get_ref(), &email, false).await {
         Ok(Some(user)) => user,
         Ok(None) => return HttpResponse::Unauthorized().finish(),
         Err(err) => return err
@@ -732,7 +735,7 @@ async fn send_email_verification(
     };
 
     // Store generated verification code in redis
-    match HttpHelper::cache_email_verification_code(redis_service.get_ref(), auth_user.user.email.as_str(), code).await {
+    match EmailVerificationCache::cache_code(redis_service.get_ref(), auth_user.user.email.as_str(), code).await {
         Ok(_) => {},
         Err(err) => {
             return HttpHelper::endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err));

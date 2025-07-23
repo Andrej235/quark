@@ -13,6 +13,8 @@ use crate::entity::teams::{Entity as TeamEntity, Model as Team};
 use crate::entity::users::Model as User;
 use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::sroute_error::SRouteError;
+use crate::repositories::team_repository::TeamRepository;
+use crate::repositories::user_repository::UserRepository;
 use crate::utils::constants::{
     TEAM_INVITATION_ACCEPT_ROUTE_PATH, TEAM_INVITATION_DECLINE_ROUTE_PATH,
 };
@@ -66,7 +68,7 @@ pub async fn team_invitation_send(
     let team_invitation_data: &TeamInvitationDTO = json_data.get_data();
 
     // Check if user with provided email exists
-    let reciever: User = match HttpHelper::find_user_by_email(TEAM_INVITATION_SEND_ROUTE_PATH, db.get_ref(), &team_invitation_data.email, true).await {
+    let reciever: User = match UserRepository::find_by_email(TEAM_INVITATION_SEND_ROUTE_PATH, db.get_ref(), &team_invitation_data.email, true).await {
         Ok(user) => user.unwrap(),
         Err(err) => return err,
     };
@@ -302,7 +304,7 @@ async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_dat
 
     // Get team data
     // Because we dont have access to team data from query
-    let team: Team = match HttpHelper::find_team_by_id(TEAM_INVITATION_SEND_ROUTE_PATH, db, team_invitation_data.team_id, true).await {
+    let team: Team = match TeamRepository::find_by_id(TEAM_INVITATION_SEND_ROUTE_PATH, db, team_invitation_data.team_id, true).await {
         Ok(team) => team.unwrap(),
         Err(err) => return Err(err),
     };

@@ -49,6 +49,7 @@ pub mod entity;
 pub mod enums;
 pub mod extensions;
 pub mod models;
+pub mod repositories;
 pub mod routes;
 pub mod traits;
 pub mod utils;

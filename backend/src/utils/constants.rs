@@ -63,13 +63,15 @@ pub const CHECK_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/check", Type
 
 
 pub const TEAM_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team", TypeOfRequest::POST);
-pub const TEAM_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::POST);
-pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::POST);
+pub const TEAM_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::PUT);
+pub const TEAM_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/{team_id}", TypeOfRequest::DELETE);
+pub const TEAM_LEAVE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/leave/{team_id}", TypeOfRequest::DELETE);
 
 
 pub const TEAM_ROLE_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/create", TypeOfRequest::POST);
 pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);
 pub const TEAM_ROLE_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/update/{team_role_id}", TypeOfRequest::PUT);
+
 
 pub const TEAM_INVITATION_SEND_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations", TypeOfRequest::POST);
 pub const TEAM_INVITATION_ACCEPT_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations/accept/{code}", TypeOfRequest::PATCH);

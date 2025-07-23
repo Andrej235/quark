@@ -16,6 +16,8 @@ use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticate
 use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
+use crate::repositories::team_repository::TeamRepository;
+use crate::utils::cache::user_team_permissions_cache::UserTeamPermissionsCache;
 use crate::utils::constants::{
     TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
@@ -154,7 +156,7 @@ pub async fn team_create(
     }
 
     // Cache team permissions in redis
-    match HttpHelper::cache_user_team_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
+    match UserTeamPermissionsCache::cache_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
         Ok(_) => (),
         Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
     };
@@ -301,27 +303,44 @@ pub async fn team_delete(
     }
 
     // Delete team
-    let delete_result = TeamEntity::delete_by_id(team_id).exec(db.get_ref()).await;
-
-    match delete_result {
-        Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(
-                TEAM_DELETE_ROUTE_PATH,
-                "Deleting team",
-                Box::new(err),
-            );
-        }
+    match TeamRepository::delete_by_id(TEAM_DELETE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id).await {
+        Ok(_) => (),
+        Err(err) => return err
     }
 
-    // Delete all cached users team permissions
-    // There is no need for that cached data to exist anymore
-    match HttpHelper::delete_unused_cached_user_team_permissions(redis_service.get_ref(), team_id).await {
-        Ok(_) => (),
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(TEAM_DELETE_ROUTE_PATH, "Deleting cached user team permissions", Box::new(err));
-        }
-    };
-
     return HttpResponse::Ok().finish();
+}
+
+#[delete("/team/leave/{team_id}")]
+#[rustfmt::skip]
+pub async fn team_leave(
+    db: Data<DatabaseConnection>,
+    auth_user: AdvancedAuthenticatedUser,
+    path_data: Path<Uuid>,
+) -> impl Responder {
+
+    /* let team_id: Uuid = path_data.into_inner();
+
+    // Leave team
+    match TeamMemberEntity::delete_many()
+        .filter(TeamMemberColumn::UserId.eq(auth_user.user.id))
+        .filter(TeamMemberColumn::TeamId.eq(team_id))
+        .exec(db.get_ref())
+        .await {
+        Ok(result) => {
+            if result.rows_affected == 0 {
+                return HttpResponse::NotFound().json(SRouteError { message: "Team member not found" });
+            }
+        },
+        Err(err) => {
+            return HttpHelper::endpoint_internal_server_error(TEAM_LEAVE_ROUTE_PATH, "Leaving team", Box::new(err));
+        }
+    }; */
+
+    // TODO Handle whats happens when owner leaves team
+    // TODO Handle what happens when last member leaves team
+            // TODO In case of team deletion handle cached team permissions in redis
+
+
+    return HttpResponse::NotImplemented().finish();
 }
