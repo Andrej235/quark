@@ -24,6 +24,7 @@ use crate::utils::redis_service::RedisService;
 use actix_web::web::Path;
 use actix_web::{delete, put};
 use actix_web::{post, web::Data, HttpResponse, Responder};
+use chrono::Utc;
 use lazy_static::lazy_static;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
@@ -127,6 +128,7 @@ pub async fn team_create(
             user_id: Set(user_id.clone()),
             team_id: Set(team.id),
             team_role_id: Set(owner_role.id),
+            joined_at: Set(Utc::now().naive_utc()),
             ..Default::default()
         }.insert(&transaction).await?;
 

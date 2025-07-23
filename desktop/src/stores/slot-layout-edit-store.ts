@@ -1,14 +1,14 @@
 import { LayoutSlots } from "@/lib/prospect-template/layout-slots";
 import { create } from "zustand";
 
-type SlotLayoutEditStore = {
+type SlotLayoutModeStore = {
   layoutRoot: LayoutSlots | null;
-  enterEditLayoutMode: (slot: LayoutSlots) => void;
-  exitEditLayoutMode: () => void;
+  enterLayoutMode: (slot: LayoutSlots) => void;
+  exitLayoutMode: () => void;
 };
 
-export const useSlotLayoutEditStore = create<SlotLayoutEditStore>()((set) => ({
+export const useSlotLayoutModeStore = create<SlotLayoutModeStore>()((set) => ({
   layoutRoot: null,
-  enterEditLayoutMode: (slot: LayoutSlots) => set({ layoutRoot: slot }),
-  exitEditLayoutMode: () => set({ layoutRoot: null }),
+  enterLayoutMode: (slot: LayoutSlots) => set({ layoutRoot: slot }),
+  exitLayoutMode: () => set({ layoutRoot: null }),
 }));

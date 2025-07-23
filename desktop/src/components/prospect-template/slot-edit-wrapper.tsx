@@ -3,7 +3,7 @@ import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
-import { useSlotLayoutEditStore } from "@/stores/slot-layout-edit-store";
+import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import {
   AlignEndHorizontal,
   AlignStartHorizontal,
@@ -42,10 +42,8 @@ export default function SlotEditWrapper({
   const isInputSlot = slot.type.endsWith("-field");
   const isInteractiveSlot = slot.type === "button";
 
-  const editingLayoutRoot = useSlotLayoutEditStore((x) => x.layoutRoot);
-  const enterEditLayoutMode = useSlotLayoutEditStore(
-    (x) => x.enterEditLayoutMode,
-  );
+  const editingLayoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
+  const enterLayoutMode = useSlotLayoutModeStore((x) => x.enterLayoutMode);
 
   useEffect(() => {
     console.log(editingLayoutRoot);
@@ -106,7 +104,7 @@ export default function SlotEditWrapper({
           <ContextMenuItem
             onClick={() => {
               console.log("layout", slot.type);
-              enterEditLayoutMode(slot as LayoutSlots);
+              enterLayoutMode(slot as LayoutSlots);
             }}
           >
             <span>Change Layout</span>
