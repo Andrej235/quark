@@ -1,15 +1,12 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::entity::team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity};
 use crate::entity::team_roles::{
     Column as TeamRoleColumn, Entity as TeamRoleEntity, Model as TeamRole,
 };
 use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
-use crate::utils::cache::user_team_permissions_cache::UserTeamPermissionsCache;
-use crate::utils::redis_service::RedisService;
 use crate::{RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::HttpResponse;
 use rand::distr::Alphanumeric;
@@ -161,57 +158,6 @@ impl HttpHelper {
                 Ok(None) => Err(HttpResponse::NotFound().json(SRouteError { message: "Team role not found" })),
                 Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
             };
-    }
-
-    /// Gets user team permissions <br/>
-    /// Returns: Forbidden response if user is not member of team <br/>
-    /// Returns: InternalServerError if database query fails <br/>
-    /// Returns: Tuple of team member and team role
-    pub async fn get_user_team_permissions(
-        endpoint_path: (&'static str, TypeOfRequest),
-        db: &DatabaseConnection,
-        redis: &RedisService,
-        user_id: Uuid,
-        team_id: Uuid,
-    ) -> Result<i32, HttpResponse> {
-    
-        // Check if there is cached permissions
-        let permissions: Option<i32> = match UserTeamPermissionsCache::get_permissions(redis, user_id, team_id).await {
-            Ok(permissions) => permissions,
-            Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
-            }
-        };
-
-        if permissions.is_some() { return Ok(permissions.unwrap()); }
-
-        // In case that there is no cached permissions get fresh permissions from database and cache them
-        let team_role: TeamRole = match TeamMemberEntity::find()
-            .filter(TeamMemberColumn::UserId.eq(user_id))
-            .filter(TeamMemberColumn::TeamId.eq(team_id))
-            .find_also_related(TeamRoleEntity)
-            .one(db)
-            .await {
-    
-            Ok(Some((_, Some(role)))) => role,
-    
-            Ok(Some((_, None))) | Ok(None) => {
-                return Err(HttpResponse::Forbidden().json(SRouteError { message: "Not memeber of team" }));
-            },
-    
-            Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)));
-            }
-        };
-
-        match UserTeamPermissionsCache::cache_permissions(redis, user_id, team_id, team_role.permissions).await {
-            Ok(_) => {},
-            Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Caching user team permissions", Box::new(err)));
-            }
-        }
-    
-        return Ok(team_role.permissions);
     }
 
 

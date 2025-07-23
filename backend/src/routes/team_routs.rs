@@ -19,7 +19,7 @@ use crate::models::sroute_error::SRouteError;
 use crate::repositories::team_repository::TeamRepository;
 use crate::utils::cache::user_team_permissions_cache::UserTeamPermissionsCache;
 use crate::utils::constants::{
-    TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
+    TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_LEAVE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
 use crate::utils::http_helper::HttpHelper;
 use crate::utils::redis_service::RedisService;
@@ -202,7 +202,7 @@ pub async fn team_update(
 
     // Prevent user from updating team if they dont have permission
     // Also checks if user is member of team
-    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+    let team_permissions: i32 = match TeamRepository::get_user_permissions(
         TEAM_DELETE_ROUTE_PATH, 
         db.get_ref(),
         redis_service.get_ref(),
@@ -288,7 +288,7 @@ pub async fn team_delete(
     let team_id = team_id.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
-    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+    let team_permissions: i32 = match TeamRepository::get_user_permissions(
         TEAM_DELETE_ROUTE_PATH, 
         db.get_ref(), 
         redis_service.get_ref(),
@@ -313,36 +313,75 @@ pub async fn team_delete(
     return HttpResponse::Ok().finish();
 }
 
+#[utoipa::path(
+    delete,
+    path = TEAM_LEAVE_ROUTE_PATH.0,
+    params(
+        ("team_id" = Uuid, Path),
+    ),
+    responses(
+        (status = 200, description = "Left team"),
+        (status = 403, description = "Not member of team", body = SRouteError),
+        (status = 409, description = "Too many team members to leave", body = SRouteError),
+    )
+)]
 #[delete("/team/leave/{team_id}")]
 #[rustfmt::skip]
 pub async fn team_leave(
     db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     path_data: Path<Uuid>,
 ) -> impl Responder {
 
-    /* let team_id: Uuid = path_data.into_inner();
+    let team_id: Uuid = path_data.into_inner();
 
-    // Leave team
-    match TeamMemberEntity::delete_many()
-        .filter(TeamMemberColumn::UserId.eq(auth_user.user.id))
-        .filter(TeamMemberColumn::TeamId.eq(team_id))
-        .exec(db.get_ref())
-        .await {
-        Ok(result) => {
-            if result.rows_affected == 0 {
-                return HttpResponse::NotFound().json(SRouteError { message: "Team member not found" });
-            }
-        },
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(TEAM_LEAVE_ROUTE_PATH, "Leaving team", Box::new(err));
+    // Check if user is member of team
+    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id, auth_user.user.id).await {
+        Ok(is_member) => is_member,
+        Err(err) => return err
+    };
+
+    if !is_member_of_team {
+        return HttpResponse::Forbidden().json(SRouteError { message: "Not member of team" });
+    }
+
+    // Stop user from leaving team if there is only one member and user is not owner of team
+    let members_count: u64 = match TeamRepository::get_members_count(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id).await {
+        Ok(members) => members,
+        Err(err) => return err
+    };
+
+    let user_permissions = match TeamRepository::get_user_permissions(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), auth_user.user.id, team_id).await {
+        Ok(permissions) => permissions,
+        Err(err) => return err
+    };
+
+    let owner_permissions: i32 = OWNER_PERMISSIONS.clone();
+
+
+    // Delete team if there is only one member and user is owner
+    if members_count == 1 && user_permissions == owner_permissions {
+        match TeamRepository::delete_by_id(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id).await {
+            Ok(_) => (),
+            Err(err) => return err
         }
-    }; */
+    }
 
-    // TODO Handle whats happens when owner leaves team
-    // TODO Handle what happens when last member leaves team
-            // TODO In case of team deletion handle cached team permissions in redis
+    // Stop user from leaving team if there is more than one member and user is owner
+    if members_count > 1 && user_permissions == owner_permissions {
+        return HttpResponse::Conflict().json(SRouteError { message: "Too many team members to leave" });
+    }
 
+    // Remove user from team if user is not owner
+    if user_permissions != owner_permissions {
+        match TeamRepository::delete_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
+            Ok(_) => (),
+            Err(err) => return err
+        }
+    }
 
-    return HttpResponse::NotImplemented().finish();
+    // TODO in future maybe implement transfering ownership to another team member to not lose team data
+
+    return HttpResponse::Ok().finish();
 }
