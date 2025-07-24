@@ -1,4 +1,4 @@
-import { LayoutSlots } from "@/lib/prospect-template/layout-slots";
+import { LayoutSlot } from "@/lib/prospect-template/layout-slot";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import {
   AlignEndHorizontal,
   AlignStartHorizontal,
   Edit3,
+  GripVertical,
   LayoutTemplate,
   MousePointerClick,
   Sparkles,
@@ -24,6 +25,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../ui/context-menu";
+import LayoutModePositionSelector from "../layout-mode-position-selector";
 
 export default function SlotEditWrapper({
   slot,
@@ -44,6 +46,9 @@ export default function SlotEditWrapper({
 
   const editingLayoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
   const enterLayoutMode = useSlotLayoutModeStore((x) => x.enterLayoutMode);
+  const isMovableDueToLayoutMode = useSlotLayoutModeStore(
+    (x) => x.isSlotChildOfLayoutRoot,
+  )(slot);
 
   useEffect(() => {
     console.log(editingLayoutRoot);
@@ -87,6 +92,17 @@ export default function SlotEditWrapper({
 
             {isInteractiveSlot && <MousePointerClick className="size-4" />}
           </div>
+
+          <div
+            className={cn(
+              "absolute bottom-full left-full top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity",
+              isMovableDueToLayoutMode && "opacity-100",
+            )}
+          >
+            <GripVertical className="size-6" />
+          </div>
+
+          {editingLayoutRoot === slot && <LayoutModePositionSelector />}
         </div>
       </ContextMenuTrigger>
 
@@ -104,7 +120,7 @@ export default function SlotEditWrapper({
           <ContextMenuItem
             onClick={() => {
               console.log("layout", slot.type);
-              enterLayoutMode(slot as LayoutSlots);
+              enterLayoutMode(slot as LayoutSlot);
             }}
           >
             <span>Change Layout</span>

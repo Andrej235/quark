@@ -8,4 +8,4 @@ type IsLayoutSlot<T extends BaseSlot> = T extends {
   ? T
   : never;
 
-export type LayoutSlots = Extract<Slot, IsLayoutSlot<Slot>>;
+export type LayoutSlot = Extract<Slot, IsLayoutSlot<Slot>>;
