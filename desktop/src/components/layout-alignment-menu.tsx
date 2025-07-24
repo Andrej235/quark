@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Separator } from "./ui/separator";
 import { motion, useDragControls } from "motion/react";
 
-export default function LayoutModePositionSelector() {
+export default function LayoutAlignmentMenu() {
   const horizontalModes = ["start", "center", "end"] as const;
   const verticalModes = ["start", "center", "end"] as const;
 

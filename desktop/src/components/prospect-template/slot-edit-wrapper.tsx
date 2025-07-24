@@ -8,14 +8,16 @@ import {
   AlignEndHorizontal,
   AlignStartHorizontal,
   Edit3,
-  GripVertical,
+  Grip,
   LayoutTemplate,
   MousePointerClick,
   Sparkles,
   Text,
   Trash2,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { ReactNode, useEffect } from "react";
+import LayoutAlignmentMenu from "../layout-alignment-menu";
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -25,7 +27,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../ui/context-menu";
-import LayoutModePositionSelector from "../layout-mode-position-selector";
 
 export default function SlotEditWrapper({
   slot,
@@ -54,8 +55,9 @@ export default function SlotEditWrapper({
     console.log(editingLayoutRoot);
   }, [editingLayoutRoot]);
 
+  const isHovered = topSlot === slot;
   const isActive =
-    editingLayoutRoot === slot || (topSlot === slot && !editingLayoutRoot);
+    editingLayoutRoot === slot || (isHovered && !editingLayoutRoot);
 
   return (
     <ContextMenu
@@ -93,16 +95,95 @@ export default function SlotEditWrapper({
             {isInteractiveSlot && <MousePointerClick className="size-4" />}
           </div>
 
-          <div
-            className={cn(
-              "absolute bottom-full left-full top-1/2 flex -translate-y-1/2 items-center gap-1 opacity-0 transition-opacity",
-              isMovableDueToLayoutMode && "opacity-100",
-            )}
-          >
-            <GripVertical className="size-6" />
-          </div>
+          {isMovableDueToLayoutMode && (
+            <motion.div
+              initial={{
+                opacity: 0,
+              }}
+              animate={{
+                opacity: isHovered ? 1 : 0,
+              }}
+              transition={{
+                ease: "easeOut",
+                duration: 0.1,
+              }}
+              className="-translate-1/2 absolute left-1/2 top-1/2 z-50 size-full cursor-grab"
+            >
+              <motion.div
+                initial={{
+                  scale: 0.75,
+                }}
+                animate={{
+                  scale: isHovered ? 1.1 : 0.9,
+                }}
+                transition={{
+                  ease: "easeOut",
+                  duration: 0.15,
+                }}
+                className="border-foreground/50 -translate-2.5 absolute left-0 top-0 size-12 rounded-2xl border-l-2 border-t-2"
+                style={{
+                  clipPath: "polygon(0 0, 50% 0, 50% 50%, 0 50%)",
+                }}
+              />
 
-          {editingLayoutRoot === slot && <LayoutModePositionSelector />}
+              <motion.div
+                initial={{
+                  scale: 0.75,
+                }}
+                animate={{
+                  scale: isHovered ? 1.1 : 0.9,
+                }}
+                transition={{
+                  ease: "easeOut",
+                  duration: 0.15,
+                }}
+                className="border-foreground/50 absolute right-0 top-0 size-12 -translate-y-2.5 translate-x-2.5 rounded-2xl border-r-2 border-t-2"
+                style={{
+                  clipPath: "polygon(100% 0, 50% 0, 50% 50%, 100% 50%)",
+                }}
+              />
+
+              <motion.div
+                initial={{
+                  scale: 0.75,
+                }}
+                animate={{
+                  scale: isHovered ? 1.1 : 0.9,
+                }}
+                transition={{
+                  ease: "easeOut",
+                  duration: 0.15,
+                }}
+                className="border-foreground/50 translate-2.5 absolute bottom-0 right-0 size-12 rounded-2xl border-b-2 border-r-2"
+                style={{
+                  clipPath: "polygon(100% 100%, 50% 100%, 50% 50%, 100% 50%)",
+                }}
+              />
+
+              <motion.div
+                initial={{
+                  scale: 0.75,
+                }}
+                animate={{
+                  scale: isHovered ? 1.1 : 0.9,
+                }}
+                transition={{
+                  ease: "easeOut",
+                  duration: 0.15,
+                }}
+                className="border-foreground/50 absolute bottom-0 left-0 size-12 -translate-x-2.5 translate-y-2.5 rounded-2xl border-b-2 border-l-2"
+                style={{
+                  clipPath: "polygon(0 100%, 50% 100%, 50% 50%, 0 50%)",
+                }}
+              />
+
+              <div className="absolute left-0 top-0 grid size-full place-items-center">
+                <Grip className="size-8 opacity-50" />
+              </div>
+            </motion.div>
+          )}
+
+          {editingLayoutRoot === slot && <LayoutAlignmentMenu />}
         </div>
       </ContextMenuTrigger>
 
