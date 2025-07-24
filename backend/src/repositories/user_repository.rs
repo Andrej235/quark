@@ -39,6 +39,33 @@ impl UserRepository {
             }
     }
 
+    /// Tries to find user id by specified **username** <br/>
+    /// NOTE: if handle_not_found is true, it will return NotFound response <br/>
+    /// Returns: NotFound response if user is not found <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: Found user
+    pub async fn get_id_by_username(
+        endpoint_path: (&'static str, TypeOfRequest), 
+        db: &DatabaseConnection, 
+        username: &str,
+        handle_not_found: bool
+    ) -> Result<Option<Uuid>, HttpResponse> {
+        return match UserEntity::find()
+            .filter(UserColumn::Username.eq(username))
+            .one(db)
+            .await {
+                Ok(Some(user)) => Ok(Some(user.id)),
+                Ok(None) => {
+                    if handle_not_found {
+                        Err(HttpResponse::NotFound().json(SRouteError { message: "User not found" }))
+                    } else {
+                        Ok(None)
+                    }
+                },
+                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
+            };
+    }
+
     /// Tries to find user by specified **email** <br/>
     /// NOTE: if handle_not_found is true, it will return NotFound response <br/>
     /// Returns: NotFound response if user is not found <br/>

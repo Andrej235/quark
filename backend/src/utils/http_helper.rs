@@ -154,7 +154,7 @@ impl HttpHelper {
         }
     }
     
-    /// Checks if required permission is present
+    /// Checks if required permission is present <br/>
     /// Returns (), otherwise status forbidden
     pub fn check_permission(
         permissions: i32,

@@ -71,9 +71,20 @@ impl TeamRepository {
     pub async fn is_member(
         endpoint_path: (&'static str, TypeOfRequest),
         db: &DatabaseConnection,
+        redis: &RedisService,
         team_id: Uuid,
         user_id: Uuid
     ) -> Result<bool, HttpResponse> {
+
+        // By checking if there are cached permissions in redis we can avoid unnecessary database query
+        let permissions: Option<i32> = match UserTeamPermissionsCache::get_permissions(redis, user_id, team_id).await {
+            Ok(permissions) => permissions,
+            Err(err) => {
+                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
+            }
+        };
+
+        if permissions.is_some() { return Ok(true); }
 
         return match TeamMemberEntity::find()
             .filter(TeamMemberColumn::UserId.eq(user_id))

@@ -3,18 +3,13 @@
 // IMPORTS
 //
 // ************************************************************************************
-use crate::entity::team_members::{
-    ActiveModel as TeamMemberActiveModel, Column as TeamMemberColumn, Entity as TeamMemberEntity,
-};
+use crate::entity::team_members::ActiveModel as TeamMemberActiveModel;
 use crate::entity::team_roles::ActiveModel as TeamRoleActiveModel;
-use crate::entity::team_roles::Entity as TeamRoleEntity;
 use crate::entity::teams::{
     ActiveModel as TeamActiveModel, Column as TeamColumn, Entity as TeamEntity,
 };
 use crate::entity::users::ActiveModel as UserActiveModel;
-use crate::entity::users::Entity as UserEntity;
 use crate::models::dtos::create_team_dto::CreateTeamDTO;
-use crate::models::dtos::team_member_info::TeamMemberInfo;
 use crate::models::dtos::update_team_dto::UpdateTeamDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
@@ -24,13 +19,12 @@ use crate::models::sroute_error::SRouteError;
 use crate::repositories::team_repository::TeamRepository;
 use crate::utils::cache::user_team_permissions_cache::UserTeamPermissionsCache;
 use crate::utils::constants::{
-    TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_GET_MEMBERS_ROUTE_PATH,
-    TEAM_LEAVE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
+    TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_LEAVE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
 use crate::utils::http_helper::HttpHelper;
 use crate::utils::redis_service::RedisService;
 use actix_web::web::Path;
-use actix_web::{delete, get, put};
+use actix_web::{delete, put};
 use actix_web::{post, web::Data, HttpResponse, Responder};
 use chrono::Utc;
 use lazy_static::lazy_static;
@@ -267,93 +261,6 @@ pub async fn team_update(
 
 // ************************************************************************************
 //
-// ROUTES - GET
-//
-// ************************************************************************************
-#[utoipa::path(
-    delete,
-    path = TEAM_GET_MEMBERS_ROUTE_PATH.0,
-    params(
-        ("team_id" = Uuid, Path),
-    ),
-    responses(
-        (status = 200, description = "Team members"),
-        (status = 403, description = "Not member of team", body = SRouteError),
-    )
-)]
-#[get("/team/members/{team_id}")]
-#[rustfmt::skip]
-pub async fn team_get_members(
-    db: Data<DatabaseConnection>,
-    redis_service: Data<RedisService>,
-    auth_user: AdvancedAuthenticatedUser,
-    path_data: Path<Uuid>,
-) -> impl Responder {
-
-    let team_id: Uuid = path_data.into_inner();
-
-    // Check if user is member of team
-    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_GET_MEMBERS_ROUTE_PATH, db.get_ref(), team_id, auth_user.user.id).await {
-        Ok(is_member) => is_member,
-        Err(err) => return err
-    };
-
-    if !is_member_of_team {
-        return HttpResponse::Forbidden().json(SRouteError { message: "Not member of team" });
-    }
-
-    // Make sure that user has permission to get team members info
-    let team_permissions: i32 = match TeamRepository::get_user_permissions(
-        TEAM_GET_MEMBERS_ROUTE_PATH, 
-        db.get_ref(),
-        redis_service.get_ref(),
-        auth_user.user.id, 
-        team_id,
-    ).await {
-        Ok(permissions) => permissions,
-        Err(err) => return err,
-    };
-
-    match HttpHelper::check_permission(team_permissions, Permission::CAN_EDIT_SETTINGS) {
-        Ok(_) => (),
-        Err(err) => return err
-    }
-
-    // Get team members
-    let team_members = match TeamMemberEntity::find()
-        .filter(TeamMemberColumn::TeamId.eq(team_id))
-        .find_also_related(UserEntity)
-        .find_also_related(TeamRoleEntity)
-        .all(db.get_ref())
-        .await 
-    {
-        Ok(members) => {
-            members
-            .into_iter()
-            .filter_map(|(member, user, role)| {
-                match (member, user, role) {
-                    (member, Some(user), Some(role)) => {
-                        Some(TeamMemberInfo {
-                            username: user.username,
-                            profile_pictire: HttpHelper::convert_image_to_base64(user.profile_picture),
-                            email: user.email,
-                            role_name: role.name,
-                            joined_at: member.joined_at
-                        })
-                    }
-                    _ => None
-                }
-            })
-            .collect::<Vec<TeamMemberInfo>>()
-        },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_GET_MEMBERS_ROUTE_PATH, "Finding team members", Box::new(err))    
-    };
-
-    return HttpResponse::Ok().json(team_members);
-}
-
-// ************************************************************************************
-//
 // ROUTES - DELETE
 //
 // ************************************************************************************
@@ -430,7 +337,7 @@ pub async fn team_leave(
     let team_id: Uuid = path_data.into_inner();
 
     // Check if user is member of team
-    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id, auth_user.user.id).await {
+    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
         Ok(is_member) => is_member,
         Err(err) => return err
     };
