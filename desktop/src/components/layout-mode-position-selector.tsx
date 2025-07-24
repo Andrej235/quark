@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "./ui/separator";
+import { motion, useDragControls } from "motion/react";
 
 export default function LayoutModePositionSelector() {
   const horizontalModes = ["start", "center", "end"] as const;
@@ -11,9 +12,28 @@ export default function LayoutModePositionSelector() {
     [(typeof horizontalModes)[number], (typeof verticalModes)[number]]
   >(["center", "center"]);
 
+  const dragControls = useDragControls();
+
   return (
-    <div className="bg-card border-border absolute right-0 top-0 z-50 space-y-2 rounded-md border-2 p-2">
-      <div className="flex items-center justify-between">
+    <motion.div
+      drag
+      dragListener={false}
+      dragControls={dragControls}
+      whileDrag={{
+        scale: 0.95,
+      }}
+      transition={{
+        duration: 0.1,
+      }}
+      dragTransition={{
+        velocity: 0,
+      }}
+      className="bg-card border-border absolute right-0 top-0 z-50 space-y-2 rounded-md border-2 p-2"
+    >
+      <div
+        className="flex cursor-grab select-none items-center justify-between"
+        onPointerDown={(e) => dragControls.start(e)}
+      >
         <p className="text-muted-foreground text-sm font-semibold">Alignment</p>
         <GripVertical className="text-muted-foreground size-5" />
       </div>
@@ -31,7 +51,7 @@ export default function LayoutModePositionSelector() {
           )),
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
