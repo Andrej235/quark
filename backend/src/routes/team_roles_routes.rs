@@ -10,8 +10,7 @@ use crate::{
     },
     models::{
         dtos::{
-            create_team_role_dto::CreateTeamRoleDTO, team_role_info_dto::TeamRoleInfoDTO,
-            update_team_role_dto::UpdateTeamRoleDTO, validation_error_dto::ValidationErrorDTO,
+            create_team_role_dto::CreateTeamRoleDTO, delete_team_role_dto::DeleteTeamRoleDTO, team_role_info_dto::TeamRoleInfoDTO, update_team_role_dto::UpdateTeamRoleDTO, validation_error_dto::ValidationErrorDTO
         },
         middleware::{
             advanced_authenticated_user::AdvancedAuthenticatedUser,
@@ -227,24 +226,34 @@ pub async fn team_roles_get(
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-#[delete("/team-role/delete/{team_role_id}")]
+#[delete("/team-role")]
 pub async fn team_role_delete(
     db: Data<DatabaseConnection>,
-    _auth_user: BasicAuthenticatedUser,
-    team_role_id: Path<i64>,
+    redis_service: Data<RedisService>,
+    auth_user: AdvancedAuthenticatedUser,
+    json_data: ValidatedJson<DeleteTeamRoleDTO>,
 ) -> impl Responder {
-    let id = team_role_id.into_inner();
+    
+    let team_role_data: &DeleteTeamRoleDTO = json_data.get_data();
 
-    let delete_result = TeamRoleEntity::delete_by_id(id).exec(db.get_ref()).await;
+    // Check if user can edit roles
+    match check_user_can_edit_roles(db.get_ref(), redis_service.get_ref(), team_role_data.team_id, auth_user.user.id).await {
+        Ok(_) => {},
+        Err(err) => return err        
+    };
 
-    match delete_result {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(err) => HttpHelper::endpoint_internal_server_error(
-            TEAM_ROLE_DELETE_ROUTE_PATH,
-            "Deleting team role",
-            Box::new(err),
-        ),
+    // Delete team role
+    match TeamRoleEntity::delete_many()
+        .filter(TeamRoleColumn::TeamId.eq(team_role_data.team_id))
+        .filter(TeamRoleColumn::Name.eq(&team_role_data.name))
+        .exec(db.get_ref())
+        .await 
+    {
+        Ok(_) => {},
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Deleting team role", Box::new(err))
     }
+
+    return HttpResponse::Ok().finish();
 }
 
 // ************************************************************************************

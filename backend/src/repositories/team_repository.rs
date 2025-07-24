@@ -94,7 +94,7 @@ impl TeamRepository {
     ) -> Result<bool, HttpResponse> {
 
         // By checking if there are cached permissions in redis we can avoid unnecessary database query
-        let permissions: Option<i32> = match UserTeamPermissionsCache::get_permissions(redis, user_id, team_id).await {
+        let permissions: Option<i32> = match UserTeamPermissionsCache::get(redis, user_id, team_id).await {
             Ok(permissions) => permissions,
             Err(err) => {
                 return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
@@ -186,7 +186,7 @@ impl TeamRepository {
         user_id: Uuid
     ) -> Result<(), HttpResponse> {
 
-        return match UserTeamPermissionsCache::delete_permissions(redis, user_id, team_id).await {
+        return match UserTeamPermissionsCache::delete(redis, user_id, team_id).await {
             Ok(_) => {
                 match TeamMemberEntity::delete_many()
                     .filter(TeamMemberColumn::UserId.eq(user_id))
@@ -215,7 +215,7 @@ impl TeamRepository {
     ) -> Result<i32, HttpResponse> {
     
         // Check if there is cached permissions
-        let permissions: Option<i32> = match UserTeamPermissionsCache::get_permissions(redis, user_id, team_id).await {
+        let permissions: Option<i32> = match UserTeamPermissionsCache::get(redis, user_id, team_id).await {
             Ok(permissions) => permissions,
             Err(err) => {
                 return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
@@ -243,7 +243,7 @@ impl TeamRepository {
             }
         };
 
-        match UserTeamPermissionsCache::cache_permissions(redis, user_id, team_id, team_role.permissions).await {
+        match UserTeamPermissionsCache::cache(redis, user_id, team_id, team_role.permissions).await {
             Ok(_) => {},
             Err(err) => {
                 return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Caching user team permissions", Box::new(err)));
@@ -304,7 +304,7 @@ impl TeamRepository {
 
         // Delete all cached users team permissions
         // There is no need for that cached data to exist anymore
-        match UserTeamPermissionsCache::delete_all_permissions_for_team(redis, team_id).await {
+        match UserTeamPermissionsCache::delete_all_for_team(redis, team_id).await {
             Ok(_) => Ok(()),
             Err(err) => {
                 return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting cached user team permissions", Box::new(err)));

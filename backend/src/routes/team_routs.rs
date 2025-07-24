@@ -158,7 +158,7 @@ pub async fn team_create(
     }
 
     // Cache team permissions in redis
-    match UserTeamPermissionsCache::cache_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
+    match UserTeamPermissionsCache::cache(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
         Ok(_) => (),
         Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
     };
