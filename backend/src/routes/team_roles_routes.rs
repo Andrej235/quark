@@ -1,30 +1,223 @@
-use actix_web::{
-    delete, post, put,
-    web::{Data, Path},
-    HttpResponse, Responder,
-};
-use sea_orm::{ActiveModelTrait, ActiveValue::Set, DatabaseConnection, DbErr, EntityTrait};
-
+// ************************************************************************************
+//
+// IMPORTS
+//
+// ************************************************************************************
 use crate::{
     entity::team_roles::{
-        ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
+        ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
+        Model as TeamRole,
     },
     models::{
         dtos::{
-            create_team_role_dto::CreateTeamRoleDTO, update_team_role_dto::UpdateTeamRoleDTO,
-            validation_error_dto::ValidationErrorDTO,
+            create_team_role_dto::CreateTeamRoleDTO, team_role_info_dto::TeamRoleInfoDTO,
+            update_team_role_dto::UpdateTeamRoleDTO, validation_error_dto::ValidationErrorDTO,
         },
-        middleware::basic_authenticated_user::BasicAuthenticatedUser,
-        middleware::validated_json::ValidatedJson,
+        middleware::{
+            advanced_authenticated_user::AdvancedAuthenticatedUser,
+            basic_authenticated_user::BasicAuthenticatedUser, validated_json::ValidatedJson,
+        },
+        permission::Permission,
+        sroute_error::SRouteError,
     },
+    repositories::team_repository::TeamRepository,
     utils::{
         constants::{
-            TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
+            DEFAULT_TEAM_ROLE_NAMES, TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH,
+            TEAM_ROLE_GET_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
         },
         http_helper::HttpHelper,
+        redis_service::RedisService,
     },
 };
+use actix_web::{
+    delete, get, post, put,
+    web::{Data, Path},
+    HttpResponse, Responder,
+};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+};
+use uuid::Uuid;
 
+// ************************************************************************************
+//
+// ROUTE - POST
+//
+// ************************************************************************************
+#[utoipa::path(
+    post,
+    path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
+    request_body = CreateTeamRoleDTO,
+    responses(
+        (status = 200, description = "Team role created"),
+        (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
+        (status = 404, description = "Team not found", body = SRouteError),
+        (status = 409, description = "Role already exists", body = SRouteError),
+    )
+)]
+#[post("/team-role")]
+#[rustfmt::skip]
+pub async fn team_role_create(
+    db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
+    auth_user: AdvancedAuthenticatedUser,
+    json_data: ValidatedJson<CreateTeamRoleDTO>,
+) -> impl Responder {
+
+    let team_role_data: &CreateTeamRoleDTO = json_data.get_data();
+
+    // Check if user can edit roles
+    match check_user_can_edit_roles(db.get_ref(), redis_service.get_ref(), team_role_data.team_id, auth_user.user.id).await {
+        Ok(_) => {},
+        Err(err) => return err        
+    }
+
+    // Create team role
+    let role_already_exists: bool = match TeamRepository::has_role_by_name(TEAM_ROLE_CREATE_ROUTE_PATH, db.get_ref(), team_role_data.team_id, &team_role_data.name).await {
+        Ok(role_exists) => role_exists,
+        Err(err) => return err
+    };
+
+    if role_already_exists {
+        return HttpResponse::Conflict().json(SRouteError { message: "Role already exists" }); 
+    }
+
+    match TeamRepository::add_new_role(TEAM_ROLE_CREATE_ROUTE_PATH, db.get_ref(), TeamRoleActiveModel {
+        team_id: Set(team_role_data.team_id),
+        name: Set(team_role_data.name.clone()),
+        ..Default::default()        
+    }).await {
+        Ok(_) => {},
+        Err(err) => return err
+    }
+
+    return HttpResponse::Ok().finish();
+}
+
+// ************************************************************************************
+//
+// ROUTE - PUT
+//
+// ************************************************************************************
+#[utoipa::path(
+    post,
+    path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
+    request_body = CreateTeamRoleDTO,
+    responses(
+        (status = 200, description = "Team role created"),
+        (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
+        (status = 404, description = "Team not found, Team role not found", body = SRouteError),
+    )
+)]
+#[put("/team-role")]
+#[rustfmt::skip]
+pub async fn team_role_update(
+    db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
+    auth_user: AdvancedAuthenticatedUser,
+    json_data: ValidatedJson<UpdateTeamRoleDTO>,
+    path_data: Path<Uuid>,
+) -> impl Responder {
+
+    let team_id: Uuid = path_data.into_inner();
+    let team_role_data: &UpdateTeamRoleDTO = json_data.get_data();
+
+    // Abort request if user is trying to delete default role
+    if is_role_default(&team_role_data.old_name) {
+        return HttpResponse::Forbidden().json(SRouteError { message: "Cannot delete default role" }); 
+    }
+
+    // Check if user can edit roles
+    match check_user_can_edit_roles(db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
+        Ok(_) => {},
+        Err(err) => return err        
+    };
+
+    // Update team role
+    let team_role: TeamRole = match TeamRoleEntity::find()
+        .filter(TeamRoleColumn::TeamId.eq(team_id))
+        .filter(TeamRoleColumn::Name.eq(&team_role_data.old_name))
+        .one(db.get_ref())
+        .await 
+    {
+        Ok(Some(team_role)) => team_role,
+        Ok(None) => return HttpResponse::NotFound().json(SRouteError { message: "Team role not found" }),
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_UPDATE_ROUTE_PATH, "Finding team role", Box::new(err))
+    };
+
+    let mut team_role_active_model: TeamRoleActiveModel = team_role.into();
+    team_role_active_model.name = Set(team_role_data.name.clone());
+
+    match team_role_active_model.update(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_UPDATE_ROUTE_PATH, "Updating team role", Box::new(err))
+    }
+
+    return HttpResponse::Ok().finish();
+}
+
+// ************************************************************************************
+//
+// ROUTE - GET
+//
+// ************************************************************************************
+#[utoipa::path(
+    get,
+    path = TEAM_ROLE_GET_ROUTE_PATH.0,
+    params(
+        ("team_id" = Uuid, Path),
+    ),
+    responses(
+        (status = 200, description = "Team role created"),
+        (status = 403, description = "Not member of team", body = SRouteError),
+    )
+)]
+#[get("/team-role/{team_id}")]
+#[rustfmt::skip]
+pub async fn team_roles_get(
+    db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
+    auth_user: AdvancedAuthenticatedUser,
+    path_data: Path<Uuid>,
+) -> impl Responder {
+    
+    let team_id: Uuid = path_data.into_inner();
+
+    // Check if user is team member
+    match TeamRepository::is_member(TEAM_ROLE_GET_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id, true).await {
+        Ok(_) => {},
+        Err(err) => return err
+    }
+
+    // Get team roles
+    let team_roles: Vec<TeamRoleInfoDTO> = match TeamRoleEntity::find()
+        .filter(TeamRoleColumn::TeamId.eq(team_id))
+        .all(db.get_ref())
+        .await 
+    {
+        Ok(team_roles) => {
+            team_roles
+                .into_iter()
+                .map(|team_role| {
+                    TeamRoleInfoDTO {
+                        name: team_role.name,
+                        permissions: team_role.permissions,
+                    }
+                })
+                .collect::<Vec<TeamRoleInfoDTO>>()
+        },
+        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_GET_ROUTE_PATH, "Finding team roles", Box::new(err))
+    };
+
+    return HttpResponse::Ok().json(team_roles);
+}
+
+// ************************************************************************************
+//
+// ROUTE - DELETE
+//
+// ************************************************************************************
 #[utoipa::path(
     post,
     path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
@@ -32,46 +225,6 @@ use crate::{
     responses(
         (status = 200, description = "Team role created"),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
-    )
-)]
-#[post("/team-role/create")]
-pub async fn team_role_create(
-    db: Data<DatabaseConnection>,
-    _auth_user: BasicAuthenticatedUser,
-    json_data: ValidatedJson<CreateTeamRoleDTO>,
-) -> impl Responder {
-    // Get json data
-    let team_role_data: &CreateTeamRoleDTO = json_data.get_data();
-
-    // Create team
-    let team_role_insertion_result: Result<TeamRole, DbErr> = TeamRoleActiveModel {
-        name: Set(team_role_data.name.clone()),
-        team_id: Set(team_role_data.team_id),
-        ..Default::default()
-    }
-    .insert(db.get_ref())
-    .await;
-
-    match team_role_insertion_result {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(
-                TEAM_ROLE_CREATE_ROUTE_PATH,
-                "Inserting new team role",
-                Box::new(err),
-            );
-        }
-    }
-}
-
-#[utoipa::path(
-    delete,
-    path = TEAM_ROLE_DELETE_ROUTE_PATH.0,
-    params(
-        ("team_role_id" = i64, Path, description = "ID of the team role to delete"),
-    ),
-    responses(
-        (status = 200, description = "Team role deleted"),
     )
 )]
 #[delete("/team-role/delete/{team_role_id}")]
@@ -94,41 +247,33 @@ pub async fn team_role_delete(
     }
 }
 
-#[utoipa::path(
-    put,
-    path = TEAM_ROLE_UPDATE_ROUTE_PATH.0,
-    request_body = UpdateTeamRoleDTO
-)]
-#[put("/team-role/update/{team_role_id}")]
-pub async fn team_role_update(
-    db: Data<DatabaseConnection>,
-    // _auth_user: AuthenticatedUser,
-    team_role_id: Path<i64>,
-    json_data: ValidatedJson<UpdateTeamRoleDTO>,
-) -> impl Responder {
-    let id = team_role_id.into_inner();
-    let update_data = json_data.get_data();
+// ************************************************************************************
+//
+// HELPER FUNCTIONS
+//
+// ************************************************************************************
+#[rustfmt::skip]
+async fn check_user_can_edit_roles(db: &DatabaseConnection, redis_service: &RedisService, team_id: Uuid, user_id: Uuid) -> Result<(), HttpResponse> {
+    
+    // Check if team exists
+    match TeamRepository::exists(TEAM_ROLE_CREATE_ROUTE_PATH, db, team_id, true).await {
+        Ok(_) => (),
+        Err(err) => return Err(err)
+    };
 
-    match TeamRoleEntity::find_by_id(id).one(db.get_ref()).await {
-        Ok(Some(existing)) => {
-            let mut model: TeamRoleActiveModel = existing.into();
-            model.name = Set(update_data.name.clone());
+    // Chcek if user is part of team and has require permissions
+    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_ROLE_CREATE_ROUTE_PATH, db, redis_service, user_id, team_id).await {
+        Ok(user_permissions) => user_permissions,
+        Err(err) => return Err(err)
+    };
 
-            match model.update(db.get_ref()).await {
-                Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => HttpHelper::endpoint_internal_server_error(
-                    TEAM_ROLE_UPDATE_ROUTE_PATH,
-                    "Updating team role",
-                    Box::new(err),
-                ),
-            }
-        }
-
-        Ok(None) => HttpResponse::NotFound().body("Team role not found"),
-        Err(err) => HttpHelper::endpoint_internal_server_error(
-            TEAM_ROLE_UPDATE_ROUTE_PATH,
-            "Finding team role",
-            Box::new(err),
-        ),
+    match HttpHelper::check_permission(user_permissions, Permission::CAN_EDIT_ROLES) {
+        Ok(_) => Ok(()),
+        Err(err) => return Err(err)
     }
+}
+
+#[rustfmt::skip]
+fn is_role_default(role_name: &str) -> bool {
+    DEFAULT_TEAM_ROLE_NAMES.contains(&role_name)
 }

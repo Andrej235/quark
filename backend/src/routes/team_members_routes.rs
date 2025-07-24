@@ -54,14 +54,10 @@ pub async fn team_get_members(
     let team_id: Uuid = path_data.into_inner();
 
     // Check if user is member of team
-    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_MEMBERS_GET_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
-        Ok(is_member) => is_member,
+    match TeamRepository::is_member(TEAM_MEMBERS_GET_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id, true).await {
+        Ok(_) => {},
         Err(err) => return err
     };
-
-    if !is_member_of_team {
-        return HttpResponse::Forbidden().json(SRouteError { message: "Not member of team" });
-    }
 
     // Make sure that user has permission to get team members info
     let team_permissions: i32 = match TeamRepository::get_user_permissions(
@@ -124,6 +120,7 @@ pub async fn team_get_members(
     params(
         ("team_id" = Uuid, Path),
     ),
+    request_body = KickTeamMemberDTO,
     responses(
         (status = 200, description = "Team member kicked"),
         (status = 403, description = "Not member of team, Permission too low, User not found, Cannot kick owner of team", body = SRouteError),

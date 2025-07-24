@@ -43,7 +43,11 @@ pub const USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX: &'static str = "utpr";
 // ENDPOINTS PATH
 //
 // ************************************************************************************
-pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 4] = ["/team", "/team-role", "/team-invitations", "/team_members"];
+pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 4] = [
+    "/team", "/team-role", "/team-invitations", "/team_members"
+];
+
+pub const DEFAULT_TEAM_ROLE_NAMES: [&str; 3] = ["Owner", "Moderator", "Member"];
 
 pub const USER_SIGN_UP_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/signup", TypeOfRequest::POST);
 pub const USER_LOG_IN_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/login", TypeOfRequest::POST);
@@ -66,8 +70,9 @@ pub const TEAM_LEAVE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team/leave/{
 
 
 pub const TEAM_ROLE_CREATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/create", TypeOfRequest::POST);
-pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);
 pub const TEAM_ROLE_UPDATE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/update/{team_role_id}", TypeOfRequest::PUT);
+pub const TEAM_ROLE_GET_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/{team_id}", TypeOfRequest::GET);
+pub const TEAM_ROLE_DELETE_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-role/delete/{team_role_id}", TypeOfRequest::DELETE);
 
 
 pub const TEAM_INVITATION_SEND_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/team-invitations", TypeOfRequest::POST);

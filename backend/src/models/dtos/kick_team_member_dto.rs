@@ -4,13 +4,14 @@
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use macros::GenerateFieldEnum;
 use serde::Deserialize;
+use utoipa::ToSchema;
 use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Debug, Clone, Deserialize, Validate, GenerateFieldEnum)]
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
 pub struct KickTeamMemberDTO {
     
     #[enum_name("Username")]

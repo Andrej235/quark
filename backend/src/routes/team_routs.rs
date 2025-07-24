@@ -337,14 +337,10 @@ pub async fn team_leave(
     let team_id: Uuid = path_data.into_inner();
 
     // Check if user is member of team
-    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
-        Ok(is_member) => is_member,
+    match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id, true).await {
+        Ok(_) => {},
         Err(err) => return err
     };
-
-    if !is_member_of_team {
-        return HttpResponse::Forbidden().json(SRouteError { message: "Not member of team" });
-    }
 
     // Stop user from leaving team if there is only one member and user is not owner of team
     let members_count: u64 = match TeamRepository::get_members_count(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id).await {

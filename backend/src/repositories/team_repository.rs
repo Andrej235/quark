@@ -1,7 +1,10 @@
 use crate::entity::team_members::{
     Column as TeamMemberColumn, Entity as TeamMemberEntity, Model as TeamMember,
 };
-use crate::entity::team_roles::{Entity as TeamRoleEntity, Model as TeamRole};
+use crate::entity::team_roles::{
+    ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
+    Model as TeamRole,
+};
 use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
 use crate::{
     enums::type_of_request::TypeOfRequest,
@@ -12,7 +15,9 @@ use crate::{
     },
 };
 use actix_web::HttpResponse;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+};
 use uuid::Uuid;
 
 pub struct TeamRepository;
@@ -21,26 +26,35 @@ pub struct TeamRepository;
 impl TeamRepository {
 
     /// Tries to find team by specified **id** <br/>
+    /// **NOTE: if handle_not_found is true, it will return NotFound response** <br/>
+    /// Returns: NotFound(**Team not found**) response if team is not found <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team
     pub async fn exists(
         endpoint_path: (&'static str, TypeOfRequest),
         db: &DatabaseConnection, 
-        team_id: Uuid
+        team_id: Uuid,
+        handle_not_found: bool
     ) -> Result<bool, HttpResponse> {
 
         return match TeamEntity::find_by_id(team_id)
             .one(db)
             .await {
                 Ok(Some(_)) => Ok(true),
-                Ok(None) => Ok(false),
+                Ok(None) => {
+                    if handle_not_found {
+                        Err(HttpResponse::NotFound().json(SRouteError { message: "Team not found" }))
+                    } else {
+                        Ok(false)
+                    }
+                },
                 Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Checking if team exists", Box::new(err)))
             };
     }
 
     /// Tries to find team by specified **id** <br/>
     /// **NOTE: if handle_not_found is true, it will return NotFound response** <br/>
-    /// Returns: NotFound response if team is not found <br/>
+    /// Returns: NotFound(**Team not found**) response if team is not found <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team
     pub async fn find_by_id(
@@ -65,15 +79,18 @@ impl TeamRepository {
             }
     }
 
-    /// Check if user is member of team <br/>
+    /// Checks if user is member of team <br/>
+    /// **NOTE: If user permissions are cached it will return true, otherwise it will get fresh permissions from database and cache them** <br/>
+    /// Returns: Forbidden(**Not memeber of team**) response if user is not member of team <br/>
     /// Returns: InternalServerError if database query fails <br/>
-    /// Returns: True if user is member of team, otherwise false
+    /// Returns: True if user is member of team
     pub async fn is_member(
         endpoint_path: (&'static str, TypeOfRequest),
         db: &DatabaseConnection,
         redis: &RedisService,
         team_id: Uuid,
-        user_id: Uuid
+        user_id: Uuid,
+        handle_not_member: bool
     ) -> Result<bool, HttpResponse> {
 
         // By checking if there are cached permissions in redis we can avoid unnecessary database query
@@ -86,14 +103,20 @@ impl TeamRepository {
 
         if permissions.is_some() { return Ok(true); }
 
-        return match TeamMemberEntity::find()
+        let is_member: bool = match TeamMemberEntity::find()
             .filter(TeamMemberColumn::UserId.eq(user_id))
             .filter(TeamMemberColumn::TeamId.eq(team_id))
             .count(db)
             .await {
-                Ok(count) => Ok(count > 0),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
+                Ok(count) => count > 0,
+                Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
             };
+
+        if !is_member && handle_not_member {
+            return Err(HttpResponse::Forbidden().json(SRouteError { message: "Not member of team" }));
+        }
+
+        return Ok(is_member);
     }
 
     /// Tries to find team member by specified **team_id** and **user_id** <br/>
@@ -180,7 +203,7 @@ impl TeamRepository {
 
     /// Gets user team permissions <br/>
     /// **NOTE: If user permissions are cached it will return them, otherwise it will get fresh permissions from database and cache them** <br/> 
-    /// Returns: Forbidden response if user is not member of team <br/>
+    /// Returns: Forbidden(**Not memeber of team**) response if user is not member of team <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Tuple of team member and team role
     pub async fn get_user_permissions(
@@ -228,6 +251,41 @@ impl TeamRepository {
         }
     
         return Ok(team_role.permissions);
+    }
+
+    /// Creates new team role <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: Created team role
+    pub async fn add_new_role(
+        endpoint_path: (&'static str, TypeOfRequest),
+        db: &DatabaseConnection,
+        new_role: TeamRoleActiveModel
+    ) -> Result<TeamRole, HttpResponse> {
+
+        return match new_role.insert(db).await {
+            Ok(team_role) => Ok(team_role),
+            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating team role", Box::new(err)))
+        };
+    }
+
+    /// Checks if team has role with specified **name** <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: True if team has role with specified **name**, false otherwise
+    pub async fn has_role_by_name(
+        endpoint_path: (&'static str, TypeOfRequest),
+        db: &DatabaseConnection,
+        team_id: Uuid,
+        role_name: &str
+    ) -> Result<bool, HttpResponse> {
+
+        return match TeamRoleEntity::find()
+            .filter(TeamRoleColumn::TeamId.eq(team_id))
+            .filter(TeamRoleColumn::Name.eq(role_name))
+            .count(db)
+            .await {
+                Ok(count) => Ok(count > 0),
+                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
+            };
     }
 
     pub async fn delete_by_id(

@@ -9,6 +9,7 @@ pub mod password_reset_dto;
 pub mod team_info_dto;
 pub mod team_invitation_dto;
 pub mod team_member_info;
+pub mod team_role_info_dto;
 pub mod update_profile_picture_dto;
 pub mod update_team_dto;
 pub mod update_team_role_dto;
