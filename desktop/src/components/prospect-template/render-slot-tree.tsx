@@ -5,6 +5,7 @@ import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useState } from "react";
 import RenderSlot from "./render-slot";
 import SlotEditorDialog from "./slot-editor-dialog";
+import { cn } from "@/lib/utils";
 
 export default function RenderSlotTree({
   slot,
@@ -15,7 +16,7 @@ export default function RenderSlotTree({
   const exitLayoutMode = useSlotLayoutModeStore((x) => x.exitLayoutMode);
 
   useShortcut({
-    key: "x",
+    key: "Escape",
     callback: exitLayoutMode,
     preventDefault: true,
     stopPropagation: true,
@@ -23,14 +24,16 @@ export default function RenderSlotTree({
   });
 
   return (
-    <slotEditContext.Provider
-      value={{
-        isEditModeActive: editMode ?? false,
-      }}
-    >
-      <RenderSlot slot={rootSlot} />
+    <div className={cn(isInLayoutMode && "select-none")}>
+      <slotEditContext.Provider
+        value={{
+          isEditModeActive: editMode ?? false,
+        }}
+      >
+        <RenderSlot slot={rootSlot} />
 
-      {editMode && <SlotEditorDialog />}
-    </slotEditContext.Provider>
+        {editMode && <SlotEditorDialog />}
+      </slotEditContext.Provider>
+    </div>
   );
 }
