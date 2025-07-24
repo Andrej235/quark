@@ -74,7 +74,8 @@ export type Key =
   | "Backspace"
   | "Tab"
   | "Enter"
-  | "Shift";
+  | "Shift"
+  | "Escape";
 
 export function useShortcut({
   callback,
@@ -83,6 +84,7 @@ export function useShortcut({
   ref,
   preventDefault,
   stopPropagation,
+  enabled,
 }: {
   key: Key;
   ctrlKey?: boolean;
@@ -90,8 +92,11 @@ export function useShortcut({
   callback: (event: KeyboardEvent) => void;
   preventDefault?: boolean;
   stopPropagation?: boolean;
+  enabled?: boolean;
 }) {
   const event = useEventCallback((event: KeyboardEvent) => {
+    if (!enabled) return;
+
     if (event.key === key && (!ctrlKey || event.ctrlKey)) {
       if (preventDefault) event.preventDefault();
 
