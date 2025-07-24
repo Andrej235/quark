@@ -1,18 +1,20 @@
 import { slotEditContext } from "@/contexts/slot-edit-context";
 import { useShortcut } from "@/hooks/use-shortcut";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import { cn } from "@/lib/utils";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useState } from "react";
 import RenderSlot from "./render-slot";
 import SlotEditorDialog from "./slot-editor-dialog";
-import { cn } from "@/lib/utils";
 
 export default function RenderSlotTree({
   slot,
   editMode,
 }: RenderSlotProps & { editMode?: boolean }) {
   const [rootSlot] = useState(slot);
-  const isInLayoutMode = useSlotLayoutModeStore((x) => x.layoutRoot) !== null;
+
+  const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
+  const isInLayoutMode = layoutRoot !== null;
   const exitLayoutMode = useSlotLayoutModeStore((x) => x.exitLayoutMode);
 
   useShortcut({

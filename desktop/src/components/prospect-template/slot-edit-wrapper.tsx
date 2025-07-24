@@ -1,9 +1,30 @@
 import { LayoutSlot } from "@/lib/prospect-template/layout-slot";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import { Slot } from "@/lib/prospect-template/slot";
+import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlignEndHorizontal,
   AlignStartHorizontal,
@@ -16,7 +37,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import LayoutAlignmentMenu from "../layout-alignment-menu";
 import {
   ContextMenu,
@@ -27,8 +48,88 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../ui/context-menu";
+import RenderSlot from "./render-slot";
 
 export default function SlotEditWrapper({
+  slot,
+  children,
+}: RenderSlotProps & { children?: ReactNode }) {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+  const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
+  const isInLayoutMode = layoutRoot !== null;
+  const enterLayoutMode = useSlotLayoutModeStore((x) => x.enterLayoutMode);
+  const [draggingSlot, setDraggingSlot] = useState<Slot | null>(null);
+
+  if (slot.type === "row" || slot.type === "column") {
+    const layoutChildren = slot.content ?? [];
+
+    function handleDragEnd(event: DragEndEvent) {
+      if (!isInLayoutMode) return;
+
+      const { active, over } = event;
+      if (active.id === over?.id) return;
+
+      const oldIndex = layoutChildren.findIndex((x: Slot | SlotFlexWrapper) =>
+        "slot" in x ? x.slot.id === active.id : x.id === active.id,
+      );
+      const newIndex = layoutChildren.findIndex(
+        (x: Slot | SlotFlexWrapper) =>
+          over && ("slot" in x ? x.slot.id === over.id : x.id === over.id),
+      );
+
+      const newChildren = arrayMove(layoutChildren as [], oldIndex, newIndex);
+
+      //TODO: replace this with actual editing logic
+      enterLayoutMode({
+        ...layoutRoot,
+        content: newChildren,
+      });
+    }
+
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={({ active }) => {
+          setDraggingSlot(active.data.current as Slot);
+        }}
+        onDragEnd={(e) => {
+          setDraggingSlot(null);
+          handleDragEnd(e);
+        }}
+      >
+        <SortableContext
+          items={layoutChildren as []}
+          strategy={
+            slot.type === "column"
+              ? verticalListSortingStrategy
+              : horizontalListSortingStrategy
+          }
+        >
+          <SlotWrapper slot={slot}>{children}</SlotWrapper>
+        </SortableContext>
+
+        <DragOverlay
+          //This fixes the issue with the original item being invisible while overlay is being dropped (animated back to original position or new position)
+          dropAnimation={{
+            sideEffects: undefined,
+          }}
+        >
+          {draggingSlot && <RenderSlot slot={draggingSlot} />}
+        </DragOverlay>
+      </DndContext>
+    );
+  }
+
+  return <SlotWrapper slot={slot}>{children}</SlotWrapper>;
+}
+
+function SlotWrapper({
   slot,
   children,
 }: RenderSlotProps & { children?: ReactNode }) {
@@ -51,9 +152,25 @@ export default function SlotEditWrapper({
     (x) => x.isSlotChildOfLayoutRoot,
   )(slot);
 
-  useEffect(() => {
-    console.log(editingLayoutRoot);
-  }, [editingLayoutRoot]);
+  const {
+    attributes: dragAttributes,
+    listeners: dragListeners,
+    setNodeRef: dragRef,
+    transform: dragTransform,
+    transition: dragTransition,
+  } = useSortable({
+    id: slot.id,
+    disabled: !isMovableDueToLayoutMode,
+    data: slot,
+  });
+
+  const draggableStyle = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(dragTransform),
+      transition: dragTransition,
+    }),
+    [dragTransform, dragTransition],
+  );
 
   const isHovered = topSlot === slot;
   const isActive =
@@ -67,6 +184,10 @@ export default function SlotEditWrapper({
         disabled={!!editingLayoutRoot && editingLayoutRoot !== slot}
       >
         <div
+          ref={dragRef}
+          style={draggableStyle}
+          {...dragAttributes}
+          {...dragListeners}
           className={cn(
             "outline-border/0 **:disabled:opacity-100 relative rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
             isActive && "outline-border",
