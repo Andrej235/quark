@@ -4,7 +4,7 @@
 use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
-use crate::types::aliases::{EmptyHttpResponse, EndpointPathInfo, PermissionBits};
+use crate::types::aliases::{EmptyHttpResult, EndpointPathInfo, PermissionBits};
 use crate::{RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::HttpResponse;
 use base64::Engine;
@@ -107,7 +107,7 @@ impl HttpHelper {
         endpoint_path: EndpointPathInfo,
         transaction: DatabaseTransaction,
         transaction_result: Result<(), DbErr>
-    ) -> EmptyHttpResponse {
+    ) -> EmptyHttpResult {
         match transaction_result {
             Ok(_) => {
                 if let Err(e) = transaction.commit().await {
@@ -133,7 +133,7 @@ impl HttpHelper {
         endpoint_path: (&'static str, TypeOfRequest),
         transaction: DatabaseTransaction,
         transaction_result: Result<(), HttpResponse>
-    ) -> EmptyHttpResponse {
+    ) -> EmptyHttpResult {
         
         match transaction_result {
             Ok(_) => {
@@ -170,7 +170,7 @@ impl HttpHelper {
     pub fn check_permission(
         permission_bits: PermissionBits,
         required_permission: Permission
-    ) -> EmptyHttpResponse {
+    ) -> EmptyHttpResult {
     
         let perm = Permission::from_bits(permission_bits)
             .ok_or_else(|| HttpResponse::BadRequest().json(SRouteError { message: "Invalid permission bits" }))?;
@@ -189,7 +189,7 @@ impl HttpHelper {
     pub fn check_permissions(
         permission_bits: PermissionBits,
         required_permissions: Vec<Permission>
-    ) -> EmptyHttpResponse {
+    ) -> EmptyHttpResult {
     
         let perm = Permission::from_bits(permission_bits)
             .ok_or_else(|| HttpResponse::BadRequest().json(SRouteError { message: "Invalid permissions" }))?;

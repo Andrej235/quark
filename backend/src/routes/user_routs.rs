@@ -12,6 +12,7 @@ use crate::models::dtos::update_profile_picture_dto::UpdateProfilePictureDTO;
 use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
+use crate::models::hashed_password::HashedPassword;
 use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
 use crate::models::middleware::basic_authenticated_user::BasicAuthenticatedUser;
 use crate::models::middleware::validated_json::ValidatedJson;
@@ -86,7 +87,7 @@ use uuid::Uuid;
     request_body = CreateUserDTO,
     responses(
         (status = 200, description = "User created"),
-        (status = 400, description = "Possible errors: User already exists", body = SRouteError),
+        (status = 409, description = "User already exists", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -99,51 +100,49 @@ pub async fn user_sign_up(
 
     let user_data: &CreateUserDTO = json_data.get_data();
 
-    // Check if user already exists
-    let matching_users: u64 = match UserEntity::find()
+    // Check if user already exists with same email and username
+    // If it exists return conflict
+    match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
         .filter(UserColumn::Email.eq(&user_data.email))
         .count(db.get_ref())
         .await {
-            Ok(count) => count,
+            Ok(count) => {
+                if count > 0 {
+                    return HttpResponse::Conflict().json(SRouteError { message: "User already exists" });
+                }
+            },
             Err(err) => {
                 return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Finding user with filterting", Box::new(err));
             }
         };
 
-    // If there us more than 0 users found return error
-    // We cant allow multiple users with same username or email
-    if matching_users > 0 {
-        return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" });
-    }
-
     // Hash password
-    let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
-        Ok((salt, password_hash)) => (salt, password_hash),
+    let hashed_password: HashedPassword = match hash_password(&user_data.password) {
+        Ok(result) => result,
         Err(err) => {
             return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
         }
     };
 
     // Create user
-    let user_insertion_result: Result<User, DbErr> = UserActiveModel {
+    let new_user: UserActiveModel = UserActiveModel {
         id:                 Set(Uuid::now_v7()),
         username:           Set(user_data.username.clone()),
         name:               Set(user_data.name.clone()),
         last_name:          Set(user_data.last_name.clone()),
         email:              Set(user_data.email.clone()),
-        hashed_password:    Set(password_hash),
-        salt:               Set(salt),
+        salt:               Set(hashed_password.salt),
+        hashed_password:    Set(hashed_password.hash),
         is_email_verified:  Set(false),
         profile_picture:    Set(None), // no default profile picture
         default_team_id:    Set(None), // no default team
-    }.insert(db.get_ref()).await;
+    };
 
-    if let Err(err) = user_insertion_result {
-        return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
-    }
-
-    return HttpResponse::Ok().finish();
+    match new_user.insert(db.get_ref()).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err))
+    };
 }
 
 /*
@@ -168,35 +167,17 @@ async fn user_log_in(
 
     let user_data: &LoginUserDTO = json_data.get_data();
 
-    // Check if user already exists in database
-    let existing_user: Option<User> = match UserEntity::find()
-        .filter(UserColumn::Email.eq(&user_data.email))
-        .one(db.get_ref())
-        .await
-    {
-        Ok(user) => user,
-        Err(err) => {
-            return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding user with filtering", Box::new(err));
-        }
+    // Try to find user, if its not found return NotFound()
+    let user: User = match UserRepository::find_by_email(USER_LOG_IN_ROUTE_PATH, db.get_ref(), &user_data.email, true).await {
+        Ok(user) => user.unwrap(),
+        Err(err) => return err
     };
 
-    // Abort endpoint execution if no user is found
-    if existing_user.is_none() {
-        return HttpResponse::BadRequest().json(SRouteError {
-            message: "User not found",
-        });
-    }
-
-    let user: User = existing_user.unwrap();
-
     // Hash pasword and check if it correct
-    let provided_password_hash: String =
-        match hash_password_with_salt(&user.salt, &user_data.password) {
-            Ok(password_hash) => password_hash,
-            Err(err) => {
-                return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
-            }
-        };
+    let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
+        Ok(password_hash) => password_hash,
+        Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)))
+    };
 
     if provided_password_hash != user.hashed_password {
         return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
@@ -350,7 +331,7 @@ async fn user_password_reset(
     }
 
     // Hash new password
-    let (new_salt, new_password_hash): (String, String) = match hash_password(&reset_password_data.new_password) {
+    let hashed_password: HashedPassword = match hash_password(&reset_password_data.new_password) {
         Ok(hash) => hash,
         Err(err) => {
             return HttpHelper::log_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
@@ -359,8 +340,8 @@ async fn user_password_reset(
 
     // Update password
     let mut user_active_model: UserActiveModel = auth_user.user.into();
-    user_active_model.hashed_password = Set(new_password_hash);
-    user_active_model.salt = Set(new_salt);
+    user_active_model.hashed_password = Set(hashed_password.hash);
+    user_active_model.salt = Set(hashed_password.salt);
     
     match user_active_model.update(db.get_ref()).await {
         Ok(_) => {},
@@ -873,8 +854,8 @@ async fn recycle_refresh_token(refresh_token_id: Uuid, user_id: Uuid, db: Data<D
 
 #[rustfmt::skip]
 /// Hashes plain password using salt (argon2) <br/>
-/// Returns string tuple where first string is **Salt**, and second string is **Hashed Password**
-fn hash_password(password: &str) -> Result<(String, String), Argon2Error> {
+/// Returns: **hashed password** or **error**
+fn hash_password(password: &str) -> Result<HashedPassword, Argon2Error> {
 
     // Create salt string and argon2 instance
     let salt:       SaltString = SaltString::generate(&mut OsRng);
@@ -886,7 +867,7 @@ fn hash_password(password: &str) -> Result<(String, String), Argon2Error> {
         Err(err) => return Err(err),
     };
 
-    return Ok((salt.to_string(), password_hash.to_string()));
+    return Ok(HashedPassword::new(salt.to_string(), password_hash.to_string()));
 }
 
 #[rustfmt::skip]
