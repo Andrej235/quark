@@ -4,13 +4,14 @@ import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
 import { RowSlot } from "@/lib/prospect-template/row-slot";
 import { Slot } from "@/lib/prospect-template/slot";
 import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
+import { TextFieldSlot } from "@/lib/prospect-template/text-field-slot";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import {
-  closestCenter,
+  closestCorners,
   DndContext,
   DragEndEvent,
   DragOverlay,
@@ -52,7 +53,6 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
-import { TextFieldSlot } from "@/lib/prospect-template/text-field-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -97,7 +97,7 @@ export default function SlotEditWrapper({
     return (
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={closestCorners}
         onDragStart={({ active }) => {
           setDraggingSlot(active.data.current as Slot);
         }}
@@ -166,6 +166,7 @@ function SlotWrapper({
     id: slot.id,
     disabled: !isMovableDueToLayoutMode,
     data: slot,
+    animateLayoutChanges: () => false,
   });
 
   const draggableStyle = useMemo(
