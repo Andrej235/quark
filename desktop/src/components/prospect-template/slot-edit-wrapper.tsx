@@ -1,11 +1,14 @@
+import { ColumnSlot } from "@/lib/prospect-template/column-slot";
 import { LayoutSlot } from "@/lib/prospect-template/layout-slot";
 import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import { RowSlot } from "@/lib/prospect-template/row-slot";
 import { Slot } from "@/lib/prospect-template/slot";
 import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
+import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import {
   closestCenter,
   DndContext,
@@ -49,6 +52,7 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
+import { TextFieldSlot } from "@/lib/prospect-template/text-field-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -62,8 +66,8 @@ export default function SlotEditWrapper({
   );
   const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
   const isInLayoutMode = layoutRoot !== null;
-  const enterLayoutMode = useSlotLayoutModeStore((x) => x.enterLayoutMode);
   const [draggingSlot, setDraggingSlot] = useState<Slot | null>(null);
+  const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
   if (slot.type === "row" || slot.type === "column") {
     const layoutChildren = slot.content ?? [];
@@ -84,10 +88,8 @@ export default function SlotEditWrapper({
 
       const newChildren = arrayMove(layoutChildren as [], oldIndex, newIndex);
 
-      //TODO: replace this with actual editing logic
-      enterLayoutMode({
-        ...layoutRoot,
-        content: newChildren,
+      updateSlot<RowSlot | ColumnSlot>(slot.id, (x) => {
+        x.content = newChildren;
       });
     }
 
@@ -134,6 +136,7 @@ function SlotWrapper({
   children,
 }: RenderSlotProps & { children?: ReactNode }) {
   const typeName = toTitleCase(slot.type.replace("-", " "));
+  const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
   const topSlot = useSlotHoverStackStore((x) => x.topSlot);
   const addToHoverStack = useSlotHoverStackStore((x) => x.addToHoverStack);
@@ -312,6 +315,9 @@ function SlotWrapper({
         <ContextMenuItem
           onClick={() => {
             console.log("edit", slot.type);
+            updateSlot<TextFieldSlot>(slot.id, (x) => {
+              x.name = "New Name";
+            });
           }}
         >
           <span>Edit</span>
