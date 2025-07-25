@@ -60,9 +60,9 @@ function updateSlot<SlotType extends Slot = Slot>(
           root.content[i] = hasFlexData
             ? ({
                 ...root.content[i],
-                slot: updated,
+                slot: { ...updated },
               } as SlotFlexWrapper)
-            : updated;
+            : { ...updated };
           return root;
         }
       }
@@ -78,7 +78,7 @@ function updateSlot<SlotType extends Slot = Slot>(
 
         const updatedContent = updateSlot(root.content, id, updateFn);
         if (updatedContent) {
-          root.content = updatedContent;
+          root.content = { ...updatedContent };
           return root;
         }
 

@@ -66,6 +66,12 @@ const exampleSlot: Slot = {
             name: "Email",
             placeholder: "Enter email address",
           },
+          {
+            id: "phone",
+            type: "text-field",
+            name: "Phone",
+            placeholder: "Enter phone number",
+          },
         ],
       },
       footer: {

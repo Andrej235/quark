@@ -90,6 +90,7 @@ export default function SlotEditWrapper({
 
       updateSlot<RowSlot | ColumnSlot>(slot.id, (x) => {
         x.content = newChildren;
+        console.log(x);
       });
     }
 
