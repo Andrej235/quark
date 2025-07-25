@@ -56,7 +56,7 @@ impl TeamRepository {
                         Ok(false)
                     }
                 },
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Checking if team exists", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Checking if team exists", Box::new(err)))
             };
     }
 
@@ -83,7 +83,7 @@ impl TeamRepository {
                         Ok(None)
                     }
                 },
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
             }
     }
 
@@ -98,7 +98,7 @@ impl TeamRepository {
             .exec(db)
             .await {
             Ok(_) => {},
-            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting team", Box::new(err)))
+            Err(err) => return Err(HttpHelper::log_internal_server_error(endpoint_path, "Deleting team", Box::new(err)))
         }
 
         // Delete all cached users team permissions
@@ -106,7 +106,7 @@ impl TeamRepository {
         match UserTeamPermissionsCache::wipe(redis, team_id).await {
             Ok(_) => Ok(()),
             Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting cached user team permissions", Box::new(err)));
+                return Err(HttpHelper::log_internal_server_error(endpoint_path, "Deleting cached user team permissions", Box::new(err)));
             }
         }
     }
@@ -136,7 +136,7 @@ impl TeamRepository {
         let permissions: Option<i32> = match UserTeamPermissionsCache::get(redis, user_id, team_id).await {
             Ok(permissions) => permissions,
             Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
+                return Err(HttpHelper::log_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
             }
         };
 
@@ -148,7 +148,7 @@ impl TeamRepository {
             .count(db)
             .await {
                 Ok(count) => count > 0,
-                Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
+                Err(err) => return Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
             };
 
         if !is_member && handle_not_member {
@@ -174,7 +174,7 @@ impl TeamRepository {
             .one(db)
             .await {
                 Ok(member) => Ok(member),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
             };
     }
 
@@ -192,7 +192,7 @@ impl TeamRepository {
             .all(db)
             .await {
                 Ok(members) => Ok(members),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team members", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team members", Box::new(err)))
             };
     }
 
@@ -210,7 +210,7 @@ impl TeamRepository {
             .count(db)
             .await {
                 Ok(count) => Ok(count),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team members count", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team members count", Box::new(err)))
             };
     }
 
@@ -233,10 +233,10 @@ impl TeamRepository {
                     .exec(db)
                     .await {
                         Ok(_) => Ok(()),
-                        Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting team member", Box::new(err)))
+                        Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Deleting team member", Box::new(err)))
                     }
             },
-            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting user team permissions", Box::new(err)))
+            Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Deleting user team permissions", Box::new(err)))
         };
     }
 
@@ -264,7 +264,7 @@ impl TeamRepository {
         let permissions: Option<i32> = match UserTeamPermissionsCache::get(redis, user_id, team_id).await {
             Ok(permissions) => permissions,
             Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
+                return Err(HttpHelper::log_internal_server_error(endpoint_path, "Getting user team permissions", Box::new(err)));
             }
         };
 
@@ -285,14 +285,14 @@ impl TeamRepository {
             },
     
             Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team member", Box::new(err)));
+                return Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team member", Box::new(err)));
             }
         };
 
         match UserTeamPermissionsCache::cache(redis, user_id, team_id, team_role.permissions).await {
             Ok(_) => {},
             Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Caching user team permissions", Box::new(err)));
+                return Err(HttpHelper::log_internal_server_error(endpoint_path, "Caching user team permissions", Box::new(err)));
             }
         }
     
@@ -317,7 +317,7 @@ impl TeamRepository {
 
         return match new_role.insert(db).await {
             Ok(team_role) => Ok(team_role),
-            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating team role", Box::new(err)))
+            Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Creating team role", Box::new(err)))
         };
     }
 
@@ -348,7 +348,7 @@ impl TeamRepository {
                         return Ok(None);
                     }
                 },
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
             };
     }
 
@@ -368,7 +368,7 @@ impl TeamRepository {
             .count(db)
             .await {
                 Ok(count) => Ok(count > 0),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
             };
     }
 
@@ -390,10 +390,10 @@ impl TeamRepository {
             Ok(_) => {
                 match UserTeamPermissionsCache::delete_for_all_users(redis, team_id, user_ids).await {
                     Ok(_) => Ok(()),
-                    Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting user team permissions", Box::new(err)))
+                    Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Deleting user team permissions", Box::new(err)))
                 }
             },
-            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting team role", Box::new(err)))
+            Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Deleting team role", Box::new(err)))
         }
     }
 }

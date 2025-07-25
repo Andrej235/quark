@@ -147,7 +147,7 @@ pub async fn team_role_update(
     {
         Ok(Some(team_role)) => team_role,
         Ok(None) => return HttpResponse::NotFound().json(SRouteError { message: "Team role not found" }),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_UPDATE_ROUTE_PATH, "Finding team role", Box::new(err))
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_ROLE_UPDATE_ROUTE_PATH, "Finding team role", Box::new(err))
     };
 
     let mut team_role_active_model: TeamRoleActiveModel = team_role.into();
@@ -155,7 +155,7 @@ pub async fn team_role_update(
 
     match team_role_active_model.update(db.get_ref()).await {
         Ok(_) => {},
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_UPDATE_ROUTE_PATH, "Updating team role", Box::new(err))
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_ROLE_UPDATE_ROUTE_PATH, "Updating team role", Box::new(err))
     }
 
     return HttpResponse::Ok().finish();
@@ -211,7 +211,7 @@ pub async fn team_roles_get(
                 })
                 .collect::<Vec<TeamRoleInfoDTO>>()
         },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_GET_ROUTE_PATH, "Finding team roles", Box::new(err))
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_ROLE_GET_ROUTE_PATH, "Finding team roles", Box::new(err))
     };
 
     return HttpResponse::Ok().json(team_roles);
@@ -282,7 +282,7 @@ pub async fn team_role_delete(
             .await 
         {
             Ok(s) => s,
-            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Updating team members", Box::new(err))) 
+            Err(err) => return Err(HttpHelper::log_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Updating team members", Box::new(err))) 
         };
 
         // Delete role from database and delete cached role permissions of users 
@@ -296,7 +296,7 @@ pub async fn team_role_delete(
             .await
         {
             Ok(users_id) => users_id,
-            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Finding team members", Box::new(err)))
+            Err(err) => return Err(HttpHelper::log_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Finding team members", Box::new(err)))
         };
 
         match TeamRepository::delete_role(TEAM_ROLE_DELETE_ROUTE_PATH, &transaction, redis_service.get_ref(), team_role_data.team_id, role_id, users_id).await {

@@ -35,7 +35,7 @@ impl UserRepository {
                         Ok(None)
                     }
                 },
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
             }
     }
 
@@ -62,7 +62,7 @@ impl UserRepository {
                         Ok(None)
                     }
                 },
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
             };
     }
 
@@ -90,7 +90,7 @@ impl UserRepository {
                         Ok(None)
                     }
                 },
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
             };
     }
 }

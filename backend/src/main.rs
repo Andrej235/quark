@@ -53,6 +53,7 @@ pub mod models;
 pub mod repositories;
 pub mod routes;
 pub mod traits;
+pub mod types;
 pub mod utils;
 
 // ------------------------------------------------------------------------------------

@@ -103,7 +103,7 @@ pub async fn team_get_members(
             })
             .collect::<Vec<TeamMemberInfo>>()
         },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_MEMBERS_GET_ROUTE_PATH, "Finding team members", Box::new(err))    
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_MEMBERS_GET_ROUTE_PATH, "Finding team members", Box::new(err))    
     };
 
     return HttpResponse::Ok().json(team_members);
