@@ -101,7 +101,7 @@ impl HttpHelper {
 
     /// Commits transaction <br/>
     /// Returns: InternalServerError transaction commit or rollback fails <br/>
-    /// Returns: Ok 
+    /// Returns: Ok
     pub async fn commit_transaction(
         endpoint_path: (&'static str, TypeOfRequest),
         transaction: DatabaseTransaction,
@@ -121,6 +121,33 @@ impl HttpHelper {
                 }
 
                 return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating team", Box::new(err)));
+            }
+        }
+    }
+
+    /// Commits transaction <br/>
+    /// Returns: InternalServerError transaction commit or rollback fails <br/>
+    /// Returns: Ok
+    pub async fn commit_http_transaction(
+        endpoint_path: (&'static str, TypeOfRequest),
+        transaction: DatabaseTransaction,
+        transaction_result: Result<(), HttpResponse>
+    ) -> Result<(), HttpResponse> {
+        
+        match transaction_result {
+            Ok(_) => {
+                if let Err(e) = transaction.commit().await {
+                    return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Committing transaction", Box::new(e)));
+                }
+
+                return Ok(());
+            }
+            Err(err) => {
+                if let Err(e) = transaction.rollback().await {
+                    return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Rolling back transaction", Box::new(e)));
+                }
+
+                return Err(err);
             }
         }
     }

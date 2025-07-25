@@ -6,6 +6,7 @@ use crate::entity::team_roles::{
     Model as TeamRole,
 };
 use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
+use crate::models::route_error::RouteError;
 use crate::{
     enums::type_of_request::TypeOfRequest,
     models::sroute_error::SRouteError,
@@ -16,7 +17,8 @@ use crate::{
 };
 use actix_web::HttpResponse;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
+    PaginatorTrait, QueryFilter, QuerySelect,
 };
 use uuid::Uuid;
 
@@ -24,6 +26,12 @@ pub struct TeamRepository;
 
 #[rustfmt::skip]
 impl TeamRepository {
+
+    // ************************************************************************************
+    //
+    // TEAM
+    //
+    // ************************************************************************************
 
     /// Tries to find team by specified **id** <br/>
     /// **NOTE: if handle_not_found is true, it will return NotFound response** <br/>
@@ -78,6 +86,37 @@ impl TeamRepository {
                 Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
             }
     }
+
+    pub async fn delete_by_id(
+        endpoint_path: (&'static str, TypeOfRequest),
+        db: &DatabaseConnection,
+        redis: &RedisService,
+        team_id: Uuid
+    ) -> Result<(), HttpResponse> {
+
+        match TeamEntity::delete_by_id(team_id)
+            .exec(db)
+            .await {
+            Ok(_) => {},
+            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting team", Box::new(err)))
+        }
+
+        // Delete all cached users team permissions
+        // There is no need for that cached data to exist anymore
+        match UserTeamPermissionsCache::wipe(redis, team_id).await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting cached user team permissions", Box::new(err)));
+            }
+        }
+    }
+
+
+    // ************************************************************************************
+    //
+    // MEMBERS
+    //
+    // ************************************************************************************
 
     /// Checks if user is member of team <br/>
     /// **NOTE: If user permissions are cached it will return true, otherwise it will get fresh permissions from database and cache them** <br/>
@@ -201,6 +240,13 @@ impl TeamRepository {
         };
     }
 
+
+    // ************************************************************************************
+    //
+    // PERMISSIONS
+    //
+    // ************************************************************************************
+
     /// Gets user team permissions <br/>
     /// **NOTE: If user permissions are cached it will return them, otherwise it will get fresh permissions from database and cache them** <br/> 
     /// Returns: Forbidden(**Not memeber of team**) response if user is not member of team <br/>
@@ -253,6 +299,13 @@ impl TeamRepository {
         return Ok(team_role.permissions);
     }
 
+
+    // ************************************************************************************
+    //
+    // ROLES
+    //
+    // ************************************************************************************
+
     /// Creates new team role <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Created team role
@@ -266,6 +319,37 @@ impl TeamRepository {
             Ok(team_role) => Ok(team_role),
             Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating team role", Box::new(err)))
         };
+    }
+
+    /// Finds team role id by name <br/>
+    /// Returns: NotFound(**Role [] not found**) if team role not found <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: Team role id
+    pub async fn find_role_id_by_name(
+        endpoint_path: (&'static str, TypeOfRequest),
+        db: &DatabaseConnection,
+        team_id: Uuid,
+        role_name: &str,
+        handle_not_found: bool
+    ) -> Result<Option<i64>, HttpResponse> {
+
+        return match TeamRoleEntity::find()
+            .select_only()
+            .column(TeamRoleColumn::Id)
+            .filter(TeamRoleColumn::TeamId.eq(team_id))
+            .filter(TeamRoleColumn::Name.eq(role_name))
+            .one(db)
+            .await {
+                Ok(Some(role)) => Ok(Some(role.id)),
+                Ok(None) => {
+                    if handle_not_found {
+                        return Err(HttpResponse::NotFound().json(RouteError { message: format!("Role {} not found", role_name) }));
+                    } else {
+                        return Ok(None);
+                    }
+                },
+                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
+            };
     }
 
     /// Checks if team has role with specified **name** <br/>
@@ -288,27 +372,28 @@ impl TeamRepository {
             };
     }
 
-    pub async fn delete_by_id(
+    /// Deletes team role <br/>
+    /// Returns: InternalServerError if database query or redis fails <br/>
+    /// Returns: Ok
+    pub async fn delete_role<C>(
         endpoint_path: (&'static str, TypeOfRequest),
-        db: &DatabaseConnection,
+        db: &C,
         redis: &RedisService,
-        team_id: Uuid
-    ) -> Result<(), HttpResponse> {
-
-        match TeamEntity::delete_by_id(team_id)
-            .exec(db)
-            .await {
-            Ok(_) => {},
-            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting team", Box::new(err)))
-        }
-
-        // Delete all cached users team permissions
-        // There is no need for that cached data to exist anymore
-        match UserTeamPermissionsCache::delete_all_for_team(redis, team_id).await {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting cached user team permissions", Box::new(err)));
-            }
+        team_id: Uuid,
+        role_id: i64,
+        user_ids: Vec<Uuid>
+    ) -> Result<(), HttpResponse> 
+    where
+        C: ConnectionTrait + Send + Sync,
+    {
+        match TeamRoleEntity::delete_by_id(role_id).exec(db).await {
+            Ok(_) => {
+                match UserTeamPermissionsCache::delete_for_all_users(redis, team_id, user_ids).await {
+                    Ok(_) => Ok(()),
+                    Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting user team permissions", Box::new(err)))
+                }
+            },
+            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Deleting team role", Box::new(err)))
         }
     }
 }

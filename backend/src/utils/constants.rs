@@ -47,7 +47,7 @@ pub const ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL: [&'static str; 4] = [
     "/team", "/team-role", "/team-invitations", "/team_members"
 ];
 
-pub const DEFAULT_TEAM_ROLE_NAMES: [&str; 3] = ["Owner", "Moderator", "Member"];
+pub const DEFAULT_TEAM_ROLE_NAMES: [&'static str; 3] = ["Owner", "Moderator", "Member"];
 
 pub const USER_SIGN_UP_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/signup", TypeOfRequest::POST);
 pub const USER_LOG_IN_ROUTE_PATH: (&'static str, TypeOfRequest) = ("/user/login", TypeOfRequest::POST);

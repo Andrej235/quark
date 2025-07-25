@@ -4,17 +4,21 @@
 //
 // ************************************************************************************
 use crate::{
+    entity::team_members::{
+        Column as TeamMemberColumn, Entity as TeamMemberEntity
+    },
     entity::team_roles::{
         ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
         Model as TeamRole,
     },
     models::{
         dtos::{
-            create_team_role_dto::CreateTeamRoleDTO, delete_team_role_dto::DeleteTeamRoleDTO, team_role_info_dto::TeamRoleInfoDTO, update_team_role_dto::UpdateTeamRoleDTO, validation_error_dto::ValidationErrorDTO
+            create_team_role_dto::CreateTeamRoleDTO, delete_team_role_dto::DeleteTeamRoleDTO,
+            team_role_info_dto::TeamRoleInfoDTO, update_team_role_dto::UpdateTeamRoleDTO
         },
         middleware::{
             advanced_authenticated_user::AdvancedAuthenticatedUser,
-            basic_authenticated_user::BasicAuthenticatedUser, validated_json::ValidatedJson,
+            validated_json::ValidatedJson,
         },
         permission::Permission,
         sroute_error::SRouteError,
@@ -35,7 +39,8 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use sea_orm::{
-    ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    prelude::Expr, ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection,
+    DatabaseTransaction, EntityTrait, QueryFilter, QuerySelect,
 };
 use uuid::Uuid;
 
@@ -222,11 +227,13 @@ pub async fn team_roles_get(
     path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
     request_body = CreateTeamRoleDTO,
     responses(
-        (status = 200, description = "Team role created"),
-        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+        (status = 200, description = "Team role deleted"),
+        (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
+        (status = 404, description = "Team not found, Team role not found", body = SRouteError),
     )
 )]
 #[delete("/team-role")]
+#[rustfmt::skip]
 pub async fn team_role_delete(
     db: Data<DatabaseConnection>,
     redis_service: Data<RedisService>,
@@ -236,22 +243,74 @@ pub async fn team_role_delete(
     
     let team_role_data: &DeleteTeamRoleDTO = json_data.get_data();
 
+    // Abort request if user is trying to delete default role
+    if is_role_default(&team_role_data.name) {
+        return HttpResponse::Forbidden().json(SRouteError { message: "Cannot delete default role" }); 
+    }
+
     // Check if user can edit roles
     match check_user_can_edit_roles(db.get_ref(), redis_service.get_ref(), team_role_data.team_id, auth_user.user.id).await {
         Ok(_) => {},
         Err(err) => return err        
     };
 
-    // Delete team role
-    match TeamRoleEntity::delete_many()
-        .filter(TeamRoleColumn::TeamId.eq(team_role_data.team_id))
-        .filter(TeamRoleColumn::Name.eq(&team_role_data.name))
-        .exec(db.get_ref())
-        .await 
-    {
+    // Find role ids of role that will be deleted and Member role
+    let role_id: i64 = match TeamRepository::find_role_id_by_name(TEAM_ROLE_DELETE_ROUTE_PATH, db.get_ref(), team_role_data.team_id, &team_role_data.name, true).await {
+        Ok(result) => result.unwrap(),
+        Err(err) => return err
+    };
+
+    let member_role_id: i64 = match TeamRepository::find_role_id_by_name(TEAM_ROLE_DELETE_ROUTE_PATH, db.get_ref(), team_role_data.team_id, "Member", true).await {
+        Ok(result) => result.unwrap(),
+        Err(err) => return err
+    };
+
+    // Chnage roles of users that have role that will be deleted to default Member role
+    let transaction: DatabaseTransaction = match HttpHelper::begin_transaction(TEAM_ROLE_DELETE_ROUTE_PATH, db.get_ref()).await {
+        Ok(transaction) => transaction,
+        Err(err) => return err
+    };
+
+    let transaction_result: Result<(), HttpResponse> = (|| async {
+
+        // Swap old role with new default role because old will be deleted
+        match TeamMemberEntity::update_many()
+            .filter(TeamMemberColumn::TeamId.eq(team_role_data.team_id))
+            .filter(TeamMemberColumn::TeamRoleId.eq(role_id))
+            .col_expr(TeamMemberColumn::TeamRoleId, Expr::value(member_role_id))
+            .exec(&transaction)
+            .await 
+        {
+            Ok(s) => s,
+            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Updating team members", Box::new(err))) 
+        };
+
+        // Delete role from database and delete cached role permissions of users 
+        let users_id: Vec<Uuid> = match TeamMemberEntity::find()
+            .select_only()
+            .column(TeamMemberColumn::UserId)
+            .filter(TeamMemberColumn::TeamId.eq(team_role_data.team_id))
+            .filter(TeamMemberColumn::TeamRoleId.eq(role_id))
+            .into_tuple()
+            .all(&transaction)
+            .await
+        {
+            Ok(users_id) => users_id,
+            Err(err) => return Err(HttpHelper::endpoint_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Finding team members", Box::new(err)))
+        };
+
+        match TeamRepository::delete_role(TEAM_ROLE_DELETE_ROUTE_PATH, &transaction, redis_service.get_ref(), team_role_data.team_id, role_id, users_id).await {
+            Ok(_) => {},
+            Err(err) => return Err(err)
+        } 
+
+        Ok(())
+    })().await;
+
+    match HttpHelper::commit_http_transaction(TEAM_ROLE_DELETE_ROUTE_PATH, transaction, transaction_result).await {
         Ok(_) => {},
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_ROLE_DELETE_ROUTE_PATH, "Deleting team role", Box::new(err))
-    }
+        Err(err) => return err
+    };
 
     return HttpResponse::Ok().finish();
 }

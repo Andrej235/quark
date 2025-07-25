@@ -44,7 +44,21 @@ impl UserTeamPermissionsCache {
         return Ok(());
     }
 
-    pub async fn delete_all_for_team(
+    pub async fn delete_for_all_users(
+        redis: &RedisService,
+        team_id: Uuid,
+        user_ids: Vec<Uuid>
+    ) -> Result<(), RedisError> {
+
+        for user_id in user_ids {
+            let redis_pattern: String = format!("{}:{}:{}", USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX, user_id, team_id);
+            let _: () = redis.delete_matching_keys(redis_pattern).await?;
+        }
+
+        return Ok(());
+    }
+
+    pub async fn wipe(
         redis: &RedisService,
         team_id: Uuid
     ) -> Result<(), RedisError> {
