@@ -7,7 +7,7 @@ use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::dtos::password_reset_dto::PasswordResetDTO;
 use crate::models::route_error::RouteError;
 use crate::models::{dtos::create_user_dto::CreateUserDTO, sroute_error::SRouteError};
-use crate::routes::team_roles_routes::__path_team_role_create;
+use crate::routes::team_roles_routes::{__path_team_role_create, __path_team_role_update, __path_team_roles_get, __path_team_role_delete};
 use crate::routes::team_routs::{__path_team_create, __path_team_update, __path_team_delete, __path_team_leave};
 use crate::routes::user_routs::{
     __path_check, __path_user_log_in, __path_user_log_out, __path_user_refresh, __path_user_password_reset, __path_user_update,
@@ -18,6 +18,7 @@ use utoipa::OpenApi;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::team_info_dto::TeamInfoDTO;
 use crate::routes::team_invitations_routes::{__path_team_invitation_send, __path_team_invitation_accept, __path_team_invitation_decline};
+use crate::routes::team_members_routes::{__path_team_member_kick, __path_team_get_members};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -36,10 +37,13 @@ use crate::routes::team_invitations_routes::{__path_team_invitation_send, __path
         team_create, team_update, team_delete, team_leave,
 
         // team role routes
-        team_role_create,
+        team_role_create, team_role_update, team_roles_get, team_role_delete, 
 
         // team invitation routes
-        team_invitation_send, team_invitation_accept, team_invitation_decline
+        team_invitation_send, team_invitation_accept, team_invitation_decline,
+
+        // team member routes
+        team_member_kick, team_get_members
     ),
         
     components(schemas(

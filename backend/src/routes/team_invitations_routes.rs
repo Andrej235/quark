@@ -89,8 +89,8 @@ pub async fn team_invitation_send(
         Ok(Some((inv, Some(team)))) => { // In case that invitation already exists update expires_at and send email again
 
             // SPECIAL CASE
-            // If status of invitation is DECLINED create new invitation instead of updating old new
-            if inv.status == TeamInvitationStatus::DECLINED {
+            // If status of invitation is DECLINED or ACCEPTED create new invitation instead of updating old new
+            if inv.status == TeamInvitationStatus::DECLINED || inv.status == TeamInvitationStatus::ACCEPTED {
                 match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
                     Ok(_) => return HttpResponse::Ok().finish(),
                     Err(err) => return err,
@@ -105,13 +105,13 @@ pub async fn team_invitation_send(
 
             match inv_active_model.update(db.get_ref()).await {
                 Ok(_) => {},
-                Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Updating invitation", Box::new(err)),
+                Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Updating invitation", Box::new(err)),
             };
             // ****************
 
             match send_invitation_email(&auth_user.user.username, &reciever.name, &reciever.email, &team.name, inv_code).await {
                 Ok(_) => {},
-                Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err)),
+                Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err)),
             }
         },
         Ok(None) => { // In case that invitation doesn't exist create it
@@ -122,9 +122,9 @@ pub async fn team_invitation_send(
         },
         Ok(Some((_, None))) => {
             // Shouldn't happen if FK constraints are correct.
-            return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Team not found for invitation", Box::new(StdError::new(ErrorKind::Other, "Team not found")));
+            return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Team not found for invitation", Box::new(StdError::new(ErrorKind::Other, "Team not found")));
         },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Checking if invitation exists", Box::new(err)),
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Checking if invitation exists", Box::new(err)),
     };
 
     return HttpResponse::Ok().finish();
@@ -169,7 +169,7 @@ pub async fn team_invitation_accept(
         {
             Ok(Some(team_role_id)) => team_role_id,
             Ok(None) => return HttpResponse::NotFound().json(SRouteError { message: "Team role not found" }),
-            Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_ACCEPT_ROUTE_PATH, "Finding team role", Box::new(err)),    
+            Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_ACCEPT_ROUTE_PATH, "Finding team role", Box::new(err)),    
         };
 
     let transaction = match HttpHelper::begin_transaction(TEAM_INVITATION_ACCEPT_ROUTE_PATH, db.get_ref()).await {
@@ -240,7 +240,7 @@ pub async fn team_invitation_decline(
     
     match inv_active_model.update(db.get_ref()).await {
         Ok(_) => (),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_DECLINE_ROUTE_PATH, "Updating invitation", Box::new(err)),
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_DECLINE_ROUTE_PATH, "Updating invitation", Box::new(err)),
     };
 
     return HttpResponse::Ok().finish();
@@ -267,13 +267,13 @@ async fn check_ability_to_respond_to_invitation(db: &DatabaseConnection, auth_us
     {
         Ok(Some(invitation)) => invitation,
         Ok(None) => return Err(HttpResponse::NotFound().json(SRouteError { message: "Invitation not found" })),
-        Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Checking if invitation exists", Box::new(err))),
+        Err(err) => return Err(HttpHelper::log_internal_server_error(endpoint_path, "Checking if invitation exists", Box::new(err))),
     };
 
     // Handle all status codes
     let inv_status = match TeamInvitationStatus::try_from(invitation.status) {
         Ok(inv_status) => inv_status,
-        Err(err) => return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Converting invitation status", Box::new(err))),
+        Err(err) => return Err(HttpHelper::log_internal_server_error(endpoint_path, "Converting invitation status", Box::new(err))),
     };
 
     match inv_status {
@@ -310,7 +310,7 @@ async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_dat
         Err(err) => return Err(err),
     };
 
-    let new_inv_code: String = HttpHelper::generate_team_invitation_code();
+    let new_inv_code: String = HttpHelper::gen_team_invitation_code();
 
     let new_inv: TeamInvitationActiveModel = TeamInvitationActiveModel {
         token: Set(new_inv_code.clone()),
@@ -323,11 +323,11 @@ async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_dat
 
     match new_inv.insert(db).await {
         Ok(_) => {},
-        Err(err) => return Err(HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Inserting invitation", Box::new(err))),
+        Err(err) => return Err(HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Inserting invitation", Box::new(err))),
     };
 
     match send_invitation_email(&auth_user.user.username, &reciever.name, &reciever.email, &team.name, new_inv_code).await {
         Ok(_) => Ok(()),
-        Err(err) => return Err(HttpHelper::endpoint_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err))),
+        Err(err) => return Err(HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err))),
     }
 }

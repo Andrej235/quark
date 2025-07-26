@@ -90,7 +90,7 @@ pub async fn team_create(
         .await {
         Ok(None) => (),
         Ok(Some(_)) => return HttpResponse::BadRequest().json(SRouteError { message: "Team already exists" }),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
     }
 
     // Begin transaction
@@ -99,7 +99,7 @@ pub async fn team_create(
 
     let transaction = match db.begin().await {
         Ok(transaction) => transaction,
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
     };
 
     let transaction_result: Result<(), DbErr> = (|| async {
@@ -158,9 +158,9 @@ pub async fn team_create(
     }
 
     // Cache team permissions in redis
-    match UserTeamPermissionsCache::cache_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
+    match UserTeamPermissionsCache::cache(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
         Ok(_) => (),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
     };
 
     return HttpResponse::Ok().finish();
@@ -240,7 +240,7 @@ pub async fn team_update(
                     }
                 }
                 Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
+                    return HttpHelper::log_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
                 }
             };
 
@@ -251,11 +251,11 @@ pub async fn team_update(
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
+                Err(err) => HttpHelper::log_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
             }
         }
         Ok(None) => HttpResponse::NotFound().json(SRouteError { message: "Team not found" }),
-        Err(err) => { HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err)) }
+        Err(err) => { HttpHelper::log_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err)) }
     }
 }
 
@@ -337,14 +337,10 @@ pub async fn team_leave(
     let team_id: Uuid = path_data.into_inner();
 
     // Check if user is member of team
-    let is_member_of_team: bool = match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id, auth_user.user.id).await {
-        Ok(is_member) => is_member,
+    match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id, true).await {
+        Ok(_) => {},
         Err(err) => return err
     };
-
-    if !is_member_of_team {
-        return HttpResponse::Forbidden().json(SRouteError { message: "Not member of team" });
-    }
 
     // Stop user from leaving team if there is only one member and user is not owner of team
     let members_count: u64 = match TeamRepository::get_members_count(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id).await {

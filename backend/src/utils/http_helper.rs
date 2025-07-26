@@ -1,26 +1,21 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::entity::team_roles::{
-    Column as TeamRoleColumn, Entity as TeamRoleEntity, Model as TeamRole,
-};
 use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
+use crate::types::aliases::{EmptyHttpResult, EndpointPathInfo, PermissionBits};
 use crate::{RESEND_EMAIL, RESEND_INSTANCE};
 use actix_web::HttpResponse;
+use base64::Engine;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::Resend;
 use sea_orm::error::DbErr;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter,
-    TransactionTrait,
-};
+use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
 use std::error::Error;
 use tracing::error;
-use uuid::Uuid;
 
 pub struct HttpHelper;
 
@@ -32,43 +27,43 @@ impl HttpHelper {
     // HELPER FUNCTIONS
     //
     // ************************************************************************************
-    pub fn endpoint_internal_server_error(
-        endpoint_path: (&'static str, TypeOfRequest),
-        what_failed: &'static str,
-        error: Box<dyn Error>
+    pub fn log_internal_server_error(
+        endpoint_path: EndpointPathInfo,
+        description: &'static str,
+        err: Box<dyn Error>
     ) -> HttpResponse {
-        error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, what_failed, error);
+        error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, description, err);
         return HttpResponse::InternalServerError().finish();
     }
     
     /// Creates random 6 character long string <br/>
-    /// String contains letters and number <br/>
-    /// Returns **random string**
-    pub fn generate_random_email_verification_code() -> String {
-        let random_string: String = rand::rng()
+    /// **NOTE: String contains letters and number** <br/>
+    /// Returns: **random string**
+    pub fn gen_email_verification_code() -> String {
+        let gen_str: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(6)
             .map(char::from)
             .collect();
     
-        random_string.to_uppercase()
+        gen_str.to_uppercase()
     }
 
     /// Creates random 8 character long string <br/>
-    /// String contains letters and number <br/>
-    /// Returns **random string**
-    pub fn generate_team_invitation_code() -> String {
-        let random_string: String = rand::rng()
+    /// **NOTE: String contains letters and number** <br/>
+    /// Returns: **random string**
+    pub fn gen_team_invitation_code() -> String {
+        let gen_str: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(8)
             .map(char::from)
             .collect();
     
-        random_string.to_uppercase()
+        gen_str.to_uppercase()
     }
     
-    // Sends email with provided subject and html content
-    /// Returns **Ok** or **ResendError**
+    // Sends email with provided subject and html content <br/>
+    /// Returns: **Ok** or **ResendError**
     pub async fn send_email(
         reciever_email: &str, 
         email_subject: &'static str,
@@ -93,91 +88,111 @@ impl HttpHelper {
     }
 
     /// Begins transaction <br/>
-    /// Returns: InternalServerError transaction creation fails
+    /// Returns: InternalServerError transaction creation fails <br/>
     /// Returns: DatabaseTransaction
     pub async fn begin_transaction(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection
     ) -> Result<DatabaseTransaction, HttpResponse> {
         match db.begin().await {
             Ok(transaction) => Ok(transaction),
-            Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating transaction", Box::new(err))),
+            Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Creating transaction", Box::new(err))),
         }
     }
 
     /// Commits transaction <br/>
     /// Returns: InternalServerError transaction commit or rollback fails <br/>
-    /// Returns: Ok 
+    /// Returns: Ok
     pub async fn commit_transaction(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         transaction: DatabaseTransaction,
         transaction_result: Result<(), DbErr>
-    ) -> Result<(), HttpResponse> {
+    ) -> EmptyHttpResult {
         match transaction_result {
             Ok(_) => {
                 if let Err(e) = transaction.commit().await {
-                    return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Committing transaction", Box::new(e)));
+                    return Err(HttpHelper::log_internal_server_error(endpoint_path, "Committing transaction", Box::new(e)));
                 }
 
                 return Ok(());
             }
             Err(err) => {
                 if let Err(e) = transaction.rollback().await {
-                    return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Rolling back transaction", Box::new(e)));
+                    return Err(HttpHelper::log_internal_server_error(endpoint_path, "Rolling back transaction", Box::new(e)));
                 }
 
-                return Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Creating team", Box::new(err)));
+                return Err(HttpHelper::log_internal_server_error(endpoint_path, "Creating team", Box::new(err)));
             }
         }
     }
 
-
-
-    // ************************************************************************************
-    //
-    // PREDIFINED DATABASE QUERIES
-    //
-    // ************************************************************************************
-    /// Tries to find team role by specified **name** <br/>
-    /// Returns: NotFound response if team role is not found <br/>
-    /// Returns: InternalServerError if database query fails <br/>
-    /// Returns: Found team role
-    pub async fn find_team_role_by_name(
+    /// Commits transaction <br/>
+    /// Returns: InternalServerError transaction commit or rollback fails <br/>
+    /// Returns: Ok
+    pub async fn commit_http_transaction(
         endpoint_path: (&'static str, TypeOfRequest),
-        db: &DatabaseConnection,
-        team_id: Uuid,
-        role_name: &str
-    ) -> Result<Option<TeamRole>, HttpResponse> {
+        transaction: DatabaseTransaction,
+        transaction_result: Result<(), HttpResponse>
+    ) -> EmptyHttpResult {
+        
+        match transaction_result {
+            Ok(_) => {
+                if let Err(e) = transaction.commit().await {
+                    return Err(HttpHelper::log_internal_server_error(endpoint_path, "Committing transaction", Box::new(e)));
+                }
 
-        return match TeamRoleEntity::find()
-            .filter(TeamRoleColumn::TeamId.eq(team_id))
-            .filter(TeamRoleColumn::Name.eq(role_name))
-            .one(db)
-            .await {
-                Ok(Some(team_role)) => Ok(Some(team_role)),
-                Ok(None) => Err(HttpResponse::NotFound().json(SRouteError { message: "Team role not found" })),
-                Err(err) => Err(HttpHelper::endpoint_internal_server_error(endpoint_path, "Finding team role", Box::new(err)))
-            };
+                return Ok(());
+            }
+            Err(err) => {
+                if let Err(e) = transaction.rollback().await {
+                    return Err(HttpHelper::log_internal_server_error(endpoint_path, "Rolling back transaction", Box::new(e)));
+                }
+
+                return Err(err);
+            }
+        }
     }
 
+    /// Converts image to base64 string
+    pub fn convert_image_to_base64(image: Option<Vec<u8>>) -> Option<String> {
+        match image {
+            None => None,
+            Some(image_bytes) => {
+                Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes))
+            }
+        }
+    }
+    
+    /// Checks if required permission is present <br/>
+    /// Returns: BadRequest(**Invalid permission bits**) if permission bits are invalid <br/>
+    /// Returns: Forbidden(**Permission too low**) if permission is not present <br/>
+    /// Returns: Ok if permission is present
+    pub fn check_permission(
+        permission_bits: PermissionBits,
+        required_permission: Permission
+    ) -> EmptyHttpResult {
+    
+        let perm = Permission::from_bits(permission_bits)
+            .ok_or_else(|| HttpResponse::BadRequest().json(SRouteError { message: "Invalid permission bits" }))?;
+    
+        if perm.contains(required_permission) == false {
+            return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }));
+        }
+    
+        return Ok(());
+    }
 
-    
-    // ************************************************************************************
-    //
-    // PERMISSIONS FUNCTIONS
-    //
-    // ************************************************************************************
-    /// Checks if all required permissions are present
-    /// Returns (), otherwise status forbidden
+    /// Checks if all required permissions are present <br/>
+    /// Returns: BadRequest(**Invalid permissions**) if permission bits are invalid <br/>
+    /// Returns: Forbidden(**Permission too low**) if permission is not present <br/>
+    /// Returns: Ok if permission is present
     pub fn check_permissions(
-        permissions: i32,
+        permission_bits: PermissionBits,
         required_permissions: Vec<Permission>
-    ) -> Result<(), HttpResponse> {
+    ) -> EmptyHttpResult {
     
-        // TODO: Improve performance by caching
-    
-        let perm = Permission::from_bits(permissions)
-            .ok_or_else(|| HttpResponse::Forbidden().json(SRouteError { message: "Invalid permissions" }))?;
+        let perm = Permission::from_bits(permission_bits)
+            .ok_or_else(|| HttpResponse::BadRequest().json(SRouteError { message: "Invalid permissions" }))?;
     
         let required = required_permissions.into_iter().fold(Permission::empty(), |acc, p| acc | p);
     
@@ -186,26 +201,5 @@ impl HttpHelper {
         } else {
             Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }))
         }
-    }
-    
-    /// Checks if required permission is present
-    /// Returns (), otherwise status forbidden
-    pub fn check_permission(
-        permissions: i32,
-        required_permission: Permission
-    ) -> Result<(), HttpResponse> {
-    
-        // TODO: Improve performance by caching
-    
-        let perm: Permission = match Permission::from_bits(permissions) {
-            Some(perm) => perm,
-            None => return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }))
-        };
-    
-        if perm.contains(required_permission) == false {
-            return Err(HttpResponse::Forbidden().json(SRouteError { message: "Permission too low" }));
-        }
-    
-        return Ok(());
     }
 }

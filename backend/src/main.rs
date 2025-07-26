@@ -7,7 +7,8 @@ use crate::{
         team_invitations_routes::{
             team_invitation_accept, team_invitation_decline, team_invitation_send,
         },
-        team_roles_routes::{team_role_create, team_role_delete, team_role_update},
+        team_members_routes::{team_get_members, team_member_kick},
+        team_roles_routes::{team_role_create, team_role_delete, team_role_update, team_roles_get},
         team_routs::{team_create, team_delete, team_leave, team_update},
         user_routs::{
             check, get_user_info, send_email_verification, user_log_in, user_log_out,
@@ -52,6 +53,7 @@ pub mod models;
 pub mod repositories;
 pub mod routes;
 pub mod traits;
+pub mod types;
 pub mod utils;
 
 // ------------------------------------------------------------------------------------
@@ -81,12 +83,16 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(team_leave);
 
     cfg.service(team_role_create);
-    cfg.service(team_role_delete);
     cfg.service(team_role_update);
+    cfg.service(team_roles_get);
+    cfg.service(team_role_delete);
 
     cfg.service(team_invitation_send);
     cfg.service(team_invitation_accept);
     cfg.service(team_invitation_decline);
+
+    cfg.service(team_get_members);
+    cfg.service(team_member_kick);
 }
 
 /*

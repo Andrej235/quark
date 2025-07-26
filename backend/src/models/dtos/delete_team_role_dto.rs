@@ -1,51 +1,38 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use macros::GenerateFieldEnum;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
+use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-#[rustfmt::skip]
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, Validate, GenerateFieldEnum)]
-pub struct JWTRefreshTokenPairDTO {
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
+pub struct DeleteTeamRoleDTO {
+    #[enum_name("Name")]
+    #[validate(length(min = 1, max = 40))]
+    pub name: String,
 
-    #[enum_name("JWTToken")]
-    #[validate(length(min = 200))]
-    pub jwt_token:          String,
-
-    #[enum_name("RefreshTokenId")]
-    pub refresh_token_id:   Uuid,
+    #[enum_name("TeamId")]
+    pub team_id: Uuid,
 }
 
 // ------------------------------------------------------------------------------------
-// IMPLEMENTATION
+// IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-impl JWTRefreshTokenPairDTO {
-    pub fn new(jwt_token: String, refresh_token_id: Uuid) -> Self {
-        Self {
-            jwt_token,
-            refresh_token_id
-        }
-    }
-}
+impl EndpointJsonBodyData for DeleteTeamRoleDTO {
 
-#[rustfmt::skip]
-#[allow(unused_variables)]
-impl EndpointJsonBodyData for JWTRefreshTokenPairDTO {
-
-    type FieldNameEnums = JWTRefreshTokenPairDTOField;
+    type FieldNameEnums = DeleteTeamRoleDTOField;
 
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
-        self.jwt_token = self.jwt_token.trim().to_string();
+        self.name = self.name.trim().to_string();
 
         // Run validation
         return self.validate();

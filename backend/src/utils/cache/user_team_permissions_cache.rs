@@ -11,7 +11,7 @@ pub struct UserTeamPermissionsCache;
 #[rustfmt::skip]
 impl UserTeamPermissionsCache {
 
-    pub async fn cache_permissions(
+    pub async fn cache(
         redis: &RedisService,
         user_id: Uuid,
         team_id: Uuid,
@@ -23,7 +23,7 @@ impl UserTeamPermissionsCache {
         return Ok(());
     }
     
-    pub async fn get_permissions(
+    pub async fn get(
         redis: &RedisService,
         user_id: Uuid,
         team_id: Uuid
@@ -33,7 +33,7 @@ impl UserTeamPermissionsCache {
         return redis.get_value(redis_key).await;
     }
 
-    pub async fn delete_permissions(
+    pub async fn delete(
         redis: &RedisService,
         user_id: Uuid,
         team_id: Uuid,
@@ -44,7 +44,21 @@ impl UserTeamPermissionsCache {
         return Ok(());
     }
 
-    pub async fn delete_all_permissions_for_team(
+    pub async fn delete_for_all_users(
+        redis: &RedisService,
+        team_id: Uuid,
+        user_ids: Vec<Uuid>
+    ) -> Result<(), RedisError> {
+
+        for user_id in user_ids {
+            let redis_pattern: String = format!("{}:{}:{}", USER_TEAM_PERMISSIONS_REDIS_KEY_PREFIX, user_id, team_id);
+            let _: () = redis.delete_matching_keys(redis_pattern).await?;
+        }
+
+        return Ok(());
+    }
+
+    pub async fn wipe(
         redis: &RedisService,
         team_id: Uuid
     ) -> Result<(), RedisError> {

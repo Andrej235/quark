@@ -3,50 +3,36 @@
 // ------------------------------------------------------------------------------------
 use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
 use macros::GenerateFieldEnum;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use utoipa::ToSchema;
-use uuid::Uuid;
 use validator::{Validate, ValidationErrors};
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-#[derive(Debug, Clone, ToSchema, Serialize, Deserialize, Validate, GenerateFieldEnum)]
-pub struct JWTRefreshTokenPairDTO {
-
-    #[enum_name("JWTToken")]
-    #[validate(length(min = 200))]
-    pub jwt_token:          String,
-
-    #[enum_name("RefreshTokenId")]
-    pub refresh_token_id:   Uuid,
+#[derive(Debug, Clone, ToSchema, Deserialize, Validate, GenerateFieldEnum)]
+pub struct KickTeamMemberDTO {
+    
+    #[enum_name("Username")]
+    #[validate(length(min = 1, max = 50))]
+    pub username: String,
 }
 
 // ------------------------------------------------------------------------------------
 // IMPLEMENTATION
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-impl JWTRefreshTokenPairDTO {
-    pub fn new(jwt_token: String, refresh_token_id: Uuid) -> Self {
-        Self {
-            jwt_token,
-            refresh_token_id
-        }
-    }
-}
-
-#[rustfmt::skip]
 #[allow(unused_variables)]
-impl EndpointJsonBodyData for JWTRefreshTokenPairDTO {
+impl EndpointJsonBodyData for KickTeamMemberDTO {
 
-    type FieldNameEnums = JWTRefreshTokenPairDTOField;
+    type FieldNameEnums = KickTeamMemberDTOField;
 
     fn validate_data(&mut self) -> Result<(), ValidationErrors> {
 
         // Trim strings
-        self.jwt_token = self.jwt_token.trim().to_string();
-
+        self.username = self.username.trim().to_string();
+        
         // Run validation
         return self.validate();
     }
