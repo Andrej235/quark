@@ -4,14 +4,20 @@ import RenderSlot from "./render-slot";
 
 export default function RowSlot({ slot }: RenderSlotProps<RowSlotType>) {
   return (
-    <div className="flex gap-8 p-2">
-      {slot.content.map((member, i) =>
-        "flex" in member ? (
-          <div style={{ flex: member.flex }} key={i}>
-            <RenderSlot slot={member.slot} />
+    <div
+      className="flex gap-8 p-2"
+      style={{
+        justifyContent: slot.horizontalAlign,
+        alignItems: slot.verticalAlign,
+      }}
+    >
+      {slot.content.map((child) =>
+        "flex" in child ? (
+          <div style={{ flex: child.flex }} key={child.slot.id}>
+            <RenderSlot slot={child.slot} />
           </div>
         ) : (
-          <RenderSlot slot={member} key={i} />
+          <RenderSlot slot={child} key={child.id} />
         ),
       )}
     </div>

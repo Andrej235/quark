@@ -3,16 +3,22 @@ import { GripVertical } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "./ui/separator";
 import { motion, useDragControls } from "motion/react";
+import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
+import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
+import { RowSlot } from "@/lib/prospect-template/row-slot";
+import { ColumnSlot } from "@/lib/prospect-template/column-slot";
 
 export default function LayoutAlignmentMenu() {
-  const horizontalModes = ["start", "center", "end"] as const;
-  const verticalModes = ["start", "center", "end"] as const;
+  const horizontalModes = ["flex-start", "center", "flex-end"] as const;
+  const verticalModes = ["flex-start", "center", "flex-end"] as const;
 
   const [selectedMode, setSelectedMode] = useState<
     [(typeof horizontalModes)[number], (typeof verticalModes)[number]]
   >(["center", "center"]);
 
   const dragControls = useDragControls();
+  const editingLayoutRoot = useSlotLayoutModeStore((x) => x.layoutRootId);
+  const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
   return (
     <motion.div
@@ -41,12 +47,20 @@ export default function LayoutAlignmentMenu() {
       <Separator />
 
       <div className="grid size-32 grid-cols-[2fr_5fr_2fr] grid-rows-[2fr_5fr_2fr] gap-2">
-        {horizontalModes.flatMap((x) =>
-          verticalModes.map((y) => (
+        {horizontalModes.flatMap((y) =>
+          verticalModes.map((x) => (
             <ModeButton
               key={x + y}
               active={x === selectedMode[0] && y === selectedMode[1]}
-              setActive={() => setSelectedMode([x, y])}
+              setActive={() => {
+                if (!editingLayoutRoot) return;
+
+                updateSlot<RowSlot | ColumnSlot>(editingLayoutRoot, (slot) => {
+                  slot.horizontalAlign = x;
+                  slot.verticalAlign = y;
+                });
+                setSelectedMode([x, y]);
+              }}
             />
           )),
         )}

@@ -5,4 +5,6 @@ export type RowSlot = {
   id: string;
   type: "row";
   content: SlotFlexWrapper[] | Slot[];
+  verticalAlign?: "flex-start" | "center" | "flex-end";
+  horizontalAlign?: "flex-start" | "center" | "flex-end";
 };
