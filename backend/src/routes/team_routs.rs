@@ -31,7 +31,7 @@ use lazy_static::lazy_static;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
-    QueryFilter, TransactionTrait,
+    QueryFilter,
 };
 use uuid::Uuid;
 
@@ -67,7 +67,7 @@ lazy_static! {
     request_body = CreateTeamDTO,
     responses(
         (status = 200, description = "Team created"),
-        (status = 401, description = ""),
+        (status = 409, description = "Team with same name already exists", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -80,26 +80,22 @@ pub async fn team_create(
     team_json: ValidatedJson<CreateTeamDTO>,
 ) -> impl Responder {
 
-    // Get json data
     let team_data: &CreateTeamDTO = team_json.get_data();
 
     // Dont allow user to create team if there is team with same name
-    match TeamEntity::find()
-        .filter(TeamColumn::Name.eq(team_data.name.clone()))
-        .one(db.get_ref())
-        .await {
-        Ok(None) => (),
-        Ok(Some(_)) => return HttpResponse::BadRequest().json(SRouteError { message: "Team already exists" }),
-        Err(err) => return HttpHelper::log_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
+    match TeamRepository::find_by_name(TEAM_CREATE_ROUTE_PATH, db.get_ref(), team_data.name.as_str(), false).await {
+        Ok(Some(_)) => return HttpResponse::Conflict().json(SRouteError { message: "Team with same name already exists" } ),
+        Ok(None) => {},
+        Err(err) => return err
     }
 
     // Begin transaction
     let team_id: Uuid = Uuid::now_v7(); // We create here teams id because we need to use it later for caching users team permissions
     let user_id: Uuid = auth_user.user.id; // Only reason that this is here is because of borrow checker
 
-    let transaction = match db.begin().await {
+    let transaction = match HttpHelper::begin_transaction(TEAM_CREATE_ROUTE_PATH, db.get_ref()).await {
         Ok(transaction) => transaction,
-        Err(err) => return HttpHelper::log_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
+        Err(err) => return err
     };
 
     let transaction_result: Result<(), DbErr> = (|| async {
@@ -172,7 +168,7 @@ pub async fn team_create(
 //
 // ************************************************************************************
 #[utoipa::path(
-    post,
+    put,
     path = TEAM_UPDATE_ROUTE_PATH.0,
     request_body = UpdateTeamDTO,
     params(
@@ -182,7 +178,7 @@ pub async fn team_create(
         (status = 200, description = "Team created"),
         (status = 404, description = "Team not found", body = SRouteError),
         (status = 409, description = "Team with same name already exists", body = SRouteError),
-        (status = 422, description = "", body = ValidationErrorDTO),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[put("/team/{team_id}")]
@@ -191,13 +187,11 @@ pub async fn team_update(
     db: Data<DatabaseConnection>,
     redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
-    team_id: Path<Uuid>,
+    path_data: Path<Uuid>,
     json_data: ValidatedJson<UpdateTeamDTO>,
 ) -> impl Responder {
     
-    println!("Team Update");
-
-    let team_id: Uuid = team_id.into_inner();
+    let team_id: Uuid = path_data.into_inner();
     let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
     // Prevent user from updating team if they dont have permission
@@ -272,8 +266,7 @@ pub async fn team_update(
     ),
     responses(
         (status = 200, description = "Team deleted"),
-        (status = 403, description = "Possibe messages: Not memeber of team, 
-                                                        Not allowed to delete team", body = SRouteError),
+        (status = 403, description = "Not memeber of team, Not allowed to delete team", body = SRouteError),
     )
 )]
 #[delete("/team/{team_id}")]
@@ -282,10 +275,10 @@ pub async fn team_delete(
     db: Data<DatabaseConnection>,
     redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
-    team_id: Path<Uuid>,
+    path_data: Path<Uuid>,
 ) -> impl Responder {
 
-    let team_id = team_id.into_inner();
+    let team_id = path_data.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
     let team_permissions: i32 = match TeamRepository::get_user_permissions(

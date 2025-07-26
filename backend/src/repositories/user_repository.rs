@@ -1,7 +1,7 @@
 use crate::entity::users::{
     ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, Model as User,
 };
-use crate::types::aliases::{EndpointPathInfo, HttpResult, OptionHttpResult, UserId};
+use crate::types::aliases::{EndpointPathInfo, HttpResult, OptionalHttpResult, UserId};
 use crate::{models::sroute_error::SRouteError, utils::http_helper::HttpHelper};
 use actix_web::HttpResponse;
 use sea_orm::{
@@ -54,7 +54,7 @@ impl UserRepository {
         db: &DatabaseConnection,
         user_id: UserId,
         handle_not_found: bool
-    ) -> OptionHttpResult<User> {
+    ) -> OptionalHttpResult<User> {
 
         return match UserEntity::find_by_id(user_id)
             .one(db)
@@ -81,7 +81,7 @@ impl UserRepository {
         db: &DatabaseConnection,
         user_email: &str,
         handle_not_found: bool
-    ) -> OptionHttpResult<User> {
+    ) -> OptionalHttpResult<User> {
 
         return match UserEntity::find()
             .filter(UserColumn::Email.eq(user_email))
@@ -109,7 +109,7 @@ impl UserRepository {
         db: &DatabaseConnection, 
         username: &str,
         handle_not_found: bool
-    ) -> OptionHttpResult<Uuid> {
+    ) -> OptionalHttpResult<Uuid> {
         return match UserEntity::find()
             .filter(UserColumn::Username.eq(username))
             .one(db)
