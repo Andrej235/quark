@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 import { X } from "lucide-react";
 
 export default function DashboardHeader() {
-  const isInLayoutMode = useSlotLayoutModeStore((x) => x.layoutRoot) !== null;
+  const isInLayoutMode = useSlotLayoutModeStore((x) => x.layoutRootId) !== null;
   const exitLayoutMode = useSlotLayoutModeStore((x) => x.exitLayoutMode);
 
   const isInBaseMode = !isInLayoutMode;

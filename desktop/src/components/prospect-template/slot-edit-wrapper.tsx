@@ -63,7 +63,7 @@ export default function SlotEditWrapper({
     }),
   );
   const layoutRootId = useSlotLayoutModeStore((x) => x.layoutRootId);
-  const isInLayoutMode = layoutRootId !== null;
+  const isInLayoutMode = !!layoutRootId;
   const [draggingSlot, setDraggingSlot] = useState<Slot | null>(null);
   const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 

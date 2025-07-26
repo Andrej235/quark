@@ -18,8 +18,8 @@ export default function RenderSlotTree({
     setRoot(slot);
   }, [slot, setRoot]);
 
-  const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
-  const isInLayoutMode = layoutRoot !== null;
+  const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRootId);
+  const isInLayoutMode = !!layoutRoot;
   const exitLayoutMode = useSlotLayoutModeStore((x) => x.exitLayoutMode);
 
   useShortcut({
