@@ -30,6 +30,10 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   AlignEndHorizontal,
   AlignStartHorizontal,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   Edit3,
   Grip,
   LayoutTemplate,
@@ -57,7 +61,11 @@ export default function SlotEditWrapper({
   children,
 }: RenderSlotProps & { children?: ReactNode }) {
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -88,7 +96,6 @@ export default function SlotEditWrapper({
 
       updateSlot<RowSlot | ColumnSlot>(slot.id, (x) => {
         x.content = newChildren;
-        console.log(x);
       });
     }
 
@@ -144,6 +151,7 @@ function SlotWrapper({
   const isInteractiveSlot = slot.type === "button";
 
   const editingLayoutRoot = useSlotLayoutModeStore((x) => x.layoutRootId);
+  const editingLayoutRootType = useSlotLayoutModeStore((x) => x.layoutType);
   const enterLayoutMode = useSlotLayoutModeStore((x) => x.enterLayoutMode);
   const isMovableDueToLayoutMode = useSlotLayoutModeStore(
     (x) => x.isSlotChildOfLayoutRoot,
@@ -174,6 +182,10 @@ function SlotWrapper({
   const isHovered = topSlotId === slot.id;
   const isActive =
     editingLayoutRoot === slot.id || (isHovered && !editingLayoutRoot);
+
+  function handleMoveLeft() {}
+
+  function handleMoveRight() {}
 
   return (
     <ContextMenu
@@ -298,8 +310,39 @@ function SlotWrapper({
                 }}
               />
 
-              <div className="absolute left-0 top-0 grid size-full place-items-center">
-                <Grip className="size-8 opacity-50" />
+              <div
+                className={cn(
+                  "absolute left-0 top-0 flex size-full items-center justify-center",
+                  editingLayoutRootType === "column" && "flex-col",
+                )}
+              >
+                <button
+                  className="cursor-pointer opacity-50 transition-opacity hover:opacity-100"
+                  onClick={handleMoveLeft}
+                >
+                  {editingLayoutRootType === "row" && (
+                    <ChevronLeft className="size-8" />
+                  )}
+                  {editingLayoutRootType === "column" && (
+                    <ChevronUp className="size-8" />
+                  )}
+                </button>
+
+                <div>
+                  <Grip className="size-8 opacity-50" />
+                </div>
+
+                <button
+                  className="cursor-pointer opacity-50 transition-opacity hover:opacity-100"
+                  onClick={handleMoveRight}
+                >
+                  {editingLayoutRootType === "row" && (
+                    <ChevronRight className="size-8" />
+                  )}
+                  {editingLayoutRootType === "column" && (
+                    <ChevronDown className="size-8" />
+                  )}
+                </button>
               </div>
             </motion.div>
           )}
