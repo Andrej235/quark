@@ -1,7 +1,7 @@
 use crate::{
     entity::refresh_tokens::{Entity as RefreshTokenEntity, Model as RefreshToken},
     models::sroute_error::SRouteError,
-    types::aliases::{EndpointPathInfo, OptionHttpResult, RefreshTokenId},
+    types::aliases::{EndpointPathInfo, OptionalHttpResult, RefreshTokenId},
     utils::http_helper::HttpHelper,
 };
 use actix_web::HttpResponse;
@@ -22,7 +22,7 @@ impl RefreshTokenRepository {
         db: &DatabaseConnection,
         refresh_token_id: RefreshTokenId,
         handle_not_found: bool
-    ) -> OptionHttpResult<RefreshToken> {
+    ) -> OptionalHttpResult<RefreshToken> {
 
         return match RefreshTokenEntity::find_by_id(refresh_token_id)
             .one(db)

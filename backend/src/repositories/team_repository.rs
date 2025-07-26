@@ -5,10 +5,10 @@ use crate::entity::team_roles::{
     ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
     Model as TeamRole,
 };
-use crate::entity::teams::{Entity as TeamEntity, Model as TeamModel};
+use crate::entity::teams::{Column as TeamColumn, Entity as TeamEntity, Model as Team};
 use crate::models::route_error::RouteError;
+use crate::types::aliases::{EndpointPathInfo, HttpResult, TeamId, UserId};
 use crate::{
-    enums::type_of_request::TypeOfRequest,
     models::sroute_error::SRouteError,
     utils::{
         cache::user_team_permissions_cache::UserTeamPermissionsCache, http_helper::HttpHelper,
@@ -20,7 +20,6 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait,
     PaginatorTrait, QueryFilter, QuerySelect,
 };
-use uuid::Uuid;
 
 pub struct TeamRepository;
 
@@ -39,11 +38,11 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team
     pub async fn exists(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection, 
-        team_id: Uuid,
+        team_id: TeamId,
         handle_not_found: bool
-    ) -> Result<bool, HttpResponse> {
+    ) -> HttpResult<bool> {
 
         return match TeamEntity::find_by_id(team_id)
             .one(db)
@@ -66,11 +65,11 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team
     pub async fn find_by_id(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection, 
-        team_id: Uuid,
+        team_id: TeamId,
         handle_not_found: bool
-    ) -> Result<Option<TeamModel>, HttpResponse> {
+    ) -> Result<Option<Team>, HttpResponse> {
     
         return match TeamEntity::find_by_id(team_id)
             .one(db)
@@ -87,11 +86,39 @@ impl TeamRepository {
             }
     }
 
+    /// Tries to find team by specified **name** <br/>
+    /// **NOTE: if handle_not_found is true, it will return NotFound response** <br/>
+    /// Returns: NotFound(**Team not found**) response if team is not found <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: Found team
+    pub async fn find_by_name(
+        endpoint_path: EndpointPathInfo,
+        db: &DatabaseConnection, 
+        name: &str,
+        handle_not_found: bool
+    ) -> Result<Option<Team>, HttpResponse> {
+    
+        return match TeamEntity::find()
+            .filter(TeamColumn::Name.eq(name))
+            .one(db)
+            .await {
+                Ok(Some(team)) => Ok(Some(team)),
+                Ok(None) => {
+                    if handle_not_found {
+                        Err(HttpResponse::NotFound().json(SRouteError { message: "Team not found" }))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team", Box::new(err)))
+            }
+    }
+
     pub async fn delete_by_id(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
         redis: &RedisService,
-        team_id: Uuid
+        team_id: TeamId
     ) -> Result<(), HttpResponse> {
 
         match TeamEntity::delete_by_id(team_id)
@@ -124,11 +151,11 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: True if user is member of team
     pub async fn is_member(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
         redis: &RedisService,
-        team_id: Uuid,
-        user_id: Uuid,
+        team_id: TeamId,
+        user_id: UserId,
         handle_not_member: bool
     ) -> Result<bool, HttpResponse> {
 
@@ -162,10 +189,10 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team member
     pub async fn find_member(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
-        team_id: Uuid,
-        user_id: Uuid
+        team_id: TeamId,
+        user_id: UserId
     ) -> Result<Option<TeamMember>, HttpResponse> {
 
         return match TeamMemberEntity::find()
@@ -182,9 +209,9 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team members
     pub async fn get_members(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
-        team_id: Uuid
+        team_id: TeamId
     ) -> Result<Vec<TeamMember>, HttpResponse> {
 
         return match TeamMemberEntity::find()
@@ -200,9 +227,9 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Count of team members
     pub async fn get_members_count(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
-        team_id: Uuid
+        team_id: TeamId
     ) -> Result<u64, HttpResponse> {
 
         return match TeamMemberEntity::find()
@@ -218,11 +245,11 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query or redis fails <br/>
     /// Returns: Ok
     pub async fn delete_member(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
         redis: &RedisService,
-        team_id: Uuid,
-        user_id: Uuid
+        team_id: TeamId,
+        user_id: UserId
     ) -> Result<(), HttpResponse> {
 
         return match UserTeamPermissionsCache::delete(redis, user_id, team_id).await {
@@ -253,11 +280,11 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Tuple of team member and team role
     pub async fn get_user_permissions(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
         redis: &RedisService,
-        user_id: Uuid,
-        team_id: Uuid,
+        team_id: TeamId,
+        user_id: UserId
     ) -> Result<i32, HttpResponse> {
     
         // Check if there is cached permissions
@@ -310,7 +337,7 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Created team role
     pub async fn add_new_role(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
         new_role: TeamRoleActiveModel
     ) -> Result<TeamRole, HttpResponse> {
@@ -326,9 +353,9 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Team role id
     pub async fn find_role_id_by_name(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
-        team_id: Uuid,
+        team_id: TeamId,
         role_name: &str,
         handle_not_found: bool
     ) -> Result<Option<i64>, HttpResponse> {
@@ -356,9 +383,9 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: True if team has role with specified **name**, false otherwise
     pub async fn has_role_by_name(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
-        team_id: Uuid,
+        team_id: TeamId,
         role_name: &str
     ) -> Result<bool, HttpResponse> {
 
@@ -376,12 +403,12 @@ impl TeamRepository {
     /// Returns: InternalServerError if database query or redis fails <br/>
     /// Returns: Ok
     pub async fn delete_role<C>(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         db: &C,
         redis: &RedisService,
-        team_id: Uuid,
+        team_id: TeamId,
         role_id: i64,
-        user_ids: Vec<Uuid>
+        user_ids: Vec<UserId>
     ) -> Result<(), HttpResponse> 
     where
         C: ConnectionTrait + Send + Sync,

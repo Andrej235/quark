@@ -4,21 +4,21 @@
 //
 // ************************************************************************************
 use crate::{
-    entity::team_members::{
-        Column as TeamMemberColumn, Entity as TeamMemberEntity
-    },
-    entity::team_roles::{
-        ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
-        Model as TeamRole,
+    entity::{
+        team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity},
+        team_roles::{
+            ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
+            Model as TeamRole,
+        },
     },
     models::{
         dtos::{
             create_team_role_dto::CreateTeamRoleDTO, delete_team_role_dto::DeleteTeamRoleDTO,
-            team_role_info_dto::TeamRoleInfoDTO, update_team_role_dto::UpdateTeamRoleDTO
+            team_role_info_dto::TeamRoleInfoDTO, update_team_role_dto::UpdateTeamRoleDTO,
+            validation_error_dto::ValidationErrorDTO,
         },
         middleware::{
-            advanced_authenticated_user::AdvancedAuthenticatedUser,
-            validated_json::ValidatedJson,
+            advanced_authenticated_user::AdvancedAuthenticatedUser, validated_json::ValidatedJson,
         },
         permission::Permission,
         sroute_error::SRouteError,
@@ -58,6 +58,7 @@ use uuid::Uuid;
         (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
         (status = 404, description = "Team not found", body = SRouteError),
         (status = 409, description = "Role already exists", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[post("/team-role")]
@@ -105,13 +106,14 @@ pub async fn team_role_create(
 //
 // ************************************************************************************
 #[utoipa::path(
-    post,
+    put,
     path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
-    request_body = CreateTeamRoleDTO,
+    request_body = UpdateTeamRoleDTO,
     responses(
         (status = 200, description = "Team role created"),
         (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
         (status = 404, description = "Team not found, Team role not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[put("/team-role")]
@@ -223,13 +225,14 @@ pub async fn team_roles_get(
 //
 // ************************************************************************************
 #[utoipa::path(
-    post,
+    delete,
     path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
-    request_body = CreateTeamRoleDTO,
+    request_body = DeleteTeamRoleDTO,
     responses(
         (status = 200, description = "Team role deleted"),
         (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
         (status = 404, description = "Team not found, Team role not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[delete("/team-role")]
