@@ -1,39 +1,38 @@
-import { BaseSlot } from "@/lib/prospect-template/base-slot";
 import { create } from "zustand";
 
 type SlotHoverStackStore = {
-  topSlot: BaseSlot | null;
-  frozenSlot: BaseSlot | null;
-  stack: BaseSlot[];
-  addToHoverStack: (slot: BaseSlot) => void;
-  removeFromHoverStack: (slot: BaseSlot) => void;
-  freezeHoverStack: (slot: BaseSlot | null) => void;
+  topSlotId: string | null;
+  frozenSlotId: string | null;
+  stack: string[];
+  addToHoverStack: (slotId: string) => void;
+  removeFromHoverStack: (slotId: string) => void;
+  freezeHoverStack: (slotId: string | null) => void;
 };
 
 export const useSlotHoverStackStore = create<SlotHoverStackStore>(
   (set, get) => ({
-    frozenSlot: null,
-    topSlot: null,
+    frozenSlotId: null,
+    topSlotId: null,
     stack: [],
-    addToHoverStack: (slot: BaseSlot) => {
-      const { stack, frozenSlot } = get();
+    addToHoverStack: (slot: string) => {
+      const { stack, frozenSlotId } = get();
       const newStack = [...stack, slot];
-      const topSlot = frozenSlot ?? slot ?? null;
+      const topSlotId = frozenSlotId ?? slot ?? null;
 
-      set({ stack: newStack, topSlot });
+      set({ stack: newStack, topSlotId });
     },
-    removeFromHoverStack: (slot: BaseSlot) => {
-      const { stack, frozenSlot } = get();
+    removeFromHoverStack: (slot: string) => {
+      const { stack, frozenSlotId } = get();
       const newStack = [...stack.filter((s) => s !== slot)];
-      const topSlot = frozenSlot ?? newStack[newStack.length - 1] ?? null;
+      const topSlotId = frozenSlotId ?? newStack[newStack.length - 1] ?? null;
 
-      set({ stack: newStack, topSlot });
+      set({ stack: newStack, topSlotId });
     },
-    freezeHoverStack: (slot: BaseSlot | null) => {
+    freezeHoverStack: (slot: string | null) => {
       const { stack } = get();
-      const topSlot = slot ?? stack[stack.length - 1] ?? null;
+      const topSlotId = slot ?? stack[stack.length - 1] ?? null;
 
-      set({ frozenSlot: slot, topSlot });
+      set({ frozenSlotId: slot, topSlotId });
     },
   }),
 );

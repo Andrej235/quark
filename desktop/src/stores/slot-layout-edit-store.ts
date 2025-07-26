@@ -1,10 +1,10 @@
 import { LayoutSlot } from "@/lib/prospect-template/layout-slot";
 import { Slot } from "@/lib/prospect-template/slot";
-import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
 import { create } from "zustand";
 
 type SlotLayoutModeStore = {
-  layoutRoot: LayoutSlot | null;
+  layoutRootId: string | null;
+  layoutChildren: string[] | null;
   isSlotChildOfLayoutRoot: (slot: Slot) => boolean;
   enterLayoutMode: (slot: LayoutSlot) => void;
   exitLayoutMode: () => void;
@@ -12,14 +12,19 @@ type SlotLayoutModeStore = {
 
 export const useSlotLayoutModeStore = create<SlotLayoutModeStore>()(
   (set, get) => ({
-    layoutRoot: null,
-    enterLayoutMode: (slot: LayoutSlot) => set({ layoutRoot: slot }),
-    exitLayoutMode: () => set({ layoutRoot: null }),
+    layoutRootId: null,
+    layoutChildren: null,
+    enterLayoutMode: (slot: LayoutSlot) =>
+      set({
+        layoutRootId: slot.id,
+        layoutChildren: slot.content.map((x) =>
+          "slot" in x ? x.slot.id : x.id,
+        ),
+      }),
+    exitLayoutMode: () => set({ layoutRootId: null, layoutChildren: null }),
     isSlotChildOfLayoutRoot: (slot: Slot) => {
-      const { layoutRoot } = get();
-      return (
-        layoutRoot?.content.includes(slot as Slot & SlotFlexWrapper) ?? false
-      );
+      const { layoutChildren } = get();
+      return layoutChildren?.includes(slot.id) ?? false;
     },
   }),
 );

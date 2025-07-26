@@ -22,11 +22,9 @@ import {
 } from "@dnd-kit/core";
 import {
   arrayMove,
-  horizontalListSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -64,15 +62,15 @@ export default function SlotEditWrapper({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
-  const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
-  const isInLayoutMode = layoutRoot !== null;
+  const layoutRootId = useSlotLayoutModeStore((x) => x.layoutRootId);
+  const isInLayoutMode = layoutRootId !== null;
   const [draggingSlot, setDraggingSlot] = useState<Slot | null>(null);
   const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
   if (slot.type === "row" || slot.type === "column") {
     const layoutChildren = slot.content ?? [];
 
-    function handleDragEnd(event: DragEndEvent) {
+    function handleDragOver(event: DragEndEvent) {
       if (!isInLayoutMode) return;
 
       const { active, over } = event;
@@ -101,19 +99,14 @@ export default function SlotEditWrapper({
         onDragStart={({ active }) => {
           setDraggingSlot(active.data.current as Slot);
         }}
-        onDragEnd={(e) => {
+        onDragEnd={() => {
           setDraggingSlot(null);
-          handleDragEnd(e);
+        }}
+        onDragOver={(e) => {
+          handleDragOver(e);
         }}
       >
-        <SortableContext
-          items={layoutChildren as []}
-          strategy={
-            slot.type === "column"
-              ? verticalListSortingStrategy
-              : horizontalListSortingStrategy
-          }
-        >
+        <SortableContext items={layoutChildren as []} strategy={() => null}>
           <SlotWrapper slot={slot}>{children}</SlotWrapper>
         </SortableContext>
 
@@ -139,7 +132,7 @@ function SlotWrapper({
   const typeName = toTitleCase(slot.type.replace("-", " "));
   const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
-  const topSlot = useSlotHoverStackStore((x) => x.topSlot);
+  const topSlotId = useSlotHoverStackStore((x) => x.topSlotId);
   const addToHoverStack = useSlotHoverStackStore((x) => x.addToHoverStack);
   const removeFromHoverStack = useSlotHoverStackStore(
     (x) => x.removeFromHoverStack,
@@ -150,7 +143,7 @@ function SlotWrapper({
   const isInputSlot = slot.type.endsWith("-field");
   const isInteractiveSlot = slot.type === "button";
 
-  const editingLayoutRoot = useSlotLayoutModeStore((x) => x.layoutRoot);
+  const editingLayoutRoot = useSlotLayoutModeStore((x) => x.layoutRootId);
   const enterLayoutMode = useSlotLayoutModeStore((x) => x.enterLayoutMode);
   const isMovableDueToLayoutMode = useSlotLayoutModeStore(
     (x) => x.isSlotChildOfLayoutRoot,
@@ -162,6 +155,7 @@ function SlotWrapper({
     setNodeRef: dragRef,
     transform: dragTransform,
     transition: dragTransition,
+    isDragging,
   } = useSortable({
     id: slot.id,
     disabled: !isMovableDueToLayoutMode,
@@ -177,16 +171,16 @@ function SlotWrapper({
     [dragTransform, dragTransition],
   );
 
-  const isHovered = topSlot === slot;
+  const isHovered = topSlotId === slot.id;
   const isActive =
-    editingLayoutRoot === slot || (isHovered && !editingLayoutRoot);
+    editingLayoutRoot === slot.id || (isHovered && !editingLayoutRoot);
 
   return (
     <ContextMenu
-      onOpenChange={(newOpen) => freezeHoverStack(newOpen ? slot : null)}
+      onOpenChange={(newOpen) => freezeHoverStack(newOpen ? slot.id : null)}
     >
       <ContextMenuTrigger
-        disabled={!!editingLayoutRoot && editingLayoutRoot !== slot}
+        disabled={!!editingLayoutRoot && editingLayoutRoot !== slot.id}
       >
         <div
           ref={dragRef}
@@ -194,14 +188,15 @@ function SlotWrapper({
           {...dragAttributes}
           {...dragListeners}
           className={cn(
-            "outline-border/0 **:disabled:opacity-100 relative rounded-md outline-dashed outline-2 outline-offset-8 transition-colors",
+            "outline-border/0 **:disabled:opacity-100 relative rounded-md outline-dashed outline-2 outline-offset-8 transition-all",
             isActive && "outline-border",
+            isDragging && "opacity-50",
           )}
           onPointerEnter={() => {
-            addToHoverStack(slot);
+            addToHoverStack(slot.id);
           }}
           onPointerLeave={() => {
-            removeFromHoverStack(slot);
+            removeFromHoverStack(slot.id);
           }}
         >
           {children}
@@ -221,7 +216,7 @@ function SlotWrapper({
             {isInteractiveSlot && <MousePointerClick className="size-4" />}
           </div>
 
-          {isMovableDueToLayoutMode && (
+          {isMovableDueToLayoutMode && !isDragging && (
             <motion.div
               initial={{
                 opacity: 0,
@@ -309,7 +304,7 @@ function SlotWrapper({
             </motion.div>
           )}
 
-          {editingLayoutRoot === slot && <LayoutAlignmentMenu />}
+          {editingLayoutRoot === slot.id && <LayoutAlignmentMenu />}
         </div>
       </ContextMenuTrigger>
 
