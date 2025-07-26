@@ -4,28 +4,24 @@ import path from "path";
 import { defineConfig } from "vite";
 import svgr from "vite-plugin-svgr";
 
-const host = process.env.TAURI_DEV_HOST;
-
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss(), svgr()],
   clearScreen: false,
   server: {
-    port: 1420,
+    port: 3000,
     strictPort: true,
-    host: host || false,
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 1421,
-        }
-      : undefined,
+    host: true,
+    hmr: {
+      protocol: "ws",
+      host: "localhost",
+      port: 1421,
+    },
     watch: {
       ignored: ["**/src-tauri/**"],
     },
   },
-    resolve: {
+  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
