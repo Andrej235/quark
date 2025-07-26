@@ -12,6 +12,7 @@ use crate::entity::team_roles::{Column as TeamRoleColumn, Entity as TeamRoleEnti
 use crate::entity::teams::{Entity as TeamEntity, Model as Team};
 use crate::entity::users::Model as User;
 use crate::enums::type_of_request::TypeOfRequest;
+use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::sroute_error::SRouteError;
 use crate::repositories::team_repository::TeamRepository;
 use crate::repositories::user_repository::UserRepository;
@@ -51,10 +52,12 @@ use uuid::Uuid;
 #[utoipa::path(
     post,
     path = TEAM_INVITATION_SEND_ROUTE_PATH.0,
+    request_body = TeamInvitationDTO,
     responses(
         (status = 200, description = "Invitation sent"),
         (status = 400, description = "User not verified", body = SRouteError),
         (status = 404, description = "User not found, Team not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )   
 )]
 #[post("/team-invitations")]
@@ -130,9 +133,17 @@ pub async fn team_invitation_send(
     return HttpResponse::Ok().finish();
 }
 
+// ************************************************************************************
+//
+// ROUTES - PATCH
+//
+// ************************************************************************************
 #[utoipa::path(
-    post,
+    patch,
     path = TEAM_INVITATION_ACCEPT_ROUTE_PATH.0,
+    params(
+        ("code" = String, Path),
+    ),
     responses(
         (status = 200, description = "Invitation accepted"),
         (status = 400, description = "Invalid code", body = SRouteError),
@@ -146,10 +157,10 @@ pub async fn team_invitation_send(
 pub async fn team_invitation_accept(
     db: Data<DatabaseConnection>,
     auth_user: AdvancedAuthenticatedUser,
-    path: Path<String>
+    path_data: Path<String>
 ) -> impl Responder {
 
-    let code: String = path.into_inner();
+    let code: String = path_data.into_inner();
 
     // Check required data
     let invitation: TeamInvitation = match check_ability_to_respond_to_invitation(&db, &auth_user, code.clone(), TEAM_INVITATION_ACCEPT_ROUTE_PATH).await {
@@ -208,8 +219,11 @@ pub async fn team_invitation_accept(
 }
 
 #[utoipa::path(
-    post,
+    patch,
     path = TEAM_INVITATION_DECLINE_ROUTE_PATH.0,
+    params(
+        ("code" = String, Path),
+    ),
     responses(
         (status = 200, description = "Invitation accepted"),
         (status = 400, description = "Invalid code", body = SRouteError),
@@ -223,10 +237,10 @@ pub async fn team_invitation_accept(
 pub async fn team_invitation_decline(
     db: Data<DatabaseConnection>,
     auth_user: AdvancedAuthenticatedUser,
-    path: Path<String>
+    path_data: Path<String>
 ) -> impl Responder {
 
-    let code: String = path.into_inner();
+    let code: String = path_data.into_inner();
 
     // Check required data
     let invitation: TeamInvitation = match check_ability_to_respond_to_invitation(&db, &auth_user, code.clone(), TEAM_INVITATION_DECLINE_ROUTE_PATH).await {

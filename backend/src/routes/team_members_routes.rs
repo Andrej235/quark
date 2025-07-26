@@ -8,6 +8,7 @@ use crate::entity::team_roles::Entity as TeamRoleEntity;
 use crate::entity::users::Entity as UserEntity;
 use crate::models::dtos::kick_team_member_dto::KickTeamMemberDTO;
 use crate::models::dtos::team_member_info::TeamMemberInfo;
+use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
@@ -32,7 +33,7 @@ use uuid::Uuid;
 //
 // ************************************************************************************
 #[utoipa::path(
-    delete,
+    get,
     path = TEAM_MEMBERS_GET_ROUTE_PATH.0,
     params(
         ("team_id" = Uuid, Path),
@@ -117,14 +118,15 @@ pub async fn team_get_members(
 #[utoipa::path(
     delete,
     path = TEAM_MEMBERS_KICK_ROUTE_PATH.0,
+    request_body = KickTeamMemberDTO,
     params(
         ("team_id" = Uuid, Path),
     ),
-    request_body = KickTeamMemberDTO,
     responses(
         (status = 200, description = "Team member kicked"),
         (status = 403, description = "Not member of team, Permission too low, User not found, Cannot kick owner of team", body = SRouteError),
         (status = 409, description = "Cannot remove yourself", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[delete("/team_members/kick/{team_id}")]
