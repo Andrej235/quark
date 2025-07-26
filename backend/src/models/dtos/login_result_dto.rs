@@ -27,6 +27,16 @@ pub struct LogInResultDTO {
 // IMPLEMENTATION
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
+impl LogInResultDTO {
+    pub fn new(jwt_token: String, refresh_token_id: Uuid) -> LogInResultDTO {
+        Self {
+            jwt_token,
+            refresh_token_id
+        }        
+    }
+}
+
+#[rustfmt::skip]
 #[allow(unused_variables)]
 impl EndpointJsonBodyData for LogInResultDTO {
 

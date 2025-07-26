@@ -1,14 +1,48 @@
-use crate::entity::users::{Column as UserColumn, Entity as UserEntity, Model as User};
-use crate::types::aliases::{EndpointPathInfo, OptionHttpResult, UserId};
+use crate::entity::users::{
+    ActiveModel as UserActiveModel, Column as UserColumn, Entity as UserEntity, Model as User,
+};
+use crate::types::aliases::{EndpointPathInfo, HttpResult, OptionHttpResult, UserId};
 use crate::{models::sroute_error::SRouteError, utils::http_helper::HttpHelper};
 use actix_web::HttpResponse;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+};
 use uuid::Uuid;
 
 pub struct UserRepository;
 
 #[rustfmt::skip]
 impl UserRepository {
+
+    /// Checks if user with specified **id** exists <br/>
+    /// NOTE: if handle_not_found is true, it will return NotFound response <br/>
+    /// Returns: NotFound(**User not found**) response if user is not found <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    /// Returns: True if user exists, otherwise false
+    pub async fn exists_by_id(
+        endpoint_path: EndpointPathInfo,
+        db: &DatabaseConnection, 
+        user_id: UserId,
+        handle_not_found: bool
+    ) -> HttpResult<bool> {
+
+        return match UserEntity::find_by_id(user_id)
+            .count(db)
+            .await {
+                Ok(count) => {
+                    if count > 0 {
+                        return Ok(true);
+                    }
+
+                    if handle_not_found {
+                        return Err(HttpResponse::NotFound().json(SRouteError { message: "User not found" }))
+                    } else {
+                        return Ok(false)
+                    }
+                },
+                Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Checking if team exists", Box::new(err)))
+            };
+    }
 
     /// Tries to find user by specified **id** <br/>
     /// NOTE: if handle_not_found is true, it will return NotFound response <br/>
@@ -90,5 +124,19 @@ impl UserRepository {
                 },
                 Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding user", Box::new(err)))
             };
+    }
+
+    /// Tries to update user <br/>
+    /// Returns: InternalServerError if database query fails <br/>
+    pub async fn update(
+        endpoint_path: EndpointPathInfo,
+        db: &DatabaseConnection,
+        mode_to_update: UserActiveModel
+    ) -> HttpResult<()> {
+        
+        return match mode_to_update.update(db).await {
+            Ok(_) => Ok(()),
+            Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Updating user", Box::new(err)))
+        };
     }
 }

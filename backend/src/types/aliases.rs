@@ -14,3 +14,4 @@ pub type EmptyHttpResult = HttpResult<()>;
 pub type PermissionBits = i32;
 pub type UserId = Uuid;
 pub type TeamId = Uuid;
+pub type RefreshTokenId = Uuid;
