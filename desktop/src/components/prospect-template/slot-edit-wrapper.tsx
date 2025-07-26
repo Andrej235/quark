@@ -183,9 +183,36 @@ function SlotWrapper({
   const isActive =
     editingLayoutRoot === slot.id || (isHovered && !editingLayoutRoot);
 
-  function handleMoveLeft() {}
+  function handleMoveLeft() {
+    if (!editingLayoutRoot) return;
 
-  function handleMoveRight() {}
+    updateSlot<RowSlot | ColumnSlot>(editingLayoutRoot, (root) => {
+      const idx = root.content
+        .map((x) => ("slot" in x ? x.slot.id : x.id))
+        .indexOf(slot.id);
+
+      let newIdx = idx - 1;
+      if (newIdx < 0) newIdx = root.content.length - 1;
+
+      const newChildren = arrayMove(root.content as [], idx, newIdx);
+      root.content = newChildren;
+    });
+  }
+
+  function handleMoveRight() {
+    if (!editingLayoutRoot) return;
+
+    updateSlot<RowSlot | ColumnSlot>(editingLayoutRoot, (root) => {
+      const idx = root.content
+        .map((x) => ("slot" in x ? x.slot.id : x.id))
+        .indexOf(slot.id);
+
+      const newIdx = (idx + 1) % root.content.length;
+
+      const newChildren = arrayMove(root.content as [], idx, newIdx);
+      root.content = newChildren;
+    });
+  }
 
   return (
     <ContextMenu
