@@ -32,7 +32,6 @@ use crate::utils::constants::{
 };
 use crate::utils::http_helper::HttpHelper;
 use crate::utils::redis_service::RedisService;
-use crate::utils::timer::Timer;
 use crate::{
     entity::refresh_tokens::{
         ActiveModel as RefreshTokenActiveModel, Column as RefreshTokenColumn,
@@ -67,12 +66,11 @@ use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::{Error as ResendError, Resend};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
-    PaginatorTrait, QueryFilter,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter,
 };
 use std::error::Error;
 use std::io::Cursor;
-use tracing::error;
 use uuid::Uuid;
 
 // ************************************************************************************
@@ -557,6 +555,7 @@ async fn user_update_default_team(
     responses(
         (status = 200, description = "Email verified"),
         (status = 400, description = "Invalid code, User already verified", body = SRouteError),
+        (status = 401, description = "User not found"),
     )
 )]
 #[get("/user/email/verify/{email}/{code}")]
@@ -573,9 +572,7 @@ async fn verify_email(
     // If code is not valid abort endpoint execution
     let can_verify = match EmailVerificationCache::verify_code(redis_service.get_ref(), &email, &code).await {
         Ok(can_verify) => can_verify,
-        Err(err) => {
-            return HttpHelper::log_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err))
     };
 
     if can_verify == false {
@@ -598,12 +595,10 @@ async fn verify_email(
     let mut user_active_model: UserActiveModel = user_model.into();
     user_active_model.is_email_verified = Set(true);
 
-    let update_result = user_active_model.update(db.get_ref()).await;
-    if let Err(err) = update_result {
-        return HttpHelper::log_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Updating user", Box::new(err));
+    match UserRepository::update(VERIFY_EMAIL_ROUTE_PATH, db.get_ref(), user_active_model).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return err
     }
-
-    return HttpResponse::Ok().body("Verified.");
 }
 
 /*
@@ -614,7 +609,7 @@ async fn verify_email(
     path = SEND_VERIFICATION_EMAIL_ROUTE_PATH.0,
     responses(
         (status = 200, description = "Email sent"),
-        (status = 400, description = "User already verified", body = SRouteError),
+        (status = 409, description = "User already verified", body = SRouteError),
     )
 )]
 #[get("/user/email/send-verification")]
@@ -626,7 +621,7 @@ async fn send_email_verification(
 
     // If user is already verified there is no reason for verification code to be sent
     if auth_user.user.is_email_verified == true {
-        return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
+        return HttpResponse::Conflict().json(SRouteError { message: "User already verified" });
     }
 
     // Generate token that will be use in link for verification or for use to manually verify
@@ -634,20 +629,14 @@ async fn send_email_verification(
 
     match send_verification_email(&auth_user.user.username, &auth_user.user.email, &code).await {
         Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err))
     };
 
     // Store generated verification code in redis
     match EmailVerificationCache::cache_code(redis_service.get_ref(), auth_user.user.email.as_str(), code).await {
-        Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err));
-        }
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err))
     }
-
-    return HttpResponse::Ok().finish();
 }
 
 /*
@@ -658,7 +647,6 @@ async fn send_email_verification(
     path = GET_USER_INFO_ROUTE_PATH.0,
     responses(
         (status = 200, description = "User info", body = UserInfoDTO),
-        (status = 401, description = ""),
     )
 )]
 #[get("/user/me")]
@@ -671,9 +659,7 @@ async fn get_user_info(
     // Encode profile picture as base64 string
     let profile_picture_base64: Option<String> = match auth_user.user.profile_picture {
         None => None,
-        Some(image_bytes) => {
-            Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes)) // TODO: Handle possible errors
-        }
+        Some(image_bytes) => Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes))
     };
 
     // Get all teams name in which user is member
@@ -728,7 +714,6 @@ async fn get_user_info(
     path = CHECK_ROUTE_PATH.0,
     responses(
         (status = 200, description = "User logged in"),
-        (status = 401, description = "User not logged in"),
     )   
 )]
 #[get("/user/check")]
@@ -751,29 +736,19 @@ async fn check(
 async fn recycle_refresh_token(refresh_token_id: Uuid, user_id: Uuid, db: Data<DatabaseConnection>) -> Result<RefreshToken, DbErr> {
 
     // Try to delete refresh token
-    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await;
-    
-    match delete_refresh_token_result {
-        Ok(_) => (),
-        Err(err) => {
-            println!("-> log_in errored (tried to delete refresh token): {:?}", err);
-            return Err(err);
-        }
-    };
+    match RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => return Err(err)
+    }
 
     // Try to create and add new refresh token to database
     let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user_id);
     let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
     
-    let token = match add_refresh_token_result {
-        Ok(token) => Ok(token),
-        Err(err) => {
-            println!("-> log_in errored (tried to create and add new refresh token to database): {:?}", err);
-            return Err(err);
-        }
+    match add_refresh_token_result {
+        Ok(token) => return Ok(token),
+        Err(err) => return Err(err)
     };
-
-    return token;
 }
 
 #[rustfmt::skip]
