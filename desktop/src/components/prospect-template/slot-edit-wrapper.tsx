@@ -5,6 +5,7 @@ import { RowSlot } from "@/lib/prospect-template/row-slot";
 import { Slot } from "@/lib/prospect-template/slot";
 import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
 import { TextFieldSlot } from "@/lib/prospect-template/text-field-slot";
+import { selectSlot } from "@/lib/select-slot";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
@@ -38,6 +39,7 @@ import {
   Grip,
   LayoutTemplate,
   MousePointerClick,
+  Plus,
   Sparkles,
   Text,
   Trash2,
@@ -212,6 +214,17 @@ function SlotWrapper({
       const newChildren = arrayMove(root.content as [], idx, newIdx);
       root.content = newChildren;
     });
+  }
+
+  async function handleAddChild() {
+    if (!isLayoutSlot) return;
+
+    const selectedSlot = await selectSlot();
+    if (!selectedSlot) return;
+
+    updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
+      x.content.push(selectedSlot),
+    );
   }
 
   return (
@@ -407,6 +420,13 @@ function SlotWrapper({
           >
             <span>Change Layout</span>
             <LayoutTemplate className="ml-auto" />
+          </ContextMenuItem>
+        )}
+
+        {isLayoutSlot && (
+          <ContextMenuItem onClick={handleAddChild}>
+            <span>Add Child</span>
+            <Plus className="ml-auto" />
           </ContextMenuItem>
         )}
 

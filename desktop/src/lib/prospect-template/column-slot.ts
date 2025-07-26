@@ -5,7 +5,7 @@ import { Align } from "@/lib/prospect-template/align";
 export type ColumnSlot = {
   id: string;
   type: "column";
-  content: SlotFlexWrapper[] | Slot[];
+  content: (Slot | SlotFlexWrapper)[];
   verticalAlign?: Align;
   horizontalAlign?: Align;
 };

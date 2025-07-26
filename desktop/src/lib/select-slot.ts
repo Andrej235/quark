@@ -1,0 +1,13 @@
+import { useSlotSelectorStore } from "@/stores/slot-selector-store";
+import { Slot } from "./prospect-template/slot";
+
+export function selectSlot(): Promise<Slot | null> {
+  return new Promise((resolve) => {
+    useSlotSelectorStore.getState().open();
+
+    useSlotSelectorStore.subscribe((state, prevState) => {
+      if (state.isOpen || !prevState.isOpen) return;
+      resolve(state.lastSelectedSlot);
+    });
+  });
+}

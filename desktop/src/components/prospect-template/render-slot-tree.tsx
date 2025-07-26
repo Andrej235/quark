@@ -7,6 +7,7 @@ import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { useEffect } from "react";
 import RenderSlot from "./render-slot";
 import SlotEditorDialog from "./slot-editor-dialog";
+import SlotSelectorDialog from "./slot-selector-dialog";
 
 export default function RenderSlotTree({
   slot,
@@ -42,6 +43,7 @@ export default function RenderSlotTree({
         <RenderSlot slot={root} />
 
         {editMode && <SlotEditorDialog />}
+        <SlotSelectorDialog />
       </slotEditContext.Provider>
     </div>
   );

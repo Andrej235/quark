@@ -9,7 +9,7 @@ export default function CardSlot({ slot }: RenderSlotProps<CardSlotType>) {
       {slot.header && <RenderSlot slot={slot.header} />}
 
       <CardContent className="px-0">
-        <RenderSlot slot={slot.content} />
+        {slot.content && <RenderSlot slot={slot.content} />}
       </CardContent>
 
       {slot.footer && <RenderSlot slot={slot.footer} />}

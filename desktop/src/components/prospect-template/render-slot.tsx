@@ -11,7 +11,10 @@ import TextFieldSlot from "./text-field-slot";
 import CardFooterSlot from "./card-footer-slot";
 import CardHeaderSlot from "./card-header-slot";
 
-export default function RenderSlot({ slot }: RenderSlotProps) {
+export default function RenderSlot({
+  slot,
+  forceNoEditMode,
+}: RenderSlotProps & { forceNoEditMode?: boolean }) {
   const isEditMode = useIsSlotInEditMode();
 
   const slotJsx = useMemo(() => {
@@ -37,7 +40,7 @@ export default function RenderSlot({ slot }: RenderSlotProps) {
     }
   }, [slot]);
 
-  if (isEditMode) {
+  if (!forceNoEditMode && isEditMode) {
     return <SlotEditWrapper slot={slot}>{slotJsx}</SlotEditWrapper>;
   }
 

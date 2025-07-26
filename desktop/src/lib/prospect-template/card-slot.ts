@@ -6,6 +6,6 @@ export type CardSlot = {
   id: string;
   type: "card";
   header?: CardHeaderSlot;
-  content: Slot;
+  content: Slot | null;
   footer?: CardFooterSlot;
 };
