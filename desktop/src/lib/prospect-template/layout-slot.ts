@@ -3,7 +3,7 @@ import { Slot } from "./slot";
 import { SlotFlexWrapper } from "./slot-flex-wrapper";
 
 type IsLayoutSlot<T extends BaseSlot> = T extends {
-  content: BaseSlot[] | SlotFlexWrapper[];
+  content: (BaseSlot | SlotFlexWrapper)[];
 }
   ? T
   : never;

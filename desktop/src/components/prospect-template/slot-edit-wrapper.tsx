@@ -57,6 +57,8 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
+import { isSlotParent } from "@/lib/prospect-template/is-slot-parent";
+import { CardFooterSlot } from "@/lib/prospect-template/card-footer-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -94,7 +96,7 @@ export default function SlotEditWrapper({
           over && ("slot" in x ? x.slot.id === over.id : x.id === over.id),
       );
 
-      const newChildren = arrayMove(layoutChildren as [], oldIndex, newIndex);
+      const newChildren = arrayMove(layoutChildren, oldIndex, newIndex);
 
       updateSlot<RowSlot | ColumnSlot>(slot.id, (x) => {
         x.content = newChildren;
@@ -115,7 +117,10 @@ export default function SlotEditWrapper({
           handleDragOver(e);
         }}
       >
-        <SortableContext items={layoutChildren as []} strategy={() => null}>
+        <SortableContext
+          items={layoutChildren.map((x) => ("slot" in x ? x.slot.id : x.id))}
+          strategy={() => null}
+        >
           <SlotWrapper slot={slot}>{children}</SlotWrapper>
         </SortableContext>
 
@@ -140,6 +145,7 @@ function SlotWrapper({
 }: RenderSlotProps & { children?: ReactNode }) {
   const typeName = toTitleCase(slot.type.replace("-", " "));
   const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
+  const findSlot = useSlotTreeRootStore((x) => x.findSlot);
 
   const topSlotId = useSlotHoverStackStore((x) => x.topSlotId);
   const addToHoverStack = useSlotHoverStackStore((x) => x.addToHoverStack);
@@ -196,7 +202,7 @@ function SlotWrapper({
       let newIdx = idx - 1;
       if (newIdx < 0) newIdx = root.content.length - 1;
 
-      const newChildren = arrayMove(root.content as [], idx, newIdx);
+      const newChildren = arrayMove(root.content, idx, newIdx);
       root.content = newChildren;
     });
   }
@@ -211,7 +217,7 @@ function SlotWrapper({
 
       const newIdx = (idx + 1) % root.content.length;
 
-      const newChildren = arrayMove(root.content as [], idx, newIdx);
+      const newChildren = arrayMove(root.content, idx, newIdx);
       root.content = newChildren;
     });
   }
@@ -225,6 +231,20 @@ function SlotWrapper({
     updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
       x.content.push(selectedSlot),
     );
+  }
+
+  function handleDelete() {
+    const parentSlot = findSlot<RowSlot | ColumnSlot>((x) =>
+      isSlotParent(x, slot),
+    );
+
+    if (!parentSlot) return;
+
+    updateSlot<RowSlot | ColumnSlot | CardFooterSlot>(parentSlot.id, (x) => {
+      return x.type === "card-footer"
+        ? (x.buttons = x.buttons.filter((x) => x !== slot))
+        : (x.content = x.content.filter((x) => x !== slot));
+    });
   }
 
   return (
@@ -477,7 +497,7 @@ function SlotWrapper({
 
         <ContextMenuSeparator />
 
-        <ContextMenuItem variant="destructive">
+        <ContextMenuItem variant="destructive" onClick={handleDelete}>
           <span>Delete</span>
           <Trash2 className="ml-auto" />
         </ContextMenuItem>
