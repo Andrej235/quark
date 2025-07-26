@@ -186,13 +186,16 @@ impl TeamRepository {
     }
 
     /// Tries to find team member by specified **team_id** and **user_id** <br/>
+    /// **NOTE: if handle_not_found is true, it will return NotFound response** <br/>
+    /// Returns: NotFound(**Team member not found**) response if team member is not found <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team member
     pub async fn find_member(
         endpoint_path: EndpointPathInfo,
         db: &DatabaseConnection,
         team_id: TeamId,
-        user_id: UserId
+        user_id: UserId,
+        handle_not_found: bool
     ) -> Result<Option<TeamMember>, HttpResponse> {
 
         return match TeamMemberEntity::find()
@@ -200,7 +203,13 @@ impl TeamRepository {
             .filter(TeamMemberColumn::TeamId.eq(team_id))
             .one(db)
             .await {
-                Ok(member) => Ok(member),
+                Ok(member) => {
+                    if member.is_none() && handle_not_found {
+                        Err(HttpResponse::NotFound().json(SRouteError { message: "Team member not found" }))
+                    } else {
+                        Ok(member)
+                    }
+                },
                 Err(err) => Err(HttpHelper::log_internal_server_error(endpoint_path, "Finding team member", Box::new(err)))
             };
     }

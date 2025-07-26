@@ -28,9 +28,9 @@ serde_json = "1.0.141"
 tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
-utoipa = { version = "5.4.0", features = ["actix_extras", "macros", "uuid"] }
+utoipa = { version = "5.4.0", features = ["actix_extras", "chrono", "macros", "uuid"] }
 utoipa-swagger-ui = "9.0.2"
-uuid = { version = "1.17.0", features = ["v4", "v7"] }
+uuid = { version = "1.17.0", features = ["serde", "v4", "v7"] }
 validator = { version = "0.20.0", features = ["derive"] }
 actix-cors = "0.7.1"
 image = { version = "0.25.6", features = ["jpeg", "png"] }

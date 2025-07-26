@@ -8,7 +8,9 @@ use crate::{
             team_invitation_accept, team_invitation_decline, team_invitation_send,
         },
         team_members_routes::{team_get_members, team_member_kick},
-        team_roles_routes::{team_role_create, team_role_delete, team_role_update, team_roles_get},
+        team_roles_routes::{
+            team_role_change, team_role_create, team_role_delete, team_role_update, team_roles_get,
+        },
         team_routs::{team_create, team_delete, team_leave, team_update},
         user_routs::{
             check, get_user_info, send_email_verification, user_log_in, user_log_out,
@@ -84,6 +86,7 @@ fn routes(cfg: &mut web::ServiceConfig) {
 
     cfg.service(team_role_create);
     cfg.service(team_role_update);
+    cfg.service(team_role_change);
     cfg.service(team_roles_get);
     cfg.service(team_role_delete);
 

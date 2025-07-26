@@ -5,7 +5,10 @@
 // ************************************************************************************
 use crate::{
     entity::{
-        team_members::{Column as TeamMemberColumn, Entity as TeamMemberEntity},
+        team_members::{
+            ActiveModel as TeamMemberActiveModel, Column as TeamMemberColumn,
+            Entity as TeamMemberEntity,
+        },
         team_roles::{
             ActiveModel as TeamRoleActiveModel, Column as TeamRoleColumn, Entity as TeamRoleEntity,
             Model as TeamRole,
@@ -13,9 +16,9 @@ use crate::{
     },
     models::{
         dtos::{
-            create_team_role_dto::CreateTeamRoleDTO, delete_team_role_dto::DeleteTeamRoleDTO,
-            team_role_info_dto::TeamRoleInfoDTO, update_team_role_dto::UpdateTeamRoleDTO,
-            validation_error_dto::ValidationErrorDTO,
+            change_user_role_dto::ChangeUserRoleDTO, create_team_role_dto::CreateTeamRoleDTO,
+            delete_team_role_dto::DeleteTeamRoleDTO, team_role_info_dto::TeamRoleInfoDTO,
+            update_team_role_dto::UpdateTeamRoleDTO, validation_error_dto::ValidationErrorDTO,
         },
         middleware::{
             advanced_authenticated_user::AdvancedAuthenticatedUser, validated_json::ValidatedJson,
@@ -26,21 +29,21 @@ use crate::{
     repositories::team_repository::TeamRepository,
     utils::{
         constants::{
-            DEFAULT_TEAM_ROLE_NAMES, TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH,
-            TEAM_ROLE_GET_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
+            DEFAULT_TEAM_ROLE_NAMES, TEAM_ROLE_CHANGE_ROUTE_PATH, TEAM_ROLE_CREATE_ROUTE_PATH,
+            TEAM_ROLE_DELETE_ROUTE_PATH, TEAM_ROLE_GET_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
         },
         http_helper::HttpHelper,
         redis_service::RedisService,
     },
 };
 use actix_web::{
-    delete, get, post, put,
+    delete, get, patch, post, put,
     web::{Data, Path},
     HttpResponse, Responder,
 };
 use sea_orm::{
     prelude::Expr, ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection,
-    DatabaseTransaction, EntityTrait, QueryFilter, QuerySelect,
+    DatabaseTransaction, EntityTrait, PaginatorTrait, QueryFilter, QuerySelect,
 };
 use uuid::Uuid;
 
@@ -161,6 +164,71 @@ pub async fn team_role_update(
     }
 
     return HttpResponse::Ok().finish();
+}
+
+// ************************************************************************************
+//
+// ROUTE - PATCH
+//
+// ************************************************************************************
+#[utoipa::path(
+    patch,
+    path = TEAM_ROLE_CHANGE_ROUTE_PATH.0,
+    request_body = ChangeUserRoleDTO,
+    responses(
+        (status = 200, description = "Role changed"),
+        (status = 403, description = "Not member of team, Permission too low", body = SRouteError),
+        (status = 404, description = "Team not found, Team role not found", body = SRouteError),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
+    )
+)]
+#[patch("/team-role/change")]
+#[rustfmt::skip]
+pub async fn team_role_change(
+    db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
+    auth_user: AdvancedAuthenticatedUser,
+    json_data: ValidatedJson<ChangeUserRoleDTO>,
+) -> impl Responder {
+
+    let data: &ChangeUserRoleDTO = json_data.get_data();
+
+    // Check if user can edit roles
+    match check_user_can_edit_roles(db.get_ref(), redis_service.get_ref(), data.team_id, auth_user.user.id).await {
+        Ok(_) => {},
+        Err(err) => return err
+    }
+
+    // Check if role is valid
+    let is_team_role_valid: bool = match TeamRoleEntity::find()
+        .filter(TeamRoleColumn::TeamId.eq(data.team_id))
+        .filter(TeamRoleColumn::Id.eq(data.role_id))
+        .count(db.get_ref())
+        .await 
+    {
+        Ok(result) => result > 0,
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_ROLE_CHANGE_ROUTE_PATH, "Finding team role", Box::new(err))
+    };
+
+    if !is_team_role_valid {
+        return HttpResponse::NotFound().json(SRouteError::new("Team role not found"));
+    }
+
+    // Update user role
+    let member = match TeamRepository::find_member(TEAM_ROLE_CHANGE_ROUTE_PATH, db.get_ref(), data.team_id, auth_user.user.id, true).await {
+        Ok(member) => member.unwrap(),
+        Err(err) => return err
+    };
+
+    let mut member_active_model: TeamMemberActiveModel = member.into();
+    member_active_model.team_role_id = Set(data.role_id);
+
+    match member_active_model.update(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_ROLE_CHANGE_ROUTE_PATH, "Updating user role", Box::new(err))
+    }
+
+    return HttpResponse::Ok().finish();   
 }
 
 // ************************************************************************************
@@ -324,6 +392,9 @@ pub async fn team_role_delete(
 //
 // ************************************************************************************
 #[rustfmt::skip]
+/// First: checks if team exists <br/>
+/// Second: checks if user is part of team and has require permissions <br/>
+/// Returns: Ok if user can edit roles
 async fn check_user_can_edit_roles(db: &DatabaseConnection, redis_service: &RedisService, team_id: Uuid, user_id: Uuid) -> Result<(), HttpResponse> {
     
     // Check if team exists
