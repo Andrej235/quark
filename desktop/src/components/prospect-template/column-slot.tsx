@@ -7,8 +7,8 @@ export default function ColumnSlot({ slot }: RenderSlotProps<ColumnSlotType>) {
     <div
       className="flex flex-col gap-8 p-2"
       style={{
-        justifyContent: slot.verticalAlign,
-        alignItems: slot.horizontalAlign,
+        justifyContent: slot.verticalAlign ?? "stretch",
+        alignItems: slot.horizontalAlign ?? "stretch",
       }}
     >
       {slot.content.map((child) =>

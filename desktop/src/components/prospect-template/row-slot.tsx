@@ -7,8 +7,8 @@ export default function RowSlot({ slot }: RenderSlotProps<RowSlotType>) {
     <div
       className="flex gap-8 p-2"
       style={{
-        justifyContent: slot.horizontalAlign,
-        alignItems: slot.verticalAlign,
+        justifyContent: slot.horizontalAlign ?? "stretch",
+        alignItems: slot.verticalAlign ?? "stretch",
       }}
     >
       {slot.content.map((child) =>

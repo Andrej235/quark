@@ -374,7 +374,14 @@ function SlotWrapper({
             </motion.div>
           )}
 
-          {editingLayoutRoot === slot.id && <LayoutAlignmentMenu />}
+          {editingLayoutRoot === slot.id && (
+            <LayoutAlignmentMenu
+              initialHorizontalMode={
+                (slot as RowSlot).horizontalAlign ?? "stretch"
+              }
+              initialVerticalMode={(slot as RowSlot).verticalAlign ?? "stretch"}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
 
