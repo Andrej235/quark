@@ -1,3 +1,8 @@
+import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
+import { cloneSlot } from "@/lib/prospects/clone-slot";
+import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
+import { isSlotParent } from "@/lib/prospects/is-slot-parent";
+import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
 import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
 import { LayoutSlot } from "@/lib/prospects/slot-types/layout-slot";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
@@ -43,6 +48,7 @@ import {
   LayoutTemplate,
   MousePointerClick,
   Plus,
+  Scissors,
   Sparkles,
   Text,
   Trash2,
@@ -60,11 +66,7 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
-import { isSlotParent } from "@/lib/prospects/is-slot-parent";
-import { cloneSlot } from "@/lib/prospects/clone-slot";
-import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
-import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
-import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
+import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
 
 export default function SlotEditWrapper({
   slot,
@@ -171,6 +173,9 @@ function SlotWrapper({
     (x) => x.isSlotChildOfLayoutRoot,
   )(slot);
 
+  const copiedSlot = useSlotClipboardStore((x) => x.copiedSlot);
+  const copySlot = useSlotClipboardStore((x) => x.copy);
+
   const {
     attributes: dragAttributes,
     listeners: dragListeners,
@@ -237,6 +242,14 @@ function SlotWrapper({
 
     updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
       x.content.push(cloneSlot(selectedSlot)),
+    );
+  }
+
+  function handlePaste() {
+    if (!isLayoutSlot || !copiedSlot) return;
+
+    updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
+      x.content.push(cloneSlot(copiedSlot)),
     );
   }
 
@@ -506,9 +519,14 @@ function SlotWrapper({
 
         <ContextMenuSeparator />
 
-        <ContextMenuItem>
+        <ContextMenuItem onClick={() => copySlot(slot)}>
           <span>Copy</span>
           <ClipboardCopy className="ml-auto" />
+        </ContextMenuItem>
+
+        <ContextMenuItem>
+          <span>Cut</span>
+          <Scissors className="ml-auto" />
         </ContextMenuItem>
 
         {canDuplicate && (
@@ -519,7 +537,7 @@ function SlotWrapper({
         )}
 
         {isLayoutSlot && (
-          <ContextMenuItem>
+          <ContextMenuItem onClick={handlePaste} disabled={!copiedSlot}>
             <span>Paste</span>
             <ClipboardPaste className="ml-auto" />
           </ContextMenuItem>
