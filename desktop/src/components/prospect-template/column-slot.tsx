@@ -20,6 +20,14 @@ export default function ColumnSlot({ slot }: RenderSlotProps<ColumnSlotType>) {
           <RenderSlot slot={child} key={child.id} />
         ),
       )}
+
+      {slot.content.length === 0 && (
+        <>
+          <div className="bg-muted-foreground/50 min-h-16 min-w-16 rounded-md" />
+          <div className="bg-muted-foreground/50 min-h-16 min-w-16 rounded-md" />
+          <div className="bg-muted-foreground/50 min-h-16 min-w-16 rounded-md" />
+        </>
+      )}
     </div>
   );
 }

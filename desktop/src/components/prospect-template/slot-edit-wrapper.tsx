@@ -243,7 +243,9 @@ function SlotWrapper({
     updateSlot<RowSlot | ColumnSlot | CardFooterSlot>(parentSlot.id, (x) => {
       return x.type === "card-footer"
         ? (x.buttons = x.buttons.filter((x) => x !== slot))
-        : (x.content = x.content.filter((x) => x !== slot));
+        : (x.content = x.content.filter(
+            (x) => ("slot" in x ? x.slot : x) !== slot,
+          ));
     });
   }
 

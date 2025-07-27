@@ -103,7 +103,9 @@ export default function SlotSelectorDialog() {
               name={option.name}
               icon={option.icon}
               slot={option.slot}
-              onSelect={setSelectedSlot}
+              onSelect={(slot, doubleClick) =>
+                doubleClick ? submit(slot) : setSelectedSlot(slot)
+              }
               selected={selectedSlot?.type === option.slot.type}
             />
           ))}
@@ -130,7 +132,7 @@ type SlotItemProps = {
   name: string;
   icon: LucideIcon;
   slot: Slot;
-  onSelect: (slot: Slot) => void;
+  onSelect: (slot: Slot, doubleClick?: boolean) => void;
   selected: boolean;
 };
 
@@ -158,6 +160,7 @@ function SlotItem({
       <button
         className="-translate-1/2 absolute left-1/2 top-1/2 z-50 size-full"
         onClick={() => onSelect(slot)}
+        onDoubleClick={() => onSelect(slot, true)}
       >
         <span className="sr-only">Select {name}</span>
       </button>

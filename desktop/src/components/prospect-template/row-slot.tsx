@@ -20,6 +20,14 @@ export default function RowSlot({ slot }: RenderSlotProps<RowSlotType>) {
           <RenderSlot slot={child} key={child.id} />
         ),
       )}
+
+      {slot.content.length === 0 && (
+        <>
+          <div className="bg-muted-foreground/50 h-16 flex-1 rounded-md" />
+          <div className="bg-muted-foreground/50 h-16 flex-1 rounded-md" />
+          <div className="bg-muted-foreground/50 h-16 flex-1 rounded-md" />
+        </>
+      )}
     </div>
   );
 }
