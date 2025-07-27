@@ -35,6 +35,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  ClipboardCopy,
+  ClipboardPaste,
+  Copy,
   Edit3,
   Grip,
   LayoutTemplate,
@@ -60,6 +63,8 @@ import RenderSlot from "./render-slot";
 import { isSlotParent } from "@/lib/prospect-template/is-slot-parent";
 import { CardFooterSlot } from "@/lib/prospect-template/card-footer-slot";
 import { cloneSlot } from "@/lib/prospect-template/clone-slot";
+import { canDuplicateSlot } from "@/lib/prospect-template/can-duplicate-slot";
+import { duplicateSlot } from "@/lib/prospect-template/duplicate-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -189,6 +194,7 @@ function SlotWrapper({
   );
 
   const isHovered = topSlotId === slot.id;
+  const canDuplicate = canDuplicateSlot(slot);
   const isActive =
     editingLayoutRoot === slot.id || (isHovered && !editingLayoutRoot);
 
@@ -498,6 +504,26 @@ function SlotWrapper({
           </>
         )}
 
+        <ContextMenuSeparator />
+
+        <ContextMenuItem>
+          <span>Copy</span>
+          <ClipboardCopy className="ml-auto" />
+        </ContextMenuItem>
+
+        {canDuplicate && (
+          <ContextMenuItem onClick={() => duplicateSlot(slot)}>
+            <span>Duplicate</span>
+            <Copy className="ml-auto" />
+          </ContextMenuItem>
+        )}
+
+        {isLayoutSlot && (
+          <ContextMenuItem>
+            <span>Paste</span>
+            <ClipboardPaste className="ml-auto" />
+          </ContextMenuItem>
+        )}
         <ContextMenuSeparator />
 
         <ContextMenuItem variant="destructive" onClick={handleDelete}>

@@ -87,7 +87,12 @@ export default function SlotSelectorDialog() {
   }, [isOpen]);
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) close();
+      }}
+    >
       <DialogContent className="max-h-[50vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Select a slot</DialogTitle>
