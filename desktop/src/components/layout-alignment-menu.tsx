@@ -7,7 +7,7 @@ import { ChevronsLeftRight, GripVertical } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
 import { useEffect, useState } from "react";
 import { Separator } from "./ui/separator";
-import { Align } from "@/lib/prospects/align";
+import { Align } from "@/lib/prospects/slot-types/align";
 
 const horizontalModes = ["flex-start", "center", "flex-end"] as const;
 const verticalModes = ["flex-start", "center", "flex-end"] as const;

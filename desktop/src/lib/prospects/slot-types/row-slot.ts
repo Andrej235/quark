@@ -1,4 +1,4 @@
-import { Align } from "../align";
+import { Align } from "./align";
 import { Slot } from "./slot";
 import { SlotFlexWrapper } from "./slot-flex-wrapper";
 
