@@ -1,5 +1,5 @@
-import type { ColumnSlot as ColumnSlotType } from "@/lib/prospect-template/column-slot";
-import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import type { ColumnSlot as ColumnSlotType } from "@/lib/prospects/slot-types/column-slot";
+import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
 import RenderSlot from "./render-slot";
 
 export default function ColumnSlot({ slot }: RenderSlotProps<ColumnSlotType>) {

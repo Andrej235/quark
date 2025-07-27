@@ -1,5 +1,5 @@
 import { useSlotSelectorStore } from "@/stores/slot-selector-store";
-import { Slot } from "./prospect-template/slot";
+import { Slot } from "./prospects/slot-types/slot";
 
 export function promptUserToSelectSlot(): Promise<Slot | null> {
   return new Promise((resolve) => {

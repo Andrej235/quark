@@ -1,4 +1,4 @@
-import { Slot } from "@/lib/prospect-template/slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
 import RenderSlotTree from "./prospect-template/render-slot-tree";
 import {
   Card,

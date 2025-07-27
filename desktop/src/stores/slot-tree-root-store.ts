@@ -1,7 +1,7 @@
-import { CardFooterSlot } from "@/lib/prospect-template/card-footer-slot";
-import { CardHeaderSlot } from "@/lib/prospect-template/card-header-slot";
-import { Slot } from "@/lib/prospect-template/slot";
-import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
+import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
+import { CardHeaderSlot } from "@/lib/prospects/slot-types/card-header-slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
+import { SlotFlexWrapper } from "@/lib/prospects/slot-types/slot-flex-wrapper";
 import { create } from "zustand";
 
 type SlotTreeRootStore = {
@@ -15,6 +15,7 @@ type SlotTreeRootStore = {
   findSlot: <SlotType extends Slot>(
     predicate: (slot: Slot) => boolean,
   ) => SlotType | null;
+  setSlotIds: (slotIds: string[]) => void;
 };
 
 export const useSlotTreeRootStore = create<SlotTreeRootStore>((set, get) => ({
@@ -35,6 +36,7 @@ export const useSlotTreeRootStore = create<SlotTreeRootStore>((set, get) => ({
   findSlot: (predicate: (slot: Slot) => boolean) => {
     return findSlot(get().slotTreeRoot, predicate);
   },
+  setSlotIds: (slotIds: string[]) => set({ slotIds }),
 }));
 
 function updateSlot<SlotType extends Slot = Slot>(

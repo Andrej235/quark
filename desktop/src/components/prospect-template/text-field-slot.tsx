@@ -1,5 +1,5 @@
-import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
-import { TextFieldSlot as TextFieldSlotType } from "@/lib/prospect-template/text-field-slot";
+import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
+import { TextFieldSlot as TextFieldSlotType } from "@/lib/prospects/slot-types/text-field-slot";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";

@@ -1,10 +1,10 @@
-import { Align } from "./align";
 import { Slot } from "./slot";
 import { SlotFlexWrapper } from "./slot-flex-wrapper";
+import { Align } from "@/lib/prospects/align";
 
-export type RowSlot = {
+export type ColumnSlot = {
   id: string;
-  type: "row";
+  type: "column";
   content: (Slot | SlotFlexWrapper)[];
   verticalAlign?: Align;
   horizontalAlign?: Align;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useEventListener, useOnClickOutside } from "usehooks-ts";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Slot } from "@/lib/prospect-template/slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
 
 function useSelectedSlot(): [Slot | null, (selectedSlot: Slot | null) => void] {
   return [null, () => {}];

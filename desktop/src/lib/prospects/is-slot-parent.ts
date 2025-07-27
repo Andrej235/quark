@@ -1,5 +1,5 @@
-import { ButtonSlot } from "./button-slot";
-import { Slot } from "./slot";
+import { ButtonSlot } from "./slot-types/button-slot";
+import { Slot } from "./slot-types/slot";
 
 export function isSlotParent(slot: Slot, child: Slot): boolean {
   if (slot.type === "row" || slot.type === "column")

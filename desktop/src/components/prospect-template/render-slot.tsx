@@ -1,5 +1,5 @@
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
-import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
 import { useMemo } from "react";
 import ButtonSlot from "./button-slot";
 import CardSlot from "./card-slot";

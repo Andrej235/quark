@@ -1,5 +1,5 @@
-import { LayoutSlot } from "@/lib/prospect-template/layout-slot";
-import { Slot } from "@/lib/prospect-template/slot";
+import { LayoutSlot } from "@/lib/prospects/slot-types/layout-slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
 import { create } from "zustand";
 
 type SlotLayoutModeStore = {

@@ -1,5 +1,5 @@
-import { CardSlot as CardSlotType } from "@/lib/prospect-template/card-slot";
-import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
+import { CardSlot as CardSlotType } from "@/lib/prospects/slot-types/card-slot";
+import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
 import { Card, CardContent } from "../ui/card";
 import RenderSlot from "./render-slot";
 

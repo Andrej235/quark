@@ -1,4 +1,4 @@
-import { Slot } from "@/lib/prospect-template/slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
 import { cn } from "@/lib/utils";
 import { useSlotSelectorStore } from "@/stores/slot-selector-store";
 import {

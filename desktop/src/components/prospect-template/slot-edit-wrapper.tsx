@@ -1,10 +1,10 @@
-import { ColumnSlot } from "@/lib/prospect-template/column-slot";
-import { LayoutSlot } from "@/lib/prospect-template/layout-slot";
-import { RenderSlotProps } from "@/lib/prospect-template/render-slot-props";
-import { RowSlot } from "@/lib/prospect-template/row-slot";
-import { Slot } from "@/lib/prospect-template/slot";
-import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
-import { TextFieldSlot } from "@/lib/prospect-template/text-field-slot";
+import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
+import { LayoutSlot } from "@/lib/prospects/slot-types/layout-slot";
+import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
+import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
+import { SlotFlexWrapper } from "@/lib/prospects/slot-types/slot-flex-wrapper";
+import { TextFieldSlot } from "@/lib/prospects/slot-types/text-field-slot";
 import { promptUserToSelectSlot } from "@/lib/select-slot";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
@@ -60,11 +60,11 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
-import { isSlotParent } from "@/lib/prospect-template/is-slot-parent";
-import { CardFooterSlot } from "@/lib/prospect-template/card-footer-slot";
-import { cloneSlot } from "@/lib/prospect-template/clone-slot";
-import { canDuplicateSlot } from "@/lib/prospect-template/can-duplicate-slot";
-import { duplicateSlot } from "@/lib/prospect-template/duplicate-slot";
+import { isSlotParent } from "@/lib/prospects/is-slot-parent";
+import { cloneSlot } from "@/lib/prospects/clone-slot";
+import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
+import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
+import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
 
 export default function SlotEditWrapper({
   slot,
