@@ -2,6 +2,8 @@ import { deleteSlot } from "@/lib/delete-slot";
 import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
 import { cloneSlot } from "@/lib/prospects/clone-slot";
 import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
+import { CardHeaderSlot } from "@/lib/prospects/slot-types/card-header-slot";
+import { CardSlot } from "@/lib/prospects/slot-types/card-slot";
 import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
 import { LayoutSlot } from "@/lib/prospects/slot-types/layout-slot";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
@@ -66,6 +68,7 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
+import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -236,14 +239,24 @@ function SlotWrapper({
   }
 
   async function handleAddChild() {
-    if (!isLayoutSlot) return;
+    if (isLayoutSlot) {
+      const selectedSlot = await promptUserToSelectSlot();
+      if (!selectedSlot) return;
 
-    const selectedSlot = await promptUserToSelectSlot();
-    if (!selectedSlot) return;
+      updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
+        x.content.push(cloneSlot(selectedSlot)),
+      );
+    }
 
-    updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
-      x.content.push(cloneSlot(selectedSlot)),
-    );
+    if (slot.type === "card") {
+      const selectedSlot = await promptUserToSelectSlot();
+      if (!selectedSlot) return;
+
+      updateSlot<CardSlot>(
+        slot.id,
+        (x) => (x.content = cloneSlot(selectedSlot)),
+      );
+    }
   }
 
   function handlePaste() {
@@ -261,6 +274,38 @@ function SlotWrapper({
       x.content.push(copiedSlot),
     );
     clearClipboard();
+  }
+
+  function handleToggleCardHeader() {
+    if (slot.type !== "card") return;
+
+    if (slot.header) {
+      deleteSlot(slot.header);
+      return;
+    }
+
+    const newHeader: CardHeaderSlot = {
+      id: "card-header",
+      type: "card-header",
+      title: "Card Header",
+    };
+    updateSlot<CardSlot>(slot.id, (x) => (x.header = newHeader));
+  }
+
+  function handleToggleCardFooter() {
+    if (slot.type !== "card") return;
+
+    if (slot.footer) {
+      deleteSlot(slot.footer);
+      return;
+    }
+
+    const newFooter: CardFooterSlot = {
+      id: "card-footer",
+      type: "card-footer",
+      buttons: [],
+    };
+    updateSlot<CardSlot>(slot.id, (x) => (x.footer = newFooter));
   }
 
   return (
@@ -495,15 +540,26 @@ function SlotWrapper({
               Card Options
             </ContextMenuLabel>
 
-            <ContextMenuCheckboxItem checked={!!slot.header}>
+            <ContextMenuCheckboxItem
+              onClick={handleToggleCardHeader}
+              checked={!!slot.header}
+            >
               <span>Header</span>
-
               <AlignStartHorizontal className="ml-auto" />
             </ContextMenuCheckboxItem>
 
-            <ContextMenuCheckboxItem checked={!!slot.footer}>
-              <span>Footer</span>
+            {!slot.content && (
+              <ContextMenuItem onClick={handleAddChild} inset>
+                <span>Add Content</span>
+                <Plus className="ml-auto" />
+              </ContextMenuItem>
+            )}
 
+            <ContextMenuCheckboxItem
+              onClick={handleToggleCardFooter}
+              checked={!!slot.footer}
+            >
+              <span>Footer</span>
               <AlignEndHorizontal className="ml-auto" />
             </ContextMenuCheckboxItem>
           </>
