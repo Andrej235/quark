@@ -1,0 +1,54 @@
+import { Slot } from "./prospects/slot-types/slot";
+import { SlotType } from "./prospects/slot-types/slot-type";
+
+export const defaultSlots: {
+  [K in SlotType]: Slot<K>;
+} = {
+  row: {
+    id: "row",
+    type: "row",
+    content: [],
+    horizontalAlign: "stretch",
+    verticalAlign: "stretch",
+  },
+  column: {
+    id: "column",
+    type: "column",
+    content: [],
+    horizontalAlign: "stretch",
+    verticalAlign: "stretch",
+  },
+  card: {
+    id: "card",
+    type: "card",
+    header: null,
+    content: null,
+    footer: null,
+  },
+  "card-header": {
+    id: "card-header",
+    type: "card-header",
+    title: "Card Header",
+  },
+  "card-footer": {
+    id: "card-footer",
+    type: "card-footer",
+    buttons: [],
+  },
+  "image-field": {
+    id: "image-field",
+    type: "image-field",
+    name: "Select an Image",
+  },
+  "text-field": {
+    id: "text-field",
+    type: "text-field",
+    name: "Text Field",
+    placeholder: "Enter text",
+  },
+  button: {
+    id: "button",
+    type: "button",
+    label: "Button",
+  },
+};

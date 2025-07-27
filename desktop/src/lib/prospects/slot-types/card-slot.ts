@@ -5,7 +5,7 @@ import { Slot } from "./slot";
 export type CardSlot = {
   id: string;
   type: "card";
-  header?: CardHeaderSlot;
+  header: CardHeaderSlot | null;
   content: Slot | null;
-  footer?: CardFooterSlot;
+  footer: CardFooterSlot | null;
 };

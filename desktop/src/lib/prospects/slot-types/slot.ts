@@ -6,9 +6,10 @@ import { CardSlot } from "./card-slot";
 import { ColumnSlot } from "./column-slot";
 import { ImageFieldSlot } from "./image-field-slot";
 import { RowSlot } from "./row-slot";
+import { SlotType } from "./slot-type";
 import { TextFieldSlot } from "./text-field-slot";
 
-type Slot =
+type UnsafeSlot =
   | RowSlot
   | ColumnSlot
   | CardSlot
@@ -18,6 +19,20 @@ type Slot =
   | TextFieldSlot
   | ImageFieldSlot;
 
-type SafeSlot = Extract<Slot, Slot extends BaseSlot ? Slot : never>;
+type SafeSlot = Extract<
+  UnsafeSlot,
+  UnsafeSlot extends BaseSlot ? UnsafeSlot : never
+>;
 
-export type { SafeSlot as Slot };
+type SpecificSlot<
+  TType extends SlotType,
+  TSlot extends SafeSlot,
+> = TSlot extends {
+  type: TType;
+}
+  ? TSlot
+  : never;
+
+type Slot<Type extends SlotType = SlotType> = SpecificSlot<Type, SafeSlot>;
+
+export type { Slot };

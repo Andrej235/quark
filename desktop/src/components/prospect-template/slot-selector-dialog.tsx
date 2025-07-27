@@ -1,3 +1,4 @@
+import { defaultSlots } from "@/lib/default-slots";
 import { Slot } from "@/lib/prospects/slot-types/slot";
 import { cn } from "@/lib/utils";
 import { useSlotSelectorStore } from "@/stores/slot-selector-store";
@@ -25,54 +26,27 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
   {
     name: "Text Field",
     icon: Text,
-    slot: {
-      id: "text-field",
-      type: "text-field",
-      name: "New Text Field",
-      placeholder: "Enter text",
-    },
+    slot: defaultSlots["text-field"],
   },
   {
     name: "Image Field",
     icon: Image,
-    slot: {
-      id: "image-field",
-      type: "image-field",
-      name: "New Image Field",
-    },
+    slot: defaultSlots["image-field"],
   },
   {
     name: "Row",
     icon: Columns3,
-    slot: {
-      id: "row",
-      type: "row",
-      content: [],
-    },
+    slot: defaultSlots["row"],
   },
   {
     name: "Column",
     icon: Rows3,
-    slot: {
-      id: "column",
-      type: "column",
-      content: [],
-    },
+    slot: defaultSlots["column"],
   },
   {
     name: "Card",
     icon: CreditCard,
-    slot: {
-      id: "card",
-      type: "card",
-      header: {
-        id: "card-header",
-        type: "card-header",
-        title: "New Card",
-        description: "Description",
-      },
-      content: null,
-    },
+    slot: defaultSlots["card"],
   },
 ];
 

@@ -24,7 +24,7 @@ export function deleteSlot(slot: Slot) {
     case "card":
       if (parentSlot.header === slot)
         storeState.updateSlot<CardSlot>(parentSlot.id, (x) => {
-          x.header = undefined;
+          x.header = null;
         });
 
       if (parentSlot.content === slot)
@@ -34,7 +34,7 @@ export function deleteSlot(slot: Slot) {
 
       if (parentSlot.footer === slot)
         storeState.updateSlot<CardSlot>(parentSlot.id, (x) => {
-          x.footer = undefined;
+          x.footer = null;
         });
       break;
 
