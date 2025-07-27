@@ -5,7 +5,7 @@ import { RowSlot } from "@/lib/prospect-template/row-slot";
 import { Slot } from "@/lib/prospect-template/slot";
 import { SlotFlexWrapper } from "@/lib/prospect-template/slot-flex-wrapper";
 import { TextFieldSlot } from "@/lib/prospect-template/text-field-slot";
-import { selectSlot } from "@/lib/select-slot";
+import { promptUserToSelectSlot } from "@/lib/select-slot";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
@@ -59,6 +59,7 @@ import {
 import RenderSlot from "./render-slot";
 import { isSlotParent } from "@/lib/prospect-template/is-slot-parent";
 import { CardFooterSlot } from "@/lib/prospect-template/card-footer-slot";
+import { cloneSlot } from "@/lib/prospect-template/clone-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -225,11 +226,11 @@ function SlotWrapper({
   async function handleAddChild() {
     if (!isLayoutSlot) return;
 
-    const selectedSlot = await selectSlot();
+    const selectedSlot = await promptUserToSelectSlot();
     if (!selectedSlot) return;
 
     updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
-      x.content.push(selectedSlot),
+      x.content.push(cloneSlot(selectedSlot)),
     );
   }
 

@@ -26,7 +26,7 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Text Field",
     icon: Text,
     slot: {
-      id: "new-text-field",
+      id: "text-field",
       type: "text-field",
       name: "New Text Field",
       placeholder: "Enter text",
@@ -36,7 +36,7 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Image Field",
     icon: Image,
     slot: {
-      id: "new-image-field",
+      id: "image-field",
       type: "image-field",
       name: "New Image Field",
     },
@@ -45,7 +45,7 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Row",
     icon: Columns3,
     slot: {
-      id: "new-row",
+      id: "row",
       type: "row",
       content: [],
     },
@@ -54,7 +54,7 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Column",
     icon: Rows3,
     slot: {
-      id: "new-column",
+      id: "column",
       type: "column",
       content: [],
     },
@@ -63,10 +63,10 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Card",
     icon: CreditCard,
     slot: {
-      id: "new-card",
+      id: "card",
       type: "card",
       header: {
-        id: "new-card-header",
+        id: "card-header",
         type: "card-header",
         title: "New Card",
         description: "Description",

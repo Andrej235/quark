@@ -6,6 +6,7 @@ import { create } from "zustand";
 
 type SlotTreeRootStore = {
   slotTreeRoot: Slot | null;
+  slotIds: string[];
   setSlotTreeRoot: (slot: Slot | null) => void;
   updateSlot: <SlotType extends Slot = Slot>(
     id: string,
@@ -18,7 +19,9 @@ type SlotTreeRootStore = {
 
 export const useSlotTreeRootStore = create<SlotTreeRootStore>((set, get) => ({
   slotTreeRoot: null,
-  setSlotTreeRoot: (slot: Slot | null) => set({ slotTreeRoot: slot }),
+  slotIds: [],
+  setSlotTreeRoot: (slot: Slot | null) =>
+    set({ slotTreeRoot: slot, slotIds: slot ? getAllSlotIds(slot) : [] }),
   updateSlot: <SlotType extends Slot = Slot>(
     id: string,
     updateFn: (slot: SlotType) => void,
@@ -27,7 +30,7 @@ export const useSlotTreeRootStore = create<SlotTreeRootStore>((set, get) => ({
     if (!slotTreeRoot) return;
 
     const updated = updateSlot(slotTreeRoot, id, updateFn);
-    if (updated) set({ slotTreeRoot: { ...updated } });
+    if (updated) get().setSlotTreeRoot({ ...updated });
   },
   findSlot: (predicate: (slot: Slot) => boolean) => {
     return findSlot(get().slotTreeRoot, predicate);
@@ -144,5 +147,39 @@ function findSlot<SlotType extends Slot>(
 
     default:
       return null;
+  }
+}
+
+function getAllSlotIds(slot: Slot) {
+  const ids: string[] = [slot.id];
+
+  switch (slot.type) {
+    case "row":
+    case "column":
+      for (let i = 0; i < slot.content.length; i++) {
+        const hasFlexData = "slot" in slot.content[i];
+        const current = hasFlexData
+          ? (slot.content[i] as SlotFlexWrapper).slot
+          : (slot.content[i] as Slot);
+
+        ids.push(...getAllSlotIds(current));
+      }
+      return ids;
+
+    case "card":
+      if (slot.header) ids.push(...getAllSlotIds(slot.header));
+      if (slot.content) ids.push(...getAllSlotIds(slot.content));
+      if (slot.footer) ids.push(...getAllSlotIds(slot.footer));
+
+      return ids;
+
+    case "card-footer":
+      for (let i = 0; i < slot.buttons.length; i++) {
+        ids.push(...getAllSlotIds(slot.buttons[i]));
+      }
+      return ids;
+
+    default:
+      return ids;
   }
 }
