@@ -1,8 +1,7 @@
+import { deleteSlot } from "@/lib/delete-slot";
 import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
 import { cloneSlot } from "@/lib/prospects/clone-slot";
 import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
-import { isSlotParent } from "@/lib/prospects/is-slot-parent";
-import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
 import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
 import { LayoutSlot } from "@/lib/prospects/slot-types/layout-slot";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
@@ -153,7 +152,6 @@ function SlotWrapper({
 }: RenderSlotProps & { children?: ReactNode }) {
   const typeName = toTitleCase(slot.type.replace("-", " "));
   const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
-  const findSlot = useSlotTreeRootStore((x) => x.findSlot);
 
   const topSlotId = useSlotHoverStackStore((x) => x.topSlotId);
   const addToHoverStack = useSlotHoverStackStore((x) => x.addToHoverStack);
@@ -258,27 +256,11 @@ function SlotWrapper({
       return;
     }
 
-    handleDelete(copiedSlot);
+    deleteSlot(copiedSlot);
     updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
       x.content.push(copiedSlot),
     );
     clearClipboard();
-  }
-
-  function handleDelete(slot: Slot) {
-    const parentSlot = findSlot<RowSlot | ColumnSlot>((x) =>
-      isSlotParent(x, slot),
-    );
-
-    if (!parentSlot) return;
-
-    updateSlot<RowSlot | ColumnSlot | CardFooterSlot>(parentSlot.id, (x) => {
-      return x.type === "card-footer"
-        ? (x.buttons = x.buttons.filter((x) => x !== slot))
-        : (x.content = x.content.filter(
-            (x) => ("slot" in x ? x.slot : x) !== slot,
-          ));
-    });
   }
 
   return (
@@ -554,10 +536,7 @@ function SlotWrapper({
         )}
         <ContextMenuSeparator />
 
-        <ContextMenuItem
-          variant="destructive"
-          onClick={() => handleDelete(slot)}
-        >
+        <ContextMenuItem variant="destructive" onClick={() => deleteSlot(slot)}>
           <span>Delete</span>
           <Trash2 className="ml-auto" />
         </ContextMenuItem>
