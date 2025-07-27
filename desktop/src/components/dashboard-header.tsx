@@ -6,12 +6,16 @@ import NotificationPageLink from "@/components/notification-page-link";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { Button } from "./ui/button";
 import { X } from "lucide-react";
+import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
 
 export default function DashboardHeader() {
   const isInLayoutMode = useSlotLayoutModeStore((x) => x.layoutRootId) !== null;
   const exitLayoutMode = useSlotLayoutModeStore((x) => x.exitLayoutMode);
 
-  const isInBaseMode = !isInLayoutMode;
+  const isCutting = useSlotClipboardStore((x) => x.isCutting);
+  const clearClipboard = useSlotClipboardStore((x) => x.clear);
+
+  const isInBaseMode = !isInLayoutMode && !isCutting;
 
   return (
     <header className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear">
@@ -47,6 +51,16 @@ export default function DashboardHeader() {
           <p className="flex-1 text-center font-bold">Layout Mode</p>
 
           <Button variant="ghost" onClick={exitLayoutMode}>
+            <X />
+          </Button>
+        </div>
+      )}
+
+      {isCutting && (
+        <div className="flex flex-1 items-center justify-center gap-2 px-4">
+          <p className="flex-1 text-center font-bold">Cutting</p>
+
+          <Button variant="ghost" onClick={clearClipboard}>
             <X />
           </Button>
         </div>

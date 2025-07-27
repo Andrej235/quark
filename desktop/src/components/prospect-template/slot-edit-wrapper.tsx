@@ -13,6 +13,7 @@ import { TextFieldSlot } from "@/lib/prospects/slot-types/text-field-slot";
 import { promptUserToSelectSlot } from "@/lib/select-slot";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
+import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
@@ -66,7 +67,6 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
-import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
 
 export default function SlotEditWrapper({
   slot,
@@ -173,8 +173,11 @@ function SlotWrapper({
     (x) => x.isSlotChildOfLayoutRoot,
   )(slot);
 
+  const isCutting = useSlotClipboardStore((x) => x.isCutting);
   const copiedSlot = useSlotClipboardStore((x) => x.copiedSlot);
   const copySlot = useSlotClipboardStore((x) => x.copy);
+  const cutSlot = useSlotClipboardStore((x) => x.cut);
+  const clearClipboard = useSlotClipboardStore((x) => x.clear);
 
   const {
     attributes: dragAttributes,
@@ -248,12 +251,21 @@ function SlotWrapper({
   function handlePaste() {
     if (!isLayoutSlot || !copiedSlot) return;
 
+    if (!isCutting) {
+      updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
+        x.content.push(cloneSlot(copiedSlot)),
+      );
+      return;
+    }
+
+    handleDelete(copiedSlot);
     updateSlot<RowSlot | ColumnSlot>(slot.id, (x) =>
-      x.content.push(cloneSlot(copiedSlot)),
+      x.content.push(copiedSlot),
     );
+    clearClipboard();
   }
 
-  function handleDelete() {
+  function handleDelete(slot: Slot) {
     const parentSlot = findSlot<RowSlot | ColumnSlot>((x) =>
       isSlotParent(x, slot),
     );
@@ -284,7 +296,7 @@ function SlotWrapper({
           className={cn(
             "outline-border/0 **:disabled:opacity-100 relative rounded-md outline-dashed outline-2 outline-offset-8 transition-all",
             isActive && "outline-border",
-            isDragging && "opacity-50",
+            (isDragging || (isCutting && slot === copiedSlot)) && "opacity-50",
           )}
           onPointerEnter={() => {
             addToHoverStack(slot.id);
@@ -455,10 +467,8 @@ function SlotWrapper({
 
         {isLayoutSlot && (
           <ContextMenuItem
-            onClick={() => {
-              console.log("layout", slot.type);
-              enterLayoutMode(slot as LayoutSlot);
-            }}
+            onClick={() => enterLayoutMode(slot as LayoutSlot)}
+            disabled={isCutting}
           >
             <span>Change Layout</span>
             <LayoutTemplate className="ml-auto" />
@@ -466,7 +476,7 @@ function SlotWrapper({
         )}
 
         {isLayoutSlot && (
-          <ContextMenuItem onClick={handleAddChild}>
+          <ContextMenuItem onClick={handleAddChild} disabled={isCutting}>
             <span>Add Child</span>
             <Plus className="ml-auto" />
           </ContextMenuItem>
@@ -519,12 +529,12 @@ function SlotWrapper({
 
         <ContextMenuSeparator />
 
-        <ContextMenuItem onClick={() => copySlot(slot)}>
+        <ContextMenuItem onClick={() => copySlot(slot)} disabled={isCutting}>
           <span>Copy</span>
           <ClipboardCopy className="ml-auto" />
         </ContextMenuItem>
 
-        <ContextMenuItem>
+        <ContextMenuItem onClick={() => cutSlot(slot)} disabled={isCutting}>
           <span>Cut</span>
           <Scissors className="ml-auto" />
         </ContextMenuItem>
@@ -544,7 +554,10 @@ function SlotWrapper({
         )}
         <ContextMenuSeparator />
 
-        <ContextMenuItem variant="destructive" onClick={handleDelete}>
+        <ContextMenuItem
+          variant="destructive"
+          onClick={() => handleDelete(slot)}
+        >
           <span>Delete</span>
           <Trash2 className="ml-auto" />
         </ContextMenuItem>
