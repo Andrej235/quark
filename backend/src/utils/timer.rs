@@ -2,6 +2,7 @@ use crate::types::aliases::EndpointPathInfo;
 
 #[cfg(debug_assertions)]
 use std::time::Instant;
+#[cfg(debug_assertions)]
 use tracing::warn;
 
 #[cfg(debug_assertions)]

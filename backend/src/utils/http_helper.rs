@@ -1,7 +1,6 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
 use crate::types::aliases::{EmptyHttpResult, EndpointPathInfo, PermissionBits};
@@ -33,6 +32,23 @@ impl HttpHelper {
         err: Box<dyn Error>
     ) -> HttpResponse {
         error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, description, err);
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    pub fn log_internal_server_error_as_message(
+        endpoint_path: EndpointPathInfo,
+        description: &'static str,
+        err_message: String,
+    ) -> HttpResponse {
+        error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, description, err_message);
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    pub fn log_internal_server_error_plain(
+        endpoint_path: EndpointPathInfo,
+        description: &'static str
+    ) -> HttpResponse {
+        error!("[FAILED] [{:?}][{}] Reason: {}", endpoint_path.1, endpoint_path.0, description);
         return HttpResponse::InternalServerError().finish();
     }
     
@@ -130,7 +146,7 @@ impl HttpHelper {
     /// Returns: InternalServerError transaction commit or rollback fails <br/>
     /// Returns: Ok
     pub async fn commit_http_transaction(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         transaction: DatabaseTransaction,
         transaction_result: Result<(), HttpResponse>
     ) -> EmptyHttpResult {
