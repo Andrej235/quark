@@ -1,21 +1,52 @@
+import { isSlotParent } from "@/lib/prospects/is-slot-parent";
+import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
+import { Slot } from "@/lib/prospects/slot-types/slot";
+import { SlotFlexWrapper } from "@/lib/prospects/slot-types/slot-flex-wrapper";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
+import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
+import { GripVertical } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useEventListener } from "usehooks-ts";
+import { Button } from "../ui/button";
 import {
   Card,
-  CardAction,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { GripVertical } from "lucide-react";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Separator } from "../ui/separator";
 
 export default function SlotEditorDialog() {
-  const selectedSlot = useSlotEditorStore((x) => x.editingSlot);
+  const editingSlot = useSlotEditorStore((x) => x.editingSlot);
+  const findSlot = useSlotTreeRootStore((x) => x.findSlot);
+
+  const [slot, setSlot] = useState<Slot | null>(null);
+  const [parentSlot, setParentSlot] = useState<Slot | null>(null);
+
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null!);
   const dragControls = useDragControls();
+
+  const isInsideFlexLayout =
+    parentSlot?.type === "column" || parentSlot?.type === "row";
+  const flex = isInsideFlexLayout
+    ? ((
+        parentSlot.content.find(
+          (x) => "slot" in x && x.slot === editingSlot,
+        ) as SlotFlexWrapper
+      )?.flex ?? -1)
+    : -1;
+
+  useEffect(() => {
+    setSlot(editingSlot);
+    setParentSlot(
+      editingSlot ? findSlot((x) => isSlotParent(x, editingSlot)) : null,
+    );
+  }, [editingSlot, findSlot]);
 
   const mousePosition = useRef<{ x: number; y: number }>({
     x: 0,
@@ -30,9 +61,9 @@ export default function SlotEditorDialog() {
   });
 
   useEffect(() => {
-    setIsOpen(!!selectedSlot);
+    setIsOpen(!!editingSlot);
 
-    if (!selectedSlot || !containerRef.current) return;
+    if (!editingSlot || !containerRef.current) return;
 
     const offset = 25;
     const x =
@@ -41,9 +72,38 @@ export default function SlotEditorDialog() {
 
     containerRef.current.style.left = `${x}px`;
     containerRef.current.style.top = `${y}px`;
-  }, [selectedSlot]);
+  }, [editingSlot]);
 
-  if (!selectedSlot) return null;
+  function handleChange(property: string, e: ChangeEvent<HTMLInputElement>) {
+    if (!slot) return;
+
+    const value = e.target.value;
+    setSlot((prev) => ({ ...prev, [property]: value }) as Slot);
+  }
+
+  function handleChangeFlex(newValue: string | number) {
+    if (!slot || !parentSlot) return;
+
+    const flex = +newValue || 0;
+    const parent = parentSlot as RowSlot;
+
+    for (let i = 0; i < parent.content.length; i++) {
+      const current = parent.content[i];
+
+      if (("slot" in current && current.slot === slot) || current === slot) {
+        console.log(current);
+
+        parent.content[i] = {
+          flex,
+          slot: editingSlot!,
+        };
+        setParentSlot({ ...parent });
+        break;
+      }
+    }
+  }
+
+  if (!slot) return null;
 
   return (
     <motion.div
@@ -76,15 +136,67 @@ export default function SlotEditorDialog() {
           className="select-none"
         >
           <CardTitle className="flex justify-between">
-            <span>Edit Slot&apos;s Data</span>
+            <span>Editing {editingSlot?.id}</span>
 
             <GripVertical className="text-muted-foreground size-5" />
           </CardTitle>
 
-          <CardDescription>{selectedSlot.type}</CardDescription>
+          <CardDescription>
+            Control basic information about this slot
+          </CardDescription>
         </CardHeader>
 
-        <CardAction></CardAction>
+        <Separator />
+
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-muted-foreground text-sm" htmlFor="id">
+              Slot&apos;s unique identifier
+            </Label>
+            <Input
+              id="id"
+              value={slot.id}
+              onChange={(e) => handleChange("id", e)}
+            />
+          </div>
+
+          {isInsideFlexLayout && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-sm" htmlFor="flex">
+                Flex
+              </Label>
+
+              <div className="flex items-center gap-4">
+                <Input
+                  id="flex"
+                  value={flex < 0 ? "Automatic" : flex}
+                  disabled={flex < 0}
+                  readOnly={flex < 0}
+                  onChange={(e) => handleChangeFlex(e.target.value)}
+                />
+
+                {flex < 0 && (
+                  <Button
+                    variant="outline"
+                    className="w-48"
+                    onClick={() => handleChangeFlex(0)}
+                  >
+                    Set Manually
+                  </Button>
+                )}
+                {flex >= 0 && (
+                  <Button
+                    variant="outline"
+                    className="w-48"
+                    onClick={() => handleChangeFlex(-1)}
+                  >
+                    Set Automatically
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
     </motion.div>
   );

@@ -40,7 +40,7 @@ export default function RenderSlotTree({
   if (!root) return null;
 
   return (
-    <div className={cn(isInLayoutMode && "select-none")}>
+    <div className={cn((isInLayoutMode || isInEditMode) && "select-none")}>
       <slotEditContext.Provider
         value={{
           isEditModeActive: editMode ?? false,

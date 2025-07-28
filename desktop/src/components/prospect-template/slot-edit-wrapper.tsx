@@ -208,7 +208,9 @@ function SlotWrapper({
   const isHovered = topSlotId === slot.id;
   const canDuplicate = canDuplicateSlot(slot);
   const isActive =
-    editingLayoutRoot === slot.id || (isHovered && !editingLayoutRoot);
+    editingLayoutRoot === slot.id ||
+    editingSlot === slot ||
+    (isHovered && !editingLayoutRoot && !editingSlot);
 
   function handleMoveLeft() {
     if (!editingLayoutRoot) return;
