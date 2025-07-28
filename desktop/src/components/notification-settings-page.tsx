@@ -1,19 +1,43 @@
 import { NotificationAccordionList } from "./notification-accordion-list";
 
-const userSettingsGroups = [
+const notificationSelection = [
   {
-    title: "User invited", 
-    items: ["Send notification", "Mute this user", "Remove from team"],
+    titleCard: "Team notifications",
+    groups: [
+      { title: "User invited" },
+      { title: "User invitation accepted" },
+      { title: "User kicked out" },
+      { title: "User role changed" },
+    ],
   },
   {
-    title: "User role changed",
-    items: ["Notify user", "Request confirmation"],
+    titleCard: "User notifications",
+    groups: [
+      { title: "Invited to team" },
+      { title: "Role changed" },
+      { title: "Kicked out" },
+    ],
   },
   {
-     title: "User kicked out",
-    items: ["Send final email", "Archive data"],
+    titleCard: "Client notifications",
+    groups: [
+      { title: "Add prospect" },
+      { title: "Edit prospect" },
+      { title: "Delete prospect" },
+    ],
   },
-]
+  {
+    titleCard: "Mail notifications",
+    groups: [
+      { title: "Add email" },
+      { title: "Edit email" },
+      { title: "Delete email" },
+      { title: "Send email" },
+      { title: "Schedule email" },
+    ],
+  },
+];
+
 export default function NotificationSettingsPage() {
   return (
     <div className="bg-muted/50 flex h-full min-h-[100vh] flex-row rounded-xl md:min-h-min">
@@ -21,11 +45,15 @@ export default function NotificationSettingsPage() {
         <div className="flex w-1/3 items-center justify-center p-2">
           <h1 className="text-4xl">Notification center</h1>
         </div>
-
-        <div className="bg-secondary flex w-1/3 flex-col item-start justify-start gap-8 rounded-xl p-4 shadow-[0_0_5px_rgba(59,130,246,0.5)]">
-        <h1 className="text-2xl">User settings for teams</h1>
-        <NotificationAccordionList groups={userSettingsGroups} />
-        </div>
+        {notificationSelection.map((section, index) => (
+          <div
+            key={index}
+            className="bg-secondary item-start flex w-1/3 flex-col justify-start gap-4 rounded-xl p-4 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
+          >
+            <h1 className="text-xl font-semibold">{section.titleCard}</h1>
+            <NotificationAccordionList groups={section.groups} />
+          </div>
+        ))}
       </div>
     </div>
   );
