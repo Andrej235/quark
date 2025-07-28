@@ -17,8 +17,10 @@ use crate::{
             user_password_reset, user_refresh, user_sign_up, user_update, user_update_default_team,
             user_update_profile_picture, verify_email,
         },
+        ws_routes::{send_message, ws_handler},
     },
     utils::redis_service::RedisService,
+    ws::session::AppState,
 };
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
@@ -28,7 +30,12 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::{env, time::Duration};
+use std::{
+    collections::HashMap,
+    env,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use web::Data as WebData;
@@ -57,6 +64,7 @@ pub mod routes;
 pub mod traits;
 pub mod types;
 pub mod utils;
+pub mod ws;
 
 // ------------------------------------------------------------------------------------
 // FUNCTIONS
@@ -96,6 +104,9 @@ fn routes(cfg: &mut web::ServiceConfig) {
 
     cfg.service(team_get_members);
     cfg.service(team_member_kick);
+
+    cfg.service(ws_handler);
+    cfg.service(send_message);
 }
 
 /*
@@ -173,6 +184,14 @@ async fn main() -> std::io::Result<()> {
     let redis_manager: RedisConnectionManager = RedisConnectionManager::new(redis_url).expect("Failed to create redis connection manager.");
     let pool: Pool<RedisConnectionManager> = Pool::builder().build(redis_manager).await.expect("Failed to create redis connection pool.");
 
+
+    // Create websockets state
+    let ws_app_state: AppState = AppState {
+        sessions: Arc::new(Mutex::new(HashMap::new())),
+    };
+
+    let ws_app_state_data: WebData<AppState> = WebData::new(ws_app_state);
+    
     
     // Start server
     HttpServer::new(move|| {
@@ -190,6 +209,7 @@ async fn main() -> std::io::Result<()> {
             )
             .app_data(WebData::new(database_connection.clone())) // Inject database into app state
             .app_data(WebData::new(redis_service))
+            .app_data(ws_app_state_data.clone())
             .configure(routes) // Register endpoints
     })
     .workers(worker_threads.parse::<usize>().unwrap())

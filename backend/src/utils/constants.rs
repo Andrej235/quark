@@ -90,3 +90,7 @@ pub const TEAM_INVITATION_DECLINE_ROUTE_PATH: EndpointPathInfo = ("/team-invitat
 
 pub const TEAM_MEMBERS_GET_ROUTE_PATH: EndpointPathInfo = ("/team/members/{team_id}", TypeOfRequest::GET);
 pub const TEAM_MEMBERS_KICK_ROUTE_PATH: EndpointPathInfo = ("/team_members/kick/{team_id}", TypeOfRequest::DELETE);
+
+
+pub const WEBSOCKET_ROUTE_PATH: EndpointPathInfo = ("/ws", TypeOfRequest::GET);
+pub const WEBSOCKET_SEND_MESSAGE_ROUTE_PATH: EndpointPathInfo = ("/ws/{team_id}", TypeOfRequest::POST);
