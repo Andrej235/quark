@@ -44,6 +44,14 @@ impl HttpHelper {
         error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, description, err_message);
         return HttpResponse::InternalServerError().finish();
     }
+
+    pub fn log_internal_server_error_plain(
+        endpoint_path: EndpointPathInfo,
+        description: &'static str
+    ) -> HttpResponse {
+        error!("[FAILED] [{:?}][{}] Reason: {}", endpoint_path.1, endpoint_path.0, description);
+        return HttpResponse::InternalServerError().finish();
+    }
     
     /// Creates random 6 character long string <br/>
     /// **NOTE: String contains letters and number** <br/>
@@ -139,7 +147,7 @@ impl HttpHelper {
     /// Returns: InternalServerError transaction commit or rollback fails <br/>
     /// Returns: Ok
     pub async fn commit_http_transaction(
-        endpoint_path: (&'static str, TypeOfRequest),
+        endpoint_path: EndpointPathInfo,
         transaction: DatabaseTransaction,
         transaction_result: Result<(), HttpResponse>
     ) -> EmptyHttpResult {

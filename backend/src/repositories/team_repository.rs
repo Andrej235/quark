@@ -64,13 +64,15 @@ impl TeamRepository {
     /// Returns: NotFound(**Team not found**) response if team is not found <br/>
     /// Returns: InternalServerError if database query fails <br/>
     /// Returns: Found team
-    pub async fn find_by_id(
+    pub async fn find_by_id<C>(
         endpoint_path: EndpointPathInfo,
-        db: &DatabaseConnection, 
+        db: &C, 
         team_id: TeamId,
         handle_not_found: bool
-    ) -> Result<Option<Team>, HttpResponse> {
-    
+    ) -> Result<Option<Team>, HttpResponse> 
+    where
+        C: ConnectionTrait + Send + Sync,
+    {
         return match TeamEntity::find_by_id(team_id)
             .one(db)
             .await {

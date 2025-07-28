@@ -9,6 +9,7 @@ pub enum TeamInvitationStatus {
     SENT = 0,
     ACCEPTED = 1,
     DECLINED = 2,
+    EXPIRED = 3,
 }
 
 // ------------------------------------------------------------------------------------
