@@ -17,10 +17,10 @@ use crate::{
             user_password_reset, user_refresh, user_sign_up, user_update, user_update_default_team,
             user_update_profile_picture, verify_email,
         },
-        ws_routes::{send_message, ws_handler},
+        ws_routes::ws_handler,
     },
     utils::redis_service::RedisService,
-    ws::session::AppState,
+    ws::session::WebsocketState,
 };
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
@@ -106,7 +106,6 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(team_member_kick);
 
     cfg.service(ws_handler);
-    cfg.service(send_message);
 }
 
 /*
@@ -186,11 +185,11 @@ async fn main() -> std::io::Result<()> {
 
 
     // Create websockets state
-    let ws_app_state: AppState = AppState {
+    let ws_app_state: WebsocketState = WebsocketState {
         sessions: Arc::new(Mutex::new(HashMap::new())),
     };
 
-    let ws_app_state_data: WebData<AppState> = WebData::new(ws_app_state);
+    let ws_app_state_data: WebData<WebsocketState> = WebData::new(ws_app_state);
     
     
     // Start server

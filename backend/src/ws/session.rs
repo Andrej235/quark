@@ -6,10 +6,10 @@ use std::{
 };
 use uuid::Uuid;
 
-use crate::ws::messages::TeamInviteMessage;
+use crate::ws::messages::NotificationMessage;
 
 #[derive(Clone)]
-pub struct AppState {
+pub struct WebsocketState {
     pub sessions: Arc<Mutex<HashMap<Uuid, Addr<WebSocketSession>>>>,
 }
 
@@ -20,11 +20,11 @@ pub struct AppState {
 // ************************************************************************************
 pub struct WebSocketSession {
     user_id: Uuid,
-    state: AppState,
+    state: WebsocketState,
 }
 
 impl WebSocketSession {
-    pub fn new(user_id: Uuid, state: AppState) -> Self {
+    pub fn new(user_id: Uuid, state: WebsocketState) -> Self {
         Self { user_id, state }
     }
 }
@@ -53,10 +53,10 @@ impl Actor for WebSocketSession {
 // HANDLER IMPLEMENTATIONS
 //
 // ************************************************************************************
-impl Handler<TeamInviteMessage> for WebSocketSession {
+impl Handler<NotificationMessage> for WebSocketSession {
     type Result = ();
 
-    fn handle(&mut self, msg: TeamInviteMessage, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: NotificationMessage, ctx: &mut Self::Context) {
         ctx.text(msg.message);
     }
 }

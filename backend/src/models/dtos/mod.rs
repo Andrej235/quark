@@ -18,3 +18,4 @@ pub mod update_team_role_dto;
 pub mod update_user;
 pub mod user_info_dto;
 pub mod validation_error_dto;
+pub mod websocket_message_dto;

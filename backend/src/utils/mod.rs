@@ -5,3 +5,4 @@ pub mod macros;
 pub mod redis_service;
 pub mod string_helper;
 pub mod timer;
+pub mod websocket_helper;

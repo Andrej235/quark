@@ -35,6 +35,15 @@ impl HttpHelper {
         error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, description, err);
         return HttpResponse::InternalServerError().finish();
     }
+
+    pub fn log_internal_server_error_as_message(
+        endpoint_path: EndpointPathInfo,
+        description: &'static str,
+        err_message: String,
+    ) -> HttpResponse {
+        error!("[FAILED] [{:?}][{}] Reason: {}, Error: {:?}", endpoint_path.1, endpoint_path.0, description, err_message);
+        return HttpResponse::InternalServerError().finish();
+    }
     
     /// Creates random 6 character long string <br/>
     /// **NOTE: String contains letters and number** <br/>

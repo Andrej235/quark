@@ -16,9 +16,12 @@ use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
 use crate::models::sroute_error::SRouteError;
 use crate::repositories::team_repository::TeamRepository;
 use crate::repositories::user_repository::UserRepository;
+use crate::types::aliases::{EmptyHttpResult, EndpointPathInfo, HttpResult};
 use crate::utils::constants::{
     TEAM_INVITATION_ACCEPT_ROUTE_PATH, TEAM_INVITATION_DECLINE_ROUTE_PATH,
 };
+use crate::utils::websocket_helper::WebsocketHelper;
+use crate::ws::session::WebsocketState;
 use crate::{
     models::{
         dtos::team_invitation_dto::TeamInvitationDTO,
@@ -64,6 +67,7 @@ use uuid::Uuid;
 #[rustfmt::skip]
 pub async fn team_invitation_send(
     db: Data<DatabaseConnection>,
+    websocket: Data<WebsocketState>,
     auth_user: AdvancedAuthenticatedUser,
     json_data: ValidatedJson<TeamInvitationDTO>,
 ) -> impl Responder {
@@ -81,6 +85,8 @@ pub async fn team_invitation_send(
         return HttpResponse::BadRequest().json(SRouteError { message: "User not verified" });
     }
 
+    let team_info: Team; // this will hold team info that will be populated in match arms below
+
     // Check if invitation already exists
     match TeamInvitationEntity::find()
         .filter(TeamInvitationColumn::TeamId.eq(team_invitation_data.team_id))
@@ -94,32 +100,35 @@ pub async fn team_invitation_send(
             // SPECIAL CASE
             // If status of invitation is DECLINED or ACCEPTED create new invitation instead of updating old new
             if inv.status == TeamInvitationStatus::DECLINED || inv.status == TeamInvitationStatus::ACCEPTED {
-                match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
-                    Ok(_) => return HttpResponse::Ok().finish(),
+                team_info = match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
+                    Ok(team) => team,
                     Err(err) => return err,
                 }
             }
+            else {
+                let inv_code: String = inv.token.clone();
 
-            let inv_code: String = inv.token.clone();
+                // **** Update invitation
+                let mut inv_active_model: TeamInvitationActiveModel = inv.into();
+                inv_active_model.expires_at = Set(Utc::now().naive_utc() + Duration::days(TEAM_INVITATION_EXPIRATION_OFFSET));
 
-            // **** Update invitation
-            let mut inv_active_model: TeamInvitationActiveModel = inv.into();
-            inv_active_model.expires_at = Set(Utc::now().naive_utc() + Duration::days(TEAM_INVITATION_EXPIRATION_OFFSET));
+                match inv_active_model.update(db.get_ref()).await {
+                    Ok(_) => {},
+                    Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Updating invitation", Box::new(err)),
+                };
+                // ****************
 
-            match inv_active_model.update(db.get_ref()).await {
-                Ok(_) => {},
-                Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Updating invitation", Box::new(err)),
-            };
-            // ****************
+                match send_invitation_email(&auth_user.user.username, &reciever.name, &reciever.email, &team.name, inv_code).await {
+                    Ok(_) => {},
+                    Err(err) => return err,
+                }
 
-            match send_invitation_email(&auth_user.user.username, &reciever.name, &reciever.email, &team.name, inv_code).await {
-                Ok(_) => {},
-                Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err)),
+                team_info = team;
             }
         },
         Ok(None) => { // In case that invitation doesn't exist create it
-            match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
-                Ok(_) => {},
+            team_info = match create_new_team_invitation(db.get_ref(), team_invitation_data, &auth_user, &reciever).await {
+                Ok(team) => team,
                 Err(err) => return err,
             }
         },
@@ -129,6 +138,12 @@ pub async fn team_invitation_send(
         },
         Err(err) => return HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Checking if invitation exists", Box::new(err)),
     };
+
+    // Send realtime notification message
+    match WebsocketHelper::send_team_invitation_message(TEAM_INVITATION_SEND_ROUTE_PATH, websocket.get_ref(), &team_info.name, reciever.id, &auth_user.user.name).await {
+        Ok(_) => {},
+        Err(err) => return err,
+    }
 
     return HttpResponse::Ok().finish();
 }
@@ -266,7 +281,7 @@ pub async fn team_invitation_decline(
 //
 // ************************************************************************************
 #[rustfmt::skip]
-async fn check_ability_to_respond_to_invitation(db: &DatabaseConnection, auth_user: &AdvancedAuthenticatedUser, code: String, endpoint_path: (&'static str, TypeOfRequest)) -> Result<TeamInvitation, HttpResponse> {
+async fn check_ability_to_respond_to_invitation(db: &DatabaseConnection, auth_user: &AdvancedAuthenticatedUser, code: String, endpoint_path: EndpointPathInfo) -> HttpResult<TeamInvitation> {
 
     // Make sure that lenght of code if correct
     if code.len() != 8 {
@@ -304,18 +319,18 @@ async fn check_ability_to_respond_to_invitation(db: &DatabaseConnection, auth_us
 }
 
 #[rustfmt::skip]
-async fn send_invitation_email(sender_username: &str, reciever_name: &str, reciever_email: &str, team_name: &str, code: String) -> Result<(), resend_rs::Error> {
+async fn send_invitation_email(sender_username: &str, reciever_name: &str, reciever_email: &str, team_name: &str, code: String) -> EmptyHttpResult {
     
     let html: String = format!("<p>Hello {}, you have been by {} invited to join team: <b>{}</b> <br/> Use this code: <b>{}</b> to join the team</p>", reciever_name, sender_username, team_name, code);
 
     match HttpHelper::send_email(reciever_email, "Team Invitation", html.as_str()).await {
         Ok(_) => Ok(()),
-        Err(err) => return Err(err),
+        Err(err) => return Err(HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err))),
     }
 }
 
 #[rustfmt::skip]
-async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_data: &TeamInvitationDTO, auth_user: &AdvancedAuthenticatedUser, reciever: &User) -> Result<(), HttpResponse> {
+async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_data: &TeamInvitationDTO, auth_user: &AdvancedAuthenticatedUser, reciever: &User) -> HttpResult<Team> {
 
     // Get team data
     // Because we dont have access to team data from query
@@ -341,7 +356,9 @@ async fn create_new_team_invitation(db: &DatabaseConnection, team_invitation_dat
     };
 
     match send_invitation_email(&auth_user.user.username, &reciever.name, &reciever.email, &team.name, new_inv_code).await {
-        Ok(_) => Ok(()),
-        Err(err) => return Err(HttpHelper::log_internal_server_error(TEAM_INVITATION_SEND_ROUTE_PATH, "Sending invitation email", Box::new(err))),
+        Ok(_) => {},
+        Err(err) => return Err(err),
     }
+
+    return Ok(team);
 }
