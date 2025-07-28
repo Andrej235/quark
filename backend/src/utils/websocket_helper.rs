@@ -1,11 +1,15 @@
+use std::sync::Arc;
+
+use actix::Addr;
+
 use crate::{
     enums::type_of_notification::TypeOfNotification,
-    models::dtos::websocket_message_dto::WebsocketMessageDto,
+    models::dtos::websocket_message_dto::WebsocketMessageDTO,
     types::aliases::{EmptyHttpResult, EndpointPathInfo, UserId},
     utils::http_helper::HttpHelper,
     ws::{
         messages::NotificationMessage,
-        session::{WebSocketSession, WebsocketState},
+        session::{WebsocketSession, WebsocketState},
     },
 };
 
@@ -23,7 +27,7 @@ impl WebsocketHelper {
     ) -> EmptyHttpResult {
 
         // Create json string from json object and handle possible errors
-        let json_object: WebsocketMessageDto = WebsocketMessageDto::new(
+        let json_object: WebsocketMessageDTO = WebsocketMessageDTO::new(
             TypeOfNotification::InvitedToTeam,
             format!("U have been invited to join team: {} by {}", team_name, sender_name),
         );
@@ -36,27 +40,34 @@ impl WebsocketHelper {
         let notification: NotificationMessage = NotificationMessage::new(json_string);
 
         // Obtain lock on sessions
-        let sessions_lock = match websocket.sessions.lock() {
-            Ok(sessions_lock) => sessions_lock,
-            Err(err) => return Err(HttpHelper::log_internal_server_error_as_message(endpoint_path, "Locking sessions", err.to_string())),
-        };
+        let sessions_lock = websocket.sessions.lock().await;
 
-        let reciever_adress: &actix::Addr<WebSocketSession> = match sessions_lock.get(&reciever_id) {
-            Some(g) => g,
-            None => return Err(HttpHelper::log_internal_server_error_as_message(endpoint_path, "Getting session", "Session not found".to_string())),
+        let reciever_adress: &actix::Addr<WebsocketSession> = match sessions_lock.get(&reciever_id) {
+            Some(result) => result,
+            None => return Err(HttpHelper::log_internal_server_error_plain(endpoint_path, "Getting session")),
         };
 
         // Send notification message and handle possible errors
-        match reciever_adress.send(notification).await {
-            Ok(_) => (),
-            Err(err) => {
-                match err {
-                    actix::MailboxError::Closed => return Err(HttpHelper::log_internal_server_error_as_message(endpoint_path, "Sending message", "Session closed".to_string())),
-                    actix::MailboxError::Timeout => return Err(HttpHelper::log_internal_server_error_as_message(endpoint_path, "Sending message", "Timeout".to_string())),
-                }
-            },
-        };
+        reciever_adress.do_send(notification);
 
         return Ok(());
     }
+
+    pub fn insert_into_session(state: &WebsocketState, user_id: UserId, addr: Addr<WebsocketSession>) {
+        let sessions_clone = Arc::clone(&state.sessions);
+
+        actix::spawn(async move { // Spawns new thread to insert user into sessions
+            let mut sessions = sessions_clone.lock().await;
+            sessions.insert(user_id, addr);
+        });
+    }
+
+    pub fn remove_user_from_session(state: &WebsocketState, user_id: UserId) {
+        let sessions_clone = Arc::clone(&state.sessions);
+
+        actix::spawn(async move { // Spawns new thread to remove user from sessions
+            let mut sessions = sessions_clone.lock().await;
+            sessions.remove(&user_id);
+        });
+    }    
 }

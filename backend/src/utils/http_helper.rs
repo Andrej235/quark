@@ -1,7 +1,6 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::enums::type_of_request::TypeOfRequest;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
 use crate::types::aliases::{EmptyHttpResult, EndpointPathInfo, PermissionBits};

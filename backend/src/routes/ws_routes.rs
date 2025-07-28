@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use crate::{
     models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser,
-    ws::session::{WebSocketSession, WebsocketState},
+    ws::session::{WebsocketSession, WebsocketState},
 };
 use actix_web::{
     get,
@@ -17,7 +17,7 @@ async fn ws_handler(
     state: Data<WebsocketState>,
     auth_user: AdvancedAuthenticatedUser,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let ws = WebSocketSession::new(
+    let ws = WebsocketSession::new(
         auth_user.user.id,
         WebsocketState {
             sessions: Arc::clone(&state.get_ref().sessions),

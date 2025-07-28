@@ -30,12 +30,8 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::{
-    collections::HashMap,
-    env,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use tokio::sync::Mutex;
+use std::{collections::HashMap, env, sync::Arc, time::Duration};
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use web::Data as WebData;

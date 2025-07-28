@@ -3,13 +3,13 @@ use serde::Serialize;
 use crate::enums::type_of_notification::TypeOfNotification;
 
 #[derive(Debug, Serialize)]
-pub struct WebsocketMessageDto {
+pub struct WebsocketMessageDTO {
     pub type_of_notification: TypeOfNotification,
     pub message: String,
 }
 
-impl WebsocketMessageDto {
-    pub fn new(type_of_notification: TypeOfNotification, message: String) -> WebsocketMessageDto {
-        WebsocketMessageDto { type_of_notification, message }
+impl WebsocketMessageDTO {
+    pub fn new(type_of_notification: TypeOfNotification, message: String) -> WebsocketMessageDTO {
+        WebsocketMessageDTO { type_of_notification, message }
     }
 }

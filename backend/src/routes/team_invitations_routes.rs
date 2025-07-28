@@ -121,7 +121,7 @@ pub async fn team_invitation_send(
             let created_at = inv.expires_at - Duration::days(TEAM_INVITATION_EXPIRATION_OFFSET);
             let invitation_age = Utc::now().naive_utc() - created_at;
 
-            if invitation_age < Duration::days(TEAM_INVITATION_YOUNG_OFFSET) {
+            if invitation_age < Duration::minutes(TEAM_INVITATION_YOUNG_OFFSET) {
                 return HttpResponse::Forbidden().json(SRouteError::new("Invitation is too young to be resent"));
             }
 
