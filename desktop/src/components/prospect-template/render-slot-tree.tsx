@@ -2,6 +2,7 @@ import { slotEditContext } from "@/contexts/slot-edit-context";
 import { useShortcut } from "@/hooks/use-shortcut";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
 import { cn } from "@/lib/utils";
+import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { useEffect } from "react";
@@ -19,16 +20,21 @@ export default function RenderSlotTree({
     setRoot(slot);
   }, [slot, setRoot]);
 
-  const layoutRoot = useSlotLayoutModeStore((x) => x.layoutRootId);
-  const isInLayoutMode = !!layoutRoot;
+  const isInLayoutMode = useSlotLayoutModeStore((x) => x.layoutRootId) !== null;
   const exitLayoutMode = useSlotLayoutModeStore((x) => x.exitLayoutMode);
+
+  const isInEditMode = useSlotEditorStore((x) => x.editingSlot) !== null;
+  const exitEditMode = useSlotEditorStore((x) => x.exit);
 
   useShortcut({
     key: "Escape",
-    callback: exitLayoutMode,
+    callback: () => {
+      exitLayoutMode();
+      exitEditMode();
+    },
     preventDefault: true,
     stopPropagation: true,
-    enabled: isInLayoutMode,
+    enabled: isInLayoutMode || isInEditMode,
   });
 
   if (!root) return null;
@@ -42,7 +48,7 @@ export default function RenderSlotTree({
       >
         <RenderSlot slot={root} />
 
-        {editMode && <SlotEditorDialog />}
+        <SlotEditorDialog />
         <SlotSelectorDialog />
       </slotEditContext.Provider>
     </div>

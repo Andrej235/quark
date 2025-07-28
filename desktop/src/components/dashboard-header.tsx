@@ -1,12 +1,13 @@
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardBreadcrumbs from "@/components/dashboard-breadcrumbs";
 import HeaderSearchBar from "@/components/header-search-bar";
 import NotificationPageLink from "@/components/notification-page-link";
-import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
-import { Button } from "./ui/button";
-import { X } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
+import { useSlotEditorStore } from "@/stores/slot-editor-store";
+import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
+import { X } from "lucide-react";
+import { Button } from "./ui/button";
 
 export default function DashboardHeader() {
   const isInLayoutMode = useSlotLayoutModeStore((x) => x.layoutRootId) !== null;
@@ -15,7 +16,10 @@ export default function DashboardHeader() {
   const isCutting = useSlotClipboardStore((x) => x.isCutting);
   const clearClipboard = useSlotClipboardStore((x) => x.clear);
 
-  const isInBaseMode = !isInLayoutMode && !isCutting;
+  const isInEditMode = useSlotEditorStore((x) => x.editingSlot) !== null;
+  const exitEditMode = useSlotEditorStore((x) => x.exit);
+
+  const isInBaseMode = !isInLayoutMode && !isInEditMode && !isCutting;
 
   return (
     <header className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear">
@@ -51,6 +55,16 @@ export default function DashboardHeader() {
           <p className="flex-1 text-center font-bold">Layout Mode</p>
 
           <Button variant="ghost" onClick={exitLayoutMode}>
+            <X />
+          </Button>
+        </div>
+      )}
+
+      {isInEditMode && (
+        <div className="flex flex-1 items-center justify-center gap-2 px-4">
+          <p className="flex-1 text-center font-bold">Edit Mode</p>
+
+          <Button variant="ghost" onClick={exitEditMode}>
             <X />
           </Button>
         </div>

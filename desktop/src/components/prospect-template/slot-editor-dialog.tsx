@@ -1,16 +1,21 @@
+import { useSlotEditorStore } from "@/stores/slot-editor-store";
+import { motion, useDragControls } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { useEventListener, useOnClickOutside } from "usehooks-ts";
-import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Slot } from "@/lib/prospects/slot-types/slot";
-
-function useSelectedSlot(): [Slot | null, (selectedSlot: Slot | null) => void] {
-  return [null, () => {}];
-}
+import { useEventListener } from "usehooks-ts";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { GripVertical } from "lucide-react";
 
 export default function SlotEditorDialog() {
-  const [selectedSlot, setSelectedSlot] = useSelectedSlot();
+  const selectedSlot = useSlotEditorStore((x) => x.editingSlot);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null!);
+  const dragControls = useDragControls();
 
   const mousePosition = useRef<{ x: number; y: number }>({
     x: 0,
@@ -38,21 +43,49 @@ export default function SlotEditorDialog() {
     containerRef.current.style.top = `${y}px`;
   }, [selectedSlot]);
 
-  useOnClickOutside(containerRef, () => {
-    if (isOpen) setSelectedSlot(null);
-  });
-
   if (!selectedSlot) return null;
 
   return (
-    <Card
+    <motion.div
       ref={containerRef}
-      className="w-xl fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+      className="-translate-1/2 fixed left-1/2 top-1/2"
+      initial={{
+        scale: 0.5,
+        opacity: 0,
+      }}
+      animate={{
+        scale: isOpen ? 1 : 0.5,
+        opacity: isOpen ? 1 : 0,
+      }}
+      drag
+      dragListener={false}
+      dragControls={dragControls}
+      whileDrag={{
+        scale: 0.95,
+      }}
+      transition={{
+        duration: 0.1,
+      }}
+      dragTransition={{
+        velocity: 0,
+      }}
     >
-      <CardHeader>
-        <CardTitle>Edit Slot&apos;s Data</CardTitle>
-        <CardDescription>{selectedSlot.type}</CardDescription>
-      </CardHeader>
-    </Card>
+      <Card className="w-xl">
+        <CardHeader
+          onPointerDown={(e) => dragControls.start(e)}
+          className="select-none"
+        >
+          <CardTitle className="flex justify-between">
+            <span>Edit Slot&apos;s Data</span>
+
+            <GripVertical className="text-muted-foreground size-5" />
+          </CardTitle>
+
+          <CardDescription>{selectedSlot.type}</CardDescription>
+        </CardHeader>
+
+        <CardAction></CardAction>
+      </Card>
+    </motion.div>
   );
 }

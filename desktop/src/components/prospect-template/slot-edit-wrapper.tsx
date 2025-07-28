@@ -2,6 +2,7 @@ import { deleteSlot } from "@/lib/delete-slot";
 import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
 import { cloneSlot } from "@/lib/prospects/clone-slot";
 import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
+import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
 import { CardHeaderSlot } from "@/lib/prospects/slot-types/card-header-slot";
 import { CardSlot } from "@/lib/prospects/slot-types/card-slot";
 import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
@@ -10,11 +11,11 @@ import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
 import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
 import { Slot } from "@/lib/prospects/slot-types/slot";
 import { SlotFlexWrapper } from "@/lib/prospects/slot-types/slot-flex-wrapper";
-import { TextFieldSlot } from "@/lib/prospects/slot-types/text-field-slot";
 import { promptUserToSelectSlot } from "@/lib/select-slot";
 import toTitleCase from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
+import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
@@ -68,7 +69,6 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import RenderSlot from "./render-slot";
-import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
 
 export default function SlotEditWrapper({
   slot,
@@ -173,6 +173,9 @@ function SlotWrapper({
   const isMovableDueToLayoutMode = useSlotLayoutModeStore(
     (x) => x.isSlotChildOfLayoutRoot,
   )(slot);
+
+  const editingSlot = useSlotEditorStore((x) => x.editingSlot);
+  const setEditingSlot = useSlotEditorStore((x) => x.setEditingSlot);
 
   const isCutting = useSlotClipboardStore((x) => x.isCutting);
   const copiedSlot = useSlotClipboardStore((x) => x.copiedSlot);
@@ -312,9 +315,7 @@ function SlotWrapper({
     <ContextMenu
       onOpenChange={(newOpen) => freezeHoverStack(newOpen ? slot.id : null)}
     >
-      <ContextMenuTrigger
-        disabled={!!editingLayoutRoot && editingLayoutRoot !== slot.id}
-      >
+      <ContextMenuTrigger disabled={!!editingLayoutRoot || !!editingSlot}>
         <div
           ref={dragRef}
           style={draggableStyle}
@@ -482,10 +483,7 @@ function SlotWrapper({
       <ContextMenuContent className="w-64">
         <ContextMenuItem
           onClick={() => {
-            console.log("edit", slot.type);
-            updateSlot<TextFieldSlot>(slot.id, (x) => {
-              x.name = "New Name";
-            });
+            setEditingSlot(slot);
           }}
         >
           <span>Edit</span>
