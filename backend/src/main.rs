@@ -30,8 +30,8 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use tokio::sync::Mutex;
 use std::{collections::HashMap, env, sync::Arc, time::Duration};
+use tokio::sync::Mutex;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use web::Data as WebData;
@@ -183,6 +183,7 @@ async fn main() -> std::io::Result<()> {
     // Create websockets state
     let ws_app_state: WebsocketState = WebsocketState {
         sessions: Arc::new(Mutex::new(HashMap::new())),
+        groups: Arc::new(Mutex::new(HashMap::new())),
     };
 
     let ws_app_state_data: WebData<WebsocketState> = WebData::new(ws_app_state);

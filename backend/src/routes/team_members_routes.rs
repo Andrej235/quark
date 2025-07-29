@@ -17,6 +17,8 @@ use crate::repositories::user_repository::UserRepository;
 use crate::routes::team_routs::OWNER_PERMISSIONS;
 use crate::utils::constants::{TEAM_MEMBERS_GET_ROUTE_PATH, TEAM_MEMBERS_KICK_ROUTE_PATH};
 use crate::utils::http_helper::HttpHelper;
+use crate::utils::websocket_messages::WebsocketMessages;
+use crate::ws::session::WebsocketState;
 use crate::{
     models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser,
     utils::redis_service::RedisService,
@@ -119,9 +121,6 @@ pub async fn team_get_members(
     delete,
     path = TEAM_MEMBERS_KICK_ROUTE_PATH.0,
     request_body = KickTeamMemberDTO,
-    params(
-        ("team_id" = Uuid, Path),
-    ),
     responses(
         (status = 200, description = "Team member kicked"),
         (status = 403, description = "Not member of team, Permission too low, User not found, Cannot kick owner of team", body = SRouteError),
@@ -129,22 +128,21 @@ pub async fn team_get_members(
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
-#[delete("/team_members/kick/{team_id}")]
+#[delete("/team_members/kick")]
 #[rustfmt::skip]
 pub async fn team_member_kick(
     db: Data<DatabaseConnection>,
+    websocket: Data<WebsocketState>,
     redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     body_data: ValidatedJson<KickTeamMemberDTO>,
-    path_data: Path<Uuid>,
 ) -> impl Responder {
 
-    let team_id: Uuid = path_data.into_inner();
-    let kick_team_member_dto: &KickTeamMemberDTO = body_data.get_data();
+    let kick_team_dto: &KickTeamMemberDTO = body_data.get_data();
 
     // Check if user can kick someone
     // This functions all will return ForbiddenError if user is not member of team
-    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
+    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), kick_team_dto.team_id, auth_user.user.id).await {
         Ok(permissions) => permissions,
         Err(err) => return err
     };
@@ -155,31 +153,35 @@ pub async fn team_member_kick(
     };
 
     // Get id of user that will be removed
-    let user_to_remove_id: Uuid = match UserRepository::get_id_by_username(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), &kick_team_member_dto.username, true).await {
+    let user_to_remove_id: Uuid = match UserRepository::get_id_by_username(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), &kick_team_dto.username, true).await {
         Ok(user_id) => user_id.unwrap(),
         Err(err) => return err
     };
 
-    let user_to_remove_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, user_to_remove_id, ).await {
+    let user_to_remove_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), kick_team_dto.team_id, user_to_remove_id, ).await {
         Ok(permissions) => permissions,
         Err(err) => return err
     };
 
     // Prevent user from removing themselves
     if auth_user.user.id == user_to_remove_id {
-        return HttpResponse::Conflict().json(SRouteError { message: "Cannot remove yourself" });
+        return HttpResponse::Conflict().json(SRouteError::new("Cannot remove yourself"));
     }
 
     // Prevent user from kicking owner of team
     if user_to_remove_permissions == OWNER_PERMISSIONS.clone() {
-        return HttpResponse::Forbidden().json(SRouteError { message: "Cannot kick owner of team" });
+        return HttpResponse::Forbidden().json(SRouteError::new("Cannot kick owner of team"));
     }
 
     // Remove user from team
-    match TeamRepository::delete_member(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, user_to_remove_id).await {
+    match TeamRepository::delete_member(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), kick_team_dto.team_id, user_to_remove_id).await {
         Ok(_) => (),
         Err(err) => return err
     };
 
-    return HttpResponse::Ok().finish();
+    // Send notification
+    match WebsocketMessages::send_team_kicked_notification(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), websocket.get_ref(), user_to_remove_id, &kick_team_dto.team_name).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return err
+    }
 }

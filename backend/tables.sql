@@ -56,3 +56,14 @@ CREATE TABLE "team_invitations" (
   "sender_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "receiver_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE
 );
+
+CREATE TABLE "notifications" (
+  "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY NOT NULL,
+  "type" INTEGER NOT NULL,
+  "status" INTEGER NOT NULL,
+  "created_at" TIMESTAMP NOT NULL,
+  "text" TEXT NOT NULL,
+  "description" TEXT,
+
+  "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE
+);

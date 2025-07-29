@@ -13,4 +13,8 @@ pub type PermissionBits = i32;
 pub type UserId = Uuid;
 pub type TeamId = Uuid;
 pub type TeamRoleId = i64;
+pub type NotificationId = i64;
 pub type RefreshTokenId = Uuid;
+
+pub type NotificationTypeAsNumber = i32;
+pub type NotificationStatusAsNumber = i32;

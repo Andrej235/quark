@@ -34,7 +34,7 @@ use crate::{
         },
         http_helper::HttpHelper,
         redis_service::RedisService,
-        websocket_helper::WebsocketHelper,
+        websocket_messages::WebsocketMessages,
     },
     ws::session::WebsocketState,
 };
@@ -237,7 +237,7 @@ pub async fn team_role_change(
     }
 
     // Send notification
-    match WebsocketHelper::send_team_role_changed_notification(TEAM_ROLE_CHANGE_ROUTE_PATH, websocket.get_ref(), change_role_user_id, &data.team_name).await {
+    match WebsocketMessages::send_team_role_changed_notification(TEAM_ROLE_CHANGE_ROUTE_PATH, db.get_ref(), websocket.get_ref(), change_role_user_id, &data.team_name).await {
         Ok(_) => return HttpResponse::Ok().finish(),
         Err(err) => return err
     };

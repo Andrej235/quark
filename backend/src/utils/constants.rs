@@ -28,7 +28,7 @@ pub const REFRESH_TOKEN_EXPIRATION_OFFSET: i64 = 7; // days
 pub const JWT_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 pub const EMAIL_VERIFICATION_TOKEN_EXPIRATION_OFFSET: i64 = 15; // minutes
 pub const TEAM_INVITATION_EXPIRATION_OFFSET: i64 = 5; // days
-pub const TEAM_INVITATION_YOUNG_OFFSET: i64 = 5; // minutes
+pub const TEAM_INVITATION_YOUNG_OFFSET: i64 = 1; // minutes
 
 pub const REDIS_EMAIL_VERIFICATION_CODE_EXPIRATION: u64 = 300; // seconds (5 minutes)
 pub const REDIS_USER_TEAM_PERMISSIONS_EXPIRATION: u64 = 3_600; // seconds (1 hour)

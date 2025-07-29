@@ -20,7 +20,7 @@ use crate::utils::constants::{
     TEAM_INVITATION_ACCEPT_ROUTE_PATH, TEAM_INVITATION_DECLINE_ROUTE_PATH,
     TEAM_INVITATION_YOUNG_OFFSET,
 };
-use crate::utils::websocket_helper::WebsocketHelper;
+use crate::utils::websocket_messages::WebsocketMessages;
 use crate::ws::session::WebsocketState;
 use crate::{
     models::{
@@ -181,7 +181,7 @@ pub async fn team_invitation_send(
     }
     
     // Send realtime notification
-    match WebsocketHelper::send_team_invitation_message(TEAM_INVITATION_SEND_ROUTE_PATH, websocket.get_ref(), &team_info.name, reciever.id, &auth_user.user.username).await {
+    match WebsocketMessages::send_team_invitation_message(TEAM_INVITATION_SEND_ROUTE_PATH, db.get_ref(), websocket.get_ref(), &team_info.name, reciever.id, &auth_user.user.username).await {
         Ok(_) => return HttpResponse::Ok().finish(),
         Err(err) => return err,
     };

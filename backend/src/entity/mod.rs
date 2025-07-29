@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod notifications;
 pub mod refresh_tokens;
 pub mod team_invitations;
 pub mod team_members;
