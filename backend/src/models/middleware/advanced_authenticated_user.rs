@@ -1,19 +1,20 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::entity::refresh_tokens::{Column as RefreshTokenColumn, Entity as RefreshTokenEntity};
+use crate::entity::users::{Entity as UserEntity, Model as User};
+use crate::utils::constants::ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL;
 use crate::{models::user_claims::UserClaims, JWT_SECRET};
 use actix_web::{dev::Payload, Error as ActixError, FromRequest, HttpRequest};
-use chrono::Utc;
 use futures::future::LocalBoxFuture;
 use jsonwebtoken::{decode, errors::Error as JWTTokenError, DecodingKey, TokenData, Validation};
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{DatabaseConnection, EntityTrait};
+use tracing::error;
 
 // ------------------------------------------------------------------------------------
 // STRUCT
 // ------------------------------------------------------------------------------------
-pub struct AuthenticatedUser {
-    pub user_id: uuid::Uuid,
+pub struct AdvancedAuthenticatedUser {
+    pub user: User,
     pub claims: UserClaims,
 }
 
@@ -21,7 +22,7 @@ pub struct AuthenticatedUser {
 // IMPLEMENTATIONS
 // ------------------------------------------------------------------------------------
 #[rustfmt::skip]
-impl FromRequest for AuthenticatedUser {
+impl FromRequest for AdvancedAuthenticatedUser {
     type Error = ActixError;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
@@ -41,6 +42,15 @@ impl FromRequest for AuthenticatedUser {
             .and_then(|s| s.strip_prefix("Bearer ")
             .map(|s| s.to_string()));
 
+
+        // Check if path needs to have required email verified
+        let path: &str = req.path();
+
+        let is_verified_email_required: bool = ENDPOINTS_THAT_REQUIRE_VERIFIED_EMAIL
+            .iter()
+            .any(|&endpoint| path.starts_with(endpoint));
+
+
         Box::pin(async move {
 
             // Unwrap token
@@ -57,30 +67,22 @@ impl FromRequest for AuthenticatedUser {
                 .claims;
 
 
-            // Verify jit
-            _ = match RefreshTokenEntity::find()
-                .filter(RefreshTokenColumn::Jit.eq(claims.jit))
-                .one(db.get_ref())
-                .await {
-                    Ok(Some(refresh_token)) => {
-                        
-                        // Make sure that user id in refresh token is the same as in claims
-                        // and that refresh token is not expired
-                        if refresh_token.user_id != claims.user_id || 
-                            refresh_token.expire_time < Utc::now().naive_utc() {
-                            
-                            return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
-                        }
-                        
-                        refresh_token
-                    },
-                    Ok(None) => return Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
-                    Err(err) => return Err(actix_web::error::ErrorInternalServerError(err))
-                }; 
+            // Get user
+            let user: User = match UserEntity::find_by_id(claims.user_id).one(db.get_ref()).await {
+                Ok(Some(user_model)) => user_model,
+                Ok(None) => { return Err(actix_web::error::ErrorUnauthorized("Unauthorized")); },
+                Err(err) => {
+                    error!("[FAILED] [{}] Reason: {}, Error: {:?}", "Pre verficaition", "Finding user by id", err);
+                    return Err(actix_web::error::ErrorInternalServerError(""));
+                }
+            };
 
-                
-            Ok(AuthenticatedUser {
-                user_id: claims.user_id,
+            if is_verified_email_required == true && user.is_email_verified == false {
+                return Err(actix_web::error::ErrorUnauthorized("Unverified email"));
+            }
+
+            Ok(AdvancedAuthenticatedUser {
+                user: user,
                 claims: claims,
             })
         })

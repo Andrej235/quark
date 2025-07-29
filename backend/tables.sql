@@ -1,13 +1,26 @@
+CREATE TABLE "teams" (
+  "id" UUID PRIMARY KEY NOT NULL,
+  "name" TEXT NOT NULL,
+  "description" TEXT
+);
+
 CREATE TABLE "users" (
   "id" UUID PRIMARY KEY NOT NULL,
   "username" TEXT NOT NULL,
   "name" TEXT NOT NULL,
   "last_name" TEXT NOT NULL,
-  "profile_picture" BYTEA;
+  "profile_picture" BYTEA,
   "is_email_verified" BOOLEAN NOT NULL,
   "email" TEXT NOT NULL,
   "salt" TEXT NOT NULL,
-  "hashed_password" TEXT NOT NULL
+  "hashed_password" TEXT NOT NULL,
+
+  "default_team_id" UUID REFERENCES "teams"("id") ON DELETE SET NULL
+);
+
+CREATE TABLE "user_settings" (
+  "id" BIGINT PRIMARY KEY NOT NULL,
+  "user_id" UUID NOT NULL REFERENCES "users"("id")
 );
 
 CREATE TABLE "refresh_tokens" (
@@ -17,16 +30,11 @@ CREATE TABLE "refresh_tokens" (
   "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE
 );
 
-CREATE TABLE "teams" (
-  "id" UUID PRIMARY KEY NOT NULL,
-  "name" TEXT NOT NULL,
-  "description" TEXT
-);
-
 CREATE TABLE "team_roles" (
   "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY NOT NULL,
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
-  "name" TEXT NOT NULL
+  "name" TEXT NOT NULL,
+  "permissions" INTEGER NOT NULL
 );
 
 CREATE TABLE "team_members" (

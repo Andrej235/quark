@@ -1,38 +1,79 @@
-import { useEffect, useRef, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import sendApiRequest from "./api-dsl/send-api-request";
+import { useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import useQuery from "./api-dsl/use-query";
+import LoadingIndicator from "./components/loading-indicator";
 import { Toaster } from "./components/ui/sonner";
+import { useUserStore } from "./stores/user-store";
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const isWaiting = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation().pathname;
+
+  const isLoggedIn = useQuery("/user/check", {
+    queryKey: ["isLoggedIn"],
+    retry: false,
+  });
+
+  const user = useQuery("/user/me", {
+    queryKey: ["user"],
+    enabled: isLoggedIn.isSuccess,
+    retry: false,
+  });
 
   useEffect(() => {
-    if (isWaiting.current) return;
-    isWaiting.current = true;
+    if (isLoggedIn.isLoading) return;
 
-    sendApiRequest("/user/check", {
-      method: "get",
-    }).then(({ isOk }) => {
-      setIsLoading(false);
+    if (
+      location !== "/login" &&
+      location !== "/signup" &&
+      !isLoggedIn.isSuccess
+    )
+      navigate("/login");
+  }, [isLoggedIn.isSuccess, isLoggedIn.isLoading, navigate, location]);
 
-      if (!isOk) {
-        navigate("/login");
-        return;
-      }
+  const setUser = useUserStore((state) => state.setUser);
+  useEffect(() => {
+    if (!user.data || !isLoggedIn.isSuccess) return;
 
-      // isWaiting.current = false;
-    });
-  }, [navigate]);
+    if (user.error) {
+      toast.error(user.error.message ?? "Something went wrong < app");
+      return;
+    }
+
+    setUser(user.data);
+
+    if (!user.data.isEmailVerified) {
+      navigate("/verify-email");
+      return;
+    }
+
+    if (
+      !user.data?.teamsInfo?.length &&
+      location !== "/first-team" &&
+      location !== "/payment" &&
+      location !== "/new-team"
+    ) {
+      navigate("/first-team");
+    }
+  }, [
+    isLoggedIn.isSuccess,
+    user.data,
+    user.error,
+    navigate,
+    setUser,
+    location,
+  ]);
 
   return (
-    <div className="min-w-svw bg-background min-h-svh">
-      {!isLoading && <Outlet />}
+    <div className="min-w-svw bg-background max-w-svw max-h-svh min-h-svh">
+      {!isLoggedIn.isLoading && (!isLoggedIn.isSuccess || !user.isLoading) && (
+        <Outlet />
+      )}
 
-      {isLoading && (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-          <p className="text-lg font-medium">Loading...</p>
+      {(isLoggedIn.isLoading || user.isLoading) && (
+        <div className="bg-background fixed inset-0 z-50 grid place-items-center">
+          <LoadingIndicator className="size-8" />
         </div>
       )}
 
@@ -40,3 +81,4 @@ export default function App() {
     </div>
   );
 }
+Math.random();

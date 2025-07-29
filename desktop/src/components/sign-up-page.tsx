@@ -5,16 +5,18 @@ import { CircleAlert } from "lucide-react";
 import {
   ChangeEvent,
   FormEvent,
+  KeyboardEvent,
   MouseEvent,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 type Errors = {
   username?: string;
-  firstName?: string;
+  name?: string;
   lastName?: string;
   email?: string;
   password?: string;
@@ -23,14 +25,14 @@ type Errors = {
 
 type Touched = {
   username?: boolean;
-  firstName?: boolean;
+  name?: boolean;
   lastName?: boolean;
   email?: boolean;
   password?: boolean;
   confirmPassword?: boolean;
 };
 
-export default function Signup() {
+export default function SignUpPage() {
   const [fields, setFields] = useState({
     username: "",
     name: "",
@@ -46,6 +48,8 @@ export default function Signup() {
 
   const navigate = useNavigate();
 
+  const formRef = useRef<HTMLFormElement>(null);
+
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
 
@@ -56,7 +60,7 @@ export default function Signup() {
       newErrors.username =
         "Username can only contain letters, numbers, and dashes";
 
-    if (!fields.name.trim()) newErrors.firstName = "Please enter a first name";
+    if (!fields.name.trim()) newErrors.name = "Please enter a first name";
 
     if (!fields.lastName.trim())
       newErrors.lastName = "Please enter a last name";
@@ -68,6 +72,8 @@ export default function Signup() {
       newErrors.email = "Please enter a valid email address";
 
     if (!fields.password.trim()) newErrors.password = "Please enter a password";
+    else if (fields.password.trim().length < 8)
+      newErrors.password = "Password must be at least 8 characters long";
 
     if (fields.password !== fields.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
@@ -93,7 +99,7 @@ export default function Signup() {
     e.preventDefault();
     setTouched({
       username: true,
-      firstName: true,
+      name: true,
       lastName: true,
       email: true,
       password: true,
@@ -122,18 +128,38 @@ export default function Signup() {
     navigate("/login");
   };
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+    const inputs = formRef.current?.querySelectorAll("input");
+    if (!inputs) return;
+
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+
+      if (input === e.target) {
+        if (i < inputs.length - 1) inputs[i + 1].focus();
+        else handleSubmit(e);
+
+        break;
+      }
+    }
+  };
+
   return (
     <div className="bg-background flex min-h-screen w-full flex-col items-center justify-center">
       <div className="bg-background z-10 flex h-fit w-full flex-col items-center justify-center gap-20 p-10">
-        <div className="bg-secondary h-lg w-md shadow-muted border-muted rounded-xl border-2 shadow-lg">
+        <div className="bg-secondary w-lg shadow-muted border-muted rounded-md border-2 shadow-lg">
           <form
             onSubmit={handleSubmit}
-            className={`p-15 flex h-full flex-col items-center justify-center transition-all duration-300 ${
-              isValid ? "gap-4" : "gap-2"
-            }`}
+            className="p-15 flex h-full flex-col items-center justify-center gap-2 transition-all duration-300"
+            ref={formRef}
           >
-            <h1 className="text-foreground mb-1 text-3xl">Welcome to Quark!</h1>
-            <h3 className="mb-5">Create your account</h3>
+            <h1 className="text-3xl">Welcome to Quark!</h1>
+            <h3 className="text-muted-foreground mb-5 text-lg">
+              Create your account to get started
+            </h3>
 
             <div className="flex w-full flex-col gap-2">
               <h6 className="text-sm">Username</h6>
@@ -143,6 +169,7 @@ export default function Signup() {
                 value={fields.username}
                 onChange={handleChange("username")}
                 onBlur={handleBlur("username")}
+                onKeyDown={handleKeyDown}
               />
               {touched.username && errors.username && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -160,10 +187,11 @@ export default function Signup() {
                   value={fields.name}
                   onChange={handleChange("name")}
                   onBlur={handleBlur("name")}
+                  onKeyDown={handleKeyDown}
                 />
-                {touched.firstName && errors.firstName && (
+                {touched.name && errors.name && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                    <CircleAlert /> {errors.firstName}
+                    <CircleAlert /> {errors.name}
                   </p>
                 )}
               </div>
@@ -175,6 +203,7 @@ export default function Signup() {
                   value={fields.lastName}
                   onChange={handleChange("lastName")}
                   onBlur={handleBlur("lastName")}
+                  onKeyDown={handleKeyDown}
                 />
                 {touched.lastName && errors.lastName && (
                   <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -192,6 +221,7 @@ export default function Signup() {
                 value={fields.email}
                 onChange={handleChange("email")}
                 onBlur={handleBlur("email")}
+                onKeyDown={handleKeyDown}
               />
               {touched.email && errors.email && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -208,6 +238,7 @@ export default function Signup() {
                 value={fields.password}
                 onChange={handleChange("password")}
                 onBlur={handleBlur("password")}
+                onKeyDown={handleKeyDown}
               />
               {touched.password && errors.password && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
@@ -224,6 +255,7 @@ export default function Signup() {
                 value={fields.confirmPassword}
                 onChange={handleChange("confirmPassword")}
                 onBlur={handleBlur("confirmPassword")}
+                onKeyDown={handleKeyDown}
               />
               {touched.confirmPassword && errors.confirmPassword && (
                 <p className="text-destructive text-xs">
@@ -236,23 +268,22 @@ export default function Signup() {
               type="submit"
               disabled={!isValid}
               onClick={handleSubmit}
-              className={`bg-input hover:bg-primary-dark mt-5 h-12 w-full rounded-2xl p-2 text-white transition-colors ${
-                !isValid ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-              }`}
+              className="bg-input hover:bg-input/80 mt-5 h-12 w-full p-2 disabled:opacity-50"
             >
               Sign up
             </Button>
 
             <Button
               type="submit"
-              className="bg-input hover:bg-primary-dark h-12 w-full cursor-pointer rounded-2xl p-2 text-white transition-colors"
+              className="bg-input hover:bg-input/80 h-12 w-full p-2"
             >
               <img
                 className="h-5 w-5"
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
                 alt="Google logo"
               />
-              <span className="font-medium text-white">Login with Google</span>
+
+              <span className="font-medium">Login with Google</span>
             </Button>
 
             <div className="ml-auto mt-5 flex w-full flex-row items-center justify-center gap-3">

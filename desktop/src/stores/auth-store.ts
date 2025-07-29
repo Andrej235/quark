@@ -17,6 +17,7 @@ type AuthStore = {
   getJwt: () => Promise<string | null>;
   setJwt: (jwt: string | null) => Promise<void>;
   setRefreshToken: (refreshToken: string | null) => Promise<void>;
+  logOut: () => Promise<void>;
 };
 
 const useAuthStore = create<AuthStore>((set, get) => ({
@@ -163,6 +164,45 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       const data = Array.from(new TextEncoder().encode(refreshToken));
       await store.insert(REFRESH_TOKEN_KEY, data);
       await stronghold!.save();
+    } catch (error) {
+      console.error("Failed to save refresh token:", error);
+    }
+  },
+
+  logOut: async () => {
+    try {
+      const { client, stronghold } = get();
+      if (!client || !stronghold) {
+        await get().initStronghold();
+      }
+
+      const store = get().client!.getStore();
+
+      const refreshTokenData = await store.get(REFRESH_TOKEN_KEY);
+      if (!refreshTokenData) return;
+      const refreshToken = new TextDecoder().decode(
+        new Uint8Array(refreshTokenData),
+      );
+
+      Promise.all([
+        sendApiRequest(
+          "/user/logout/{refresh_token_id}",
+          {
+            method: "post",
+            parameters: {
+              refresh_token_id: refreshToken,
+            },
+          },
+          {
+            showToast: true,
+            toastOptions: {
+              success: "Successfully logged out.",
+            },
+          },
+        ),
+        get().setJwt(null),
+        get().setRefreshToken(null),
+      ]);
     } catch (error) {
       console.error("Failed to save refresh token:", error);
     }

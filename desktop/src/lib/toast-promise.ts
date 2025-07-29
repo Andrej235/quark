@@ -12,8 +12,7 @@ export function apiResponseToToast(
 ): void {
   toast.promise(
     response.then((response) => {
-      if (!response?.isOk)
-        throw new Error(response?.error?.message ?? "Something went wrong");
+      if (!response?.isOk) throw new Error(response?.error?.message);
     }),
     {
       loading: options.loading || "Please wait...",

@@ -10,24 +10,24 @@ use crate::{
         ActiveModel as TeamRoleActiveModel, Entity as TeamRoleEntity, Model as TeamRole,
     },
     models::{
-        authenticated_user::AuthenticatedUser,
         dtos::{
             create_team_role_dto::CreateTeamRoleDTO, update_team_role_dto::UpdateTeamRoleDTO,
             validation_error_dto::ValidationErrorDTO,
         },
-        validated_json::ValidatedJson,
+        middleware::basic_authenticated_user::BasicAuthenticatedUser,
+        middleware::validated_json::ValidatedJson,
     },
     utils::{
         constants::{
             TEAM_ROLE_CREATE_ROUTE_PATH, TEAM_ROLE_DELETE_ROUTE_PATH, TEAM_ROLE_UPDATE_ROUTE_PATH,
         },
-        http_helper::endpoint_internal_server_error,
+        http_helper::HttpHelper,
     },
 };
 
 #[utoipa::path(
     post,
-    path = TEAM_ROLE_CREATE_ROUTE_PATH,
+    path = TEAM_ROLE_CREATE_ROUTE_PATH.0,
     request_body = CreateTeamRoleDTO,
     responses(
         (status = 200, description = "Team role created"),
@@ -37,7 +37,7 @@ use crate::{
 #[post("/team-role/create")]
 pub async fn team_role_create(
     db: Data<DatabaseConnection>,
-    _auth_user: AuthenticatedUser,
+    _auth_user: BasicAuthenticatedUser,
     json_data: ValidatedJson<CreateTeamRoleDTO>,
 ) -> impl Responder {
     // Get json data
@@ -55,7 +55,7 @@ pub async fn team_role_create(
     match team_role_insertion_result {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(err) => {
-            return endpoint_internal_server_error(
+            return HttpHelper::endpoint_internal_server_error(
                 TEAM_ROLE_CREATE_ROUTE_PATH,
                 "Inserting new team role",
                 Box::new(err),
@@ -66,7 +66,7 @@ pub async fn team_role_create(
 
 #[utoipa::path(
     delete,
-    path = TEAM_ROLE_DELETE_ROUTE_PATH,
+    path = TEAM_ROLE_DELETE_ROUTE_PATH.0,
     params(
         ("team_role_id" = i64, Path, description = "ID of the team role to delete"),
     ),
@@ -77,7 +77,7 @@ pub async fn team_role_create(
 #[delete("/team-role/delete/{team_role_id}")]
 pub async fn team_role_delete(
     db: Data<DatabaseConnection>,
-    _auth_user: AuthenticatedUser,
+    _auth_user: BasicAuthenticatedUser,
     team_role_id: Path<i64>,
 ) -> impl Responder {
     let id = team_role_id.into_inner();
@@ -86,7 +86,7 @@ pub async fn team_role_delete(
 
     match delete_result {
         Ok(_) => HttpResponse::Ok().finish(),
-        Err(err) => endpoint_internal_server_error(
+        Err(err) => HttpHelper::endpoint_internal_server_error(
             TEAM_ROLE_DELETE_ROUTE_PATH,
             "Deleting team role",
             Box::new(err),
@@ -96,7 +96,7 @@ pub async fn team_role_delete(
 
 #[utoipa::path(
     put,
-    path = TEAM_ROLE_UPDATE_ROUTE_PATH,
+    path = TEAM_ROLE_UPDATE_ROUTE_PATH.0,
     request_body = UpdateTeamRoleDTO
 )]
 #[put("/team-role/update/{team_role_id}")]
@@ -116,7 +116,7 @@ pub async fn team_role_update(
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => endpoint_internal_server_error(
+                Err(err) => HttpHelper::endpoint_internal_server_error(
                     TEAM_ROLE_UPDATE_ROUTE_PATH,
                     "Updating team role",
                     Box::new(err),
@@ -125,7 +125,7 @@ pub async fn team_role_update(
         }
 
         Ok(None) => HttpResponse::NotFound().body("Team role not found"),
-        Err(err) => endpoint_internal_server_error(
+        Err(err) => HttpHelper::endpoint_internal_server_error(
             TEAM_ROLE_UPDATE_ROUTE_PATH,
             "Finding team role",
             Box::new(err),

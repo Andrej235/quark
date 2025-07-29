@@ -1,4 +1,4 @@
-import { NavMain } from "@/components/nav-main";
+import { NavigationItem, NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
 import {
@@ -8,72 +8,122 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-  Settings2,
-} from "lucide-react";
-import { ComponentProps } from "react";
+import { Book, Briefcase, Home, Send, Settings2 } from "lucide-react";
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+const navigation: NavigationItem[] = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: Home,
+    forceOpen: true,
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "Team",
-          url: "/settings/team",
-        },
-        {
-          title: "Notifications",
-          url: "/settings/notifications",
-        },
-        {
-          title: "User",
-          url: "/settings/user",
-        },
-      ],
-    },
-  ],
-};
+  {
+    title: "Prospects",
+    url: "/prospects",
+    icon: Briefcase,
+    forceOpen: true,
+    items: [
+      {
+        title: "Archived",
+        url: "/prospects/archived",
+      },
+      {
+        title: "Template",
+        url: "/prospects/template",
+      },
+    ],
+  },
+  {
+    title: "Emails",
+    url: "/emails",
+    icon: Send,
+    forceOpen: true,
+    items: [
+      {
+        title: "Sent",
+        url: "/emails/sent",
+      },
+      {
+        title: "Drafts",
+        url: "/emails/drafts",
+      },
+      {
+        title: "Scheduled",
+        url: "/emails/scheduled",
+      },
+      {
+        title: "Templates",
+        url: "/emails/templates",
+      },
+    ],
+  },
+  {
+    title: "Documentation",
+    url: "/documentation",
+    icon: Book,
+    items: [
+      {
+        title: "Getting Started",
+        url: "/documentation",
+      },
+      {
+        title: "Teams",
+        url: "/documentation/teams",
+      },
+      {
+        title: "Prospects",
+        url: "/documentation/prospects",
+      },
+      {
+        title: "Emails",
+        url: "/documentation/emails",
+      },
+      {
+        title: "Guides",
+        url: "/documentation/guides",
+      },
+    ],
+  },
+  {
+    title: "Settings",
+    url: "#",
+    icon: Settings2,
+    items: [
+      {
+        title: "User",
+        url: "/settings",
+      },
+      {
+        title: "Team",
+        url: "/settings/team",
+      },
+      {
+        title: "Team Members",
+        url: "/settings/team-members",
+      },
+      {
+        title: "Team Roles",
+        url: "/settings/team-roles",
+      },
+      {
+        title: "Notifications",
+        url: "/settings/notifications",
+      },
+    ],
+  },
+];
 
-export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
+export function AppSidebar() {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon">
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navigation} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
