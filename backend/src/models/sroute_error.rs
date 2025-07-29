@@ -6,3 +6,9 @@ use utoipa::ToSchema;
 pub struct SRouteError {
     pub message: &'static str,
 }
+
+impl SRouteError {
+    pub fn new(message: &'static str) -> Self {
+        Self { message: message }
+    }
+}

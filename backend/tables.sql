@@ -41,5 +41,18 @@ CREATE TABLE "team_members" (
   "user_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
   "team_role_id" BIGINT NOT NULL REFERENCES "team_roles"("id"),
+
+  "joined_at" TIMESTAMP NOT NULL,
+
   PRIMARY KEY ("user_id", "team_id")
+);
+
+CREATE TABLE "team_invitations" (
+  "token" TEXT NOT NULL PRIMARY KEY,
+  "expires_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "status" SMALLINT NOT NULL,
+
+  "team_id" UUID NOT NULL REFERENCES "teams"("id") ON DELETE CASCADE,
+  "sender_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "receiver_id" UUID NOT NULL REFERENCES "users"("id") ON DELETE CASCADE
 );

@@ -16,7 +16,7 @@ use validator::{Validate, ValidationErrors};
 pub struct CreateTeamRoleDTO {
 
     #[enum_name("Name")]
-    #[validate(length(min = 1, max = 50))]
+    #[validate(length(min = 1, max = 30))]
     pub name:       String,
 
     #[enum_name("TeamId")]

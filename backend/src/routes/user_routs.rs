@@ -12,12 +12,17 @@ use crate::models::dtos::update_profile_picture_dto::UpdateProfilePictureDTO;
 use crate::models::dtos::update_user::UpdateUserDTO;
 use crate::models::dtos::user_info_dto::UserInfoDTO;
 use crate::models::dtos::validation_error_dto::ValidationErrorDTO;
+use crate::models::hashed_password::HashedPassword;
 use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticatedUser;
 use crate::models::middleware::basic_authenticated_user::BasicAuthenticatedUser;
 use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::route_error::RouteError;
 use crate::models::sroute_error::SRouteError;
 use crate::models::user_claims::UserClaims;
+use crate::repositories::refresh_token_repository::RefreshTokenRepository;
+use crate::repositories::team_repository::TeamRepository;
+use crate::repositories::user_repository::UserRepository;
+use crate::utils::cache::email_verification_cache::EmailVerificationCache;
 use crate::utils::constants::{
     CHECK_ROUTE_PATH, GET_USER_INFO_ROUTE_PATH, JWT_TOKEN_EXPIRATION_OFFSET,
     REFRESH_TOKEN_EXPIRATION_OFFSET, SEND_VERIFICATION_EMAIL_ROUTE_PATH, USER_LOG_IN_ROUTE_PATH,
@@ -61,12 +66,11 @@ use resend_rs::types::CreateEmailBaseOptions;
 use resend_rs::{Error as ResendError, Resend};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, DeleteResult, EntityTrait,
-    PaginatorTrait, QueryFilter,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
+    QueryFilter,
 };
 use std::error::Error;
 use std::io::Cursor;
-use tracing::error;
 use uuid::Uuid;
 
 // ************************************************************************************
@@ -83,7 +87,7 @@ use uuid::Uuid;
     request_body = CreateUserDTO,
     responses(
         (status = 200, description = "User created"),
-        (status = 400, description = "Possible errors: User already exists", body = SRouteError),
+        (status = 409, description = "User already exists", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -96,51 +100,49 @@ pub async fn user_sign_up(
 
     let user_data: &CreateUserDTO = json_data.get_data();
 
-    // Check if user already exists
-    let matching_users: u64 = match UserEntity::find()
+    // Check if user already exists with same email and username
+    // If it exists return conflict
+    match UserEntity::find()
         .filter(UserColumn::Username.eq(&user_data.username))
         .filter(UserColumn::Email.eq(&user_data.email))
         .count(db.get_ref())
         .await {
-            Ok(count) => count,
+            Ok(count) => {
+                if count > 0 {
+                    return HttpResponse::Conflict().json(SRouteError { message: "User already exists" });
+                }
+            },
             Err(err) => {
-                return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Finding user with filterting", Box::new(err));
+                return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Finding user with filterting", Box::new(err));
             }
         };
 
-    // If there us more than 0 users found return error
-    // We cant allow multiple users with same username or email
-    if matching_users > 0 {
-        return HttpResponse::BadRequest().json(SRouteError { message: "User already exists" });
-    }
-
     // Hash password
-    let (salt, password_hash): (String, String) = match hash_password(&user_data.password) {
-        Ok((salt, password_hash)) => (salt, password_hash),
+    let hashed_password: HashedPassword = match hash_password(&user_data.password) {
+        Ok(result) => result,
         Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
+            return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
         }
     };
 
     // Create user
-    let user_insertion_result: Result<User, DbErr> = UserActiveModel {
+    let new_user: UserActiveModel = UserActiveModel {
         id:                 Set(Uuid::now_v7()),
         username:           Set(user_data.username.clone()),
         name:               Set(user_data.name.clone()),
         last_name:          Set(user_data.last_name.clone()),
         email:              Set(user_data.email.clone()),
-        hashed_password:    Set(password_hash),
-        salt:               Set(salt),
+        salt:               Set(hashed_password.salt),
+        hashed_password:    Set(hashed_password.hash),
         is_email_verified:  Set(false),
         profile_picture:    Set(None), // no default profile picture
         default_team_id:    Set(None), // no default team
-    }.insert(db.get_ref()).await;
+    };
 
-    if let Err(err) = user_insertion_result {
-        return HttpHelper::endpoint_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err));
-    }
-
-    return HttpResponse::Ok().finish();
+    match new_user.insert(db.get_ref()).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return HttpHelper::log_internal_server_error(USER_SIGN_UP_ROUTE_PATH, "Creating user", Box::new(err))
+    };
 }
 
 /*
@@ -152,7 +154,8 @@ pub async fn user_sign_up(
     request_body = LoginUserDTO,
     responses(
         (status = 200, description = "User logged in", body = LogInResultDTO),
-        (status = 400, description = "Possible errors: Wrong password, User not found", body = SRouteError),
+        (status = 400, description = "Wrong password", body = SRouteError),
+        (status = 404, description = "User not found", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -165,53 +168,35 @@ async fn user_log_in(
 
     let user_data: &LoginUserDTO = json_data.get_data();
 
-    // Check if user already exists in database
-    let existing_user: Option<User> = match UserEntity::find()
-        .filter(UserColumn::Email.eq(&user_data.email))
-        .one(db.get_ref())
-        .await
-    {
-        Ok(user) => user,
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding user with filtering", Box::new(err));
-        }
+    // Try to find user, if its not found return NotFound()
+    let user: User = match UserRepository::find_by_email(USER_LOG_IN_ROUTE_PATH, db.get_ref(), &user_data.email, true).await {
+        Ok(user) => user.unwrap(),
+        Err(err) => return err
     };
 
-    // Abort endpoint execution if no user is found
-    if existing_user.is_none() {
-        return HttpResponse::BadRequest().json(SRouteError {
-            message: "User not found",
-        });
-    }
-
-    let user: User = existing_user.unwrap();
-
     // Hash pasword and check if it correct
-    let provided_password_hash: String =
-        match hash_password_with_salt(&user.salt, &user_data.password) {
-            Ok(password_hash) => password_hash,
-            Err(err) => {
-                return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)));
-            }
-        };
+    let provided_password_hash: String = match hash_password_with_salt(&user.salt, &user_data.password) {
+        Ok(password_hash) => password_hash,
+        Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Hashing password", Box::<dyn Error>::from(format!("{:?}", err)))
+    };
 
     if provided_password_hash != user.hashed_password {
         return HttpResponse::BadRequest().json(SRouteError { message: "Wrong password" });
     }
 
     // Try to get refresh token from database
-    let existing_refresh_token_result: Option<RefreshToken> = match RefreshTokenEntity::find()
+    let refresh_token_lookup: Option<RefreshToken> = match RefreshTokenEntity::find()
         .filter(RefreshTokenColumn::UserId.eq(user.id))
         .one(db.get_ref())
         .await
     {
         Ok(refresh_token) => refresh_token,
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding refresh token", Box::new(err));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Finding refresh token", Box::new(err))
     };
 
-    match existing_refresh_token_result {
+    let jwt_refresh_token: RefreshToken;
+
+    match refresh_token_lookup {
 
         // Create JWT token if refresh token exists
         Some(mut refresh_token) => {
@@ -220,57 +205,34 @@ async fn user_log_in(
             if refresh_token.expire_time < Utc::now().naive_utc() {
                 match recycle_refresh_token(refresh_token.id, user.id, db).await {
                     Ok(token) => refresh_token = token,
-                    Err(err) => {
-                        return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Recycling refresh token", Box::new(err));
-                    }
+                    Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Recycling refresh token", Box::new(err))
                 };
             }
 
-            // Create and return new jwt token
-            match create_jwt_token(&refresh_token, user.id) {
-                Ok(token) => {
-                    return HttpResponse::Ok().json(LogInResultDTO {
-                        jwt_token: token,
-                        refresh_token_id: refresh_token.id,
-                    });
-                }
-                Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
-                }
-            };
+            jwt_refresh_token = refresh_token;
         }
 
         // If refresh token doesn't exist create new refresh token and JWT token
         None => {
 
             // Try to create and add new refresh token to database
-            let new_refresh_token_active_model: RefreshTokenActiveModel =
-                create_refresh_token(user.id);
+            let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user.id);
                 
-            let add_refresh_token_result: Result<RefreshToken, DbErr> =
-                new_refresh_token_active_model.insert(db.get_ref()).await;
-
-            let refresh_token = match add_refresh_token_result {
-                Ok(token) => token,
-                Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Adding new refresh token to database", Box::new(err));
-                }
-            };
-
-            // Create and return new jwt token
-            match create_jwt_token(&refresh_token, user.id) {
-                Ok(token) => {
-                    return HttpResponse::Ok().json(LogInResultDTO {
-                        jwt_token: token,
-                        refresh_token_id: refresh_token.id,
-                    });
-                }
-                Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err));
-                }
+            match new_refresh_token_active_model
+                .insert(db.get_ref())
+                .await 
+            {
+                Ok(token) => jwt_refresh_token = token,
+                Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Adding new refresh token to database", Box::new(err))
             };
         }
     }
+
+    // Create and return new jwt token
+    match create_jwt_token(&jwt_refresh_token, user.id) {
+        Ok(token) => return HttpResponse::Ok().json(LogInResultDTO::new(token, jwt_refresh_token.id)),
+        Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_IN_ROUTE_PATH, "Creating JWT token", Box::new(err))
+    };
 }
 
 /*
@@ -290,23 +252,19 @@ async fn user_log_in(
 #[rustfmt::skip]
 async fn user_log_out(    
     db: Data<DatabaseConnection>,
-    path: Path<Uuid>
+    path_data: Path<Uuid>
 ) -> impl Responder {
 
-    // Get refresh token id from path
-    let refresh_token_id = path.into_inner();
+    let refresh_token_id = path_data.into_inner();
 
     // Try to delete refresh token
     match RefreshTokenEntity::delete_by_id(refresh_token_id)
         .exec(db.get_ref())
-        .await {
-            Ok(_) => (),
-            Err(err) => {
-                return HttpHelper::endpoint_internal_server_error(USER_LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err));
-            }
+        .await 
+        {
+            Ok(_) => return HttpResponse::Ok().finish(),
+            Err(err) => return HttpHelper::log_internal_server_error(USER_LOG_OUT_ROUTE_PATH, "Deleting refresh token", Box::new(err))
         };
-
-    return HttpResponse::Ok().finish();
 }
 
 /*
@@ -317,8 +275,7 @@ async fn user_log_out(
     path = USER_RESET_PASSWORD_ROUTE_PATH.0,
     responses(
         (status = 200, description = "Password reset"),
-        (status = 400, description = "Possible messages: Wrong password", body = SRouteError),
-        (status = 401, description = ""),
+        (status = 400, description = "Wrong password", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -330,15 +287,12 @@ async fn user_password_reset(
     json_data: ValidatedJson<PasswordResetDTO>
 ) -> impl Responder {
 
-    // Get json data
     let reset_password_data: &PasswordResetDTO = json_data.get_data();
 
     // Hash old password
     let old_password_hash: String = match hash_password_with_salt(&auth_user.user.salt, &reset_password_data.old_password) {
         Ok(hash) => hash,
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing old password", Box::<dyn Error>::from(format!("{:?}", err)))
     };
 
     // Check if old password is correct
@@ -347,26 +301,20 @@ async fn user_password_reset(
     }
 
     // Hash new password
-    let (new_salt, new_password_hash): (String, String) = match hash_password(&reset_password_data.new_password) {
+    let hashed_password: HashedPassword = match hash_password(&reset_password_data.new_password) {
         Ok(hash) => hash,
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Hashing new password", Box::<dyn Error>::from(format!("{:?}", err)))
     };
 
     // Update password
     let mut user_active_model: UserActiveModel = auth_user.user.into();
-    user_active_model.hashed_password = Set(new_password_hash);
-    user_active_model.salt = Set(new_salt);
+    user_active_model.hashed_password = Set(hashed_password.hash);
+    user_active_model.salt = Set(hashed_password.salt);
     
     match user_active_model.update(db.get_ref()).await {
-        Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err));
-        }
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return HttpHelper::log_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Updating user", Box::new(err))
     };
-
-    return HttpResponse::Ok().finish();
 }
 
 /*
@@ -377,12 +325,9 @@ async fn user_password_reset(
     path = USER_REFRESH_ROUTE_PATH.0,
     responses(
         (status = 200, description = "Token pair refreshed", body = JWTRefreshTokenPairDTO),
-        (status = 400, description = "Possible messages: Invalid JWT token, 
-                                                         Invalid Refresh token, 
-                                                         Expired Refresh token,
-                                                         Mismatched user and refresh token,
-                                                         Mismatched claim and refresh token", body = SRouteError),
-        (status = 401, description = ""),
+        (status = 401, description = "Expired Refresh token, Mismatched user and refresh token,
+                                        Mismatched claim and refresh token", body = SRouteError),
+        (status = 404, description = "User not found, Refresh token not found", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -393,72 +338,51 @@ async fn user_refresh(
     json_data: ValidatedJson<JWTRefreshTokenPairDTO>  
 ) -> impl Responder {
 
-    // Get json data
     let token_pair: &JWTRefreshTokenPairDTO = json_data.get_data();
 
     // Get claims object from jwt string
     let claims: UserClaims = match decode_jwt_string(&token_pair.jwt_token, false) {
         Ok(token_data) => token_data.claims,
-        Err(err) => {
-            error!("JWT string decode failed: {:?}", err);
-            return HttpResponse::InternalServerError().finish();
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(USER_REFRESH_ROUTE_PATH, "Decoding JWT token", Box::new(err))
     };
 
-
     // Check if user exists with same id from claims
-    match HttpHelper::find_user_by_id(db.get_ref(), claims.user_id).await {
-        Ok(Some(_)) => {},
-        Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding user by id", err)
+    match UserRepository::exists_by_id(USER_REFRESH_ROUTE_PATH, db.get_ref(), claims.user_id, true).await {
+        Ok(_) => {},
+        Err(err) => return err
     }
 
-    // Return unauthorized response if refresh token is not found
-    let refresh_token: RefreshToken = match RefreshTokenEntity::find_by_id(token_pair.refresh_token_id)
-        .one(db.get_ref())
-        .await {
-            Ok(token) => {
-                if token.is_none() { return HttpResponse::Unauthorized().json(SRouteError { message: "Invalid Refresh token" }); }
-                token.unwrap()
-            },
-            Err(err) => {
-                return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Finding refresh token by id", Box::new(err));
-            }
-        };
+    // Return not found if provided refresh token doesnt exist
+    let refresh_token: RefreshToken = match RefreshTokenRepository::find_by_id(USER_REFRESH_ROUTE_PATH, db.get_ref(), token_pair.refresh_token_id, true).await {
+        Ok(token) => token.unwrap(),
+        Err(err) => return err
+    };
 
     // Return unauthorized response if user id from claim does not match user id from refresh token
     if claims.user_id != refresh_token.user_id {
-        return HttpResponse::Unauthorized().json(SRouteError { message: "Mismatched user and refresh token" });
+        return HttpResponse::Unauthorized().json(SRouteError::new("Mismatched user and refresh token"));
     }
 
     // Return unauthorized response if jit from claim does not match jit from refresh token
     if claims.jit != refresh_token.jit {
-        return HttpResponse::Unauthorized().json(SRouteError { message: "Mismatched claim and refresh token" });
+        return HttpResponse::Unauthorized().json(SRouteError::new("Mismatched claim and refresh token"));
     }
 
     // Return unauthorized response if refresh token is expired
     if refresh_token.expire_time < Utc::now().naive_utc() {
-        return HttpResponse::Unauthorized().json(SRouteError { message: "Expired Refresh token" });
+        return HttpResponse::Unauthorized().json(SRouteError::new("Expired Refresh token"));
     }
-
 
     // Delete old refresh token and create new one
     let new_refresh_token: RefreshToken = match recycle_refresh_token(refresh_token.id, claims.user_id, db).await {
         Ok(token) => token,
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Recycling refresh token", Box::new(err));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(USER_REFRESH_ROUTE_PATH, "Recycling refresh token", Box::new(err))
     };
 
     // Return new JWT Token
     return match create_jwt_token(&new_refresh_token, claims.user_id) {
-        Ok(token) => HttpResponse::Ok().json(JWTRefreshTokenPairDTO {
-            jwt_token: token,
-            refresh_token_id: new_refresh_token.id
-        }),
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(USER_REFRESH_ROUTE_PATH, "Creating JWT token", Box::new(err));
-        }
+        Ok(token) => HttpResponse::Ok().json(JWTRefreshTokenPairDTO::new(token, new_refresh_token.id)),
+        Err(err) => return HttpHelper::log_internal_server_error(USER_REFRESH_ROUTE_PATH, "Creating JWT token", Box::new(err))
     };
 }
 
@@ -476,7 +400,6 @@ async fn user_refresh(
     request_body = UpdateUserDTO,
     responses(
         (status = 200, description = "User updated"),
-        (status = 401, description = ""),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -488,7 +411,6 @@ async fn user_update(
     json_data: ValidatedJson<UpdateUserDTO>
 ) -> impl Responder {
     
-    // Get json data
     let update_user_data: &UpdateUserDTO = json_data.get_data();
 
     // Update user
@@ -509,13 +431,9 @@ async fn user_update(
     match user_active_model
         .update(db.get_ref())
         .await {
-            Ok(_) => {},
-            Err(err) => {
-                return HttpHelper::endpoint_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err));
-            }
+            Ok(_) => return HttpResponse::Ok().finish(),
+            Err(err) => return HttpHelper::log_internal_server_error(USER_UPDATE_ROUTE_PATH, "Updating user", Box::new(err))
         };
-
-    return HttpResponse::Ok().finish();
 }
 
 // ************************************************************************************
@@ -532,10 +450,7 @@ async fn user_update(
     request_body = UpdateProfilePictureDTO,
     responses(
         (status = 200, description = "Profile picture changed"),
-        (status = 400, description = "Possible messages: Invalid base64 string
-                                                         Invalid [] format
-                                                         Failed to convert image into bytes", body = RouteError),
-        (status = 401, description = ""),
+        (status = 400, description = "Invalid base64 string, Invalid [] format, Failed to convert image into bytes", body = RouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -548,7 +463,6 @@ async fn user_update_profile_picture(
     json_data: ValidatedJson<UpdateProfilePictureDTO>
 ) -> impl Responder {
 
-    // Get json data
     let update_profile_picture_data: &UpdateProfilePictureDTO = json_data.get_data();
         
     // Get bytes of new profile picture
@@ -562,7 +476,7 @@ async fn user_update_profile_picture(
             Ok(bytes) => bytes,
             Err(err) => {
                 // We dont return internal server error here because we know that user should see error message
-                return HttpResponse::BadRequest().json(RouteError { message: err.to_string() }); 
+                return HttpResponse::BadRequest().json(RouteError::new(err.to_string())); 
             }
         });
     }
@@ -571,12 +485,10 @@ async fn user_update_profile_picture(
     let mut user_active_model: UserActiveModel = auth_user.user.into();
     user_active_model.profile_picture = Set(new_image_bytes);
 
-    let update_result = user_active_model.update(db.get_ref()).await;
-    if let Err(err) = update_result {
-        return HttpHelper::endpoint_internal_server_error(USER_UPDATE_PROFILE_PICTURE_ROUTE_PATH, "Updating user", Box::new(err));
+    match UserRepository::update(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), user_active_model).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return err
     }
-
-    return HttpResponse::Ok().finish();
 }
 
 /*
@@ -590,7 +502,6 @@ async fn user_update_profile_picture(
     ),
     responses(
         (status = 200, description = "Updated default team"),
-        (status = 401, description = ""),
         (status = 404, description = "Team not found"),
     )
 )]
@@ -607,12 +518,11 @@ async fn user_update_default_team(
     // Prevent further endpoint execution if existing user default team id is same as new id
     // We dont need to know if team is valid because this is simple check
     if auth_user.user.default_team_id == Some(new_default_team_id) {
-        println!("Same");
         return HttpResponse::Ok().finish();
     }
 
     // Make sure that team is valid
-    match HttpHelper::find_team(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, false).await {
+    match TeamRepository::find_by_id(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), new_default_team_id, true).await {
         Ok(_) => {},
         Err(err) => { return err; }
     };
@@ -621,12 +531,10 @@ async fn user_update_default_team(
     let mut user_active_model: UserActiveModel = auth_user.user.into();
     user_active_model.default_team_id = Set(Some(new_default_team_id));
 
-    let update_result = user_active_model.update(db.get_ref()).await;
-    if let Err(err) = update_result {
-        return HttpHelper::endpoint_internal_server_error(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, "Updating user", Box::new(err));
+    match UserRepository::update(USER_UPDATE_DEFAULT_TEAM_ROUTE_PATH, db.get_ref(), user_active_model).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return err
     }
-
-    HttpResponse::Ok().finish()
 }
 
 // ************************************************************************************
@@ -647,7 +555,7 @@ async fn user_update_default_team(
     responses(
         (status = 200, description = "Email verified"),
         (status = 400, description = "Invalid code, User already verified", body = SRouteError),
-        (status = 401, description = ""),
+        (status = 401, description = "User not found"),
     )
 )]
 #[get("/user/email/verify/{email}/{code}")]
@@ -658,16 +566,13 @@ async fn verify_email(
     path_data: Path<(String, String)> 
 ) -> impl Responder {
 
-    // Get ownership of incoming data
     let (email, code): (String, String) = path_data.into_inner();
 
     // Make sure that its valid code
     // If code is not valid abort endpoint execution
-    let can_verify = match HttpHelper::verify_cached_email_verification_code(redis_service.get_ref(), &email, &code).await {
+    let can_verify = match EmailVerificationCache::verify_code(redis_service.get_ref(), &email, &code).await {
         Ok(can_verify) => can_verify,
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Storing email verification code", Box::new(err))
     };
 
     if can_verify == false {
@@ -675,10 +580,10 @@ async fn verify_email(
     }
 
     // Try to find user
-    let user_model: User = match HttpHelper::find_user_by_email(db.get_ref(), email).await {
+    let user_model: User = match UserRepository::find_by_email(VERIFY_EMAIL_ROUTE_PATH, db.get_ref(), &email, false).await {
         Ok(Some(user)) => user,
         Ok(None) => return HttpResponse::Unauthorized().finish(),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(USER_RESET_PASSWORD_ROUTE_PATH, "Finding user by id", err)
+        Err(err) => return err
     };
 
     // Check if user is already verified
@@ -690,12 +595,10 @@ async fn verify_email(
     let mut user_active_model: UserActiveModel = user_model.into();
     user_active_model.is_email_verified = Set(true);
 
-    let update_result = user_active_model.update(db.get_ref()).await;
-    if let Err(err) = update_result {
-        return HttpHelper::endpoint_internal_server_error(VERIFY_EMAIL_ROUTE_PATH, "Updating user", Box::new(err));
+    match UserRepository::update(VERIFY_EMAIL_ROUTE_PATH, db.get_ref(), user_active_model).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return err
     }
-
-    return HttpResponse::Ok().body("Verified.");
 }
 
 /*
@@ -706,7 +609,7 @@ async fn verify_email(
     path = SEND_VERIFICATION_EMAIL_ROUTE_PATH.0,
     responses(
         (status = 200, description = "Email sent"),
-        (status = 400, description = "User already verified", body = SRouteError),
+        (status = 409, description = "User already verified", body = SRouteError),
     )
 )]
 #[get("/user/email/send-verification")]
@@ -718,28 +621,22 @@ async fn send_email_verification(
 
     // If user is already verified there is no reason for verification code to be sent
     if auth_user.user.is_email_verified == true {
-        return HttpResponse::BadRequest().json(SRouteError { message: "User already verified" });
+        return HttpResponse::Conflict().json(SRouteError { message: "User already verified" });
     }
 
     // Generate token that will be use in link for verification or for use to manually verify
-    let code: String = HttpHelper::generate_random_email_verification_code();
+    let code: String = HttpHelper::gen_email_verification_code();
 
     match send_verification_email(&auth_user.user.username, &auth_user.user.email, &code).await {
         Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err));
-        }
+        Err(err) => return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err))
     };
 
     // Store generated verification code in redis
-    match HttpHelper::cache_email_verification_code(redis_service.get_ref(), auth_user.user.email.as_str(), code).await {
-        Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err));
-        }
+    match EmailVerificationCache::cache_code(redis_service.get_ref(), auth_user.user.email.as_str(), code).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Storing verification code in redis", Box::new(err))
     }
-
-    return HttpResponse::Ok().finish();
 }
 
 /*
@@ -750,7 +647,6 @@ async fn send_email_verification(
     path = GET_USER_INFO_ROUTE_PATH.0,
     responses(
         (status = 200, description = "User info", body = UserInfoDTO),
-        (status = 401, description = ""),
     )
 )]
 #[get("/user/me")]
@@ -763,9 +659,7 @@ async fn get_user_info(
     // Encode profile picture as base64 string
     let profile_picture_base64: Option<String> = match auth_user.user.profile_picture {
         None => None,
-        Some(image_bytes) => {
-            Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes)) // TODO: Handle possible errors
-        }
+        Some(image_bytes) => Some(base64::engine::general_purpose::STANDARD.encode(&image_bytes))
     };
 
     // Get all teams name in which user is member
@@ -793,11 +687,7 @@ async fn get_user_info(
                 })
                 .collect::<Vec<TeamInfoDTO>>()
         },
-        Err(err) => return HttpHelper::endpoint_internal_server_error(
-            GET_USER_INFO_ROUTE_PATH,
-            "Finding team records",
-            Box::new(err)
-        ),
+        Err(err) => return HttpHelper::log_internal_server_error(GET_USER_INFO_ROUTE_PATH, "Finding team records", Box::new(err)),
     };
 
     // Create DTO object
@@ -824,7 +714,6 @@ async fn get_user_info(
     path = CHECK_ROUTE_PATH.0,
     responses(
         (status = 200, description = "User logged in"),
-        (status = 401, description = "User not logged in"),
     )   
 )]
 #[get("/user/check")]
@@ -847,35 +736,25 @@ async fn check(
 async fn recycle_refresh_token(refresh_token_id: Uuid, user_id: Uuid, db: Data<DatabaseConnection>) -> Result<RefreshToken, DbErr> {
 
     // Try to delete refresh token
-    let delete_refresh_token_result: Result<DeleteResult, DbErr> = RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await;
-    
-    match delete_refresh_token_result {
-        Ok(_) => (),
-        Err(err) => {
-            println!("-> log_in errored (tried to delete refresh token): {:?}", err);
-            return Err(err);
-        }
-    };
+    match RefreshTokenEntity::delete_by_id(refresh_token_id).exec(db.get_ref()).await {
+        Ok(_) => {},
+        Err(err) => return Err(err)
+    }
 
     // Try to create and add new refresh token to database
     let new_refresh_token_active_model: RefreshTokenActiveModel = create_refresh_token(user_id);
     let add_refresh_token_result: Result<RefreshToken, DbErr> = new_refresh_token_active_model.insert(db.get_ref()).await;
     
-    let token = match add_refresh_token_result {
-        Ok(token) => Ok(token),
-        Err(err) => {
-            println!("-> log_in errored (tried to create and add new refresh token to database): {:?}", err);
-            return Err(err);
-        }
+    match add_refresh_token_result {
+        Ok(token) => return Ok(token),
+        Err(err) => return Err(err)
     };
-
-    return token;
 }
 
 #[rustfmt::skip]
 /// Hashes plain password using salt (argon2) <br/>
-/// Returns string tuple where first string is **Salt**, and second string is **Hashed Password**
-fn hash_password(password: &str) -> Result<(String, String), Argon2Error> {
+/// Returns: **hashed password** or **error**
+fn hash_password(password: &str) -> Result<HashedPassword, Argon2Error> {
 
     // Create salt string and argon2 instance
     let salt:       SaltString = SaltString::generate(&mut OsRng);
@@ -887,7 +766,7 @@ fn hash_password(password: &str) -> Result<(String, String), Argon2Error> {
         Err(err) => return Err(err),
     };
 
-    return Ok((salt.to_string(), password_hash.to_string()));
+    return Ok(HashedPassword::new(salt.to_string(), password_hash.to_string()));
 }
 
 #[rustfmt::skip]

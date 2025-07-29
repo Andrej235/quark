@@ -4,15 +4,23 @@
 use crate::{
     api_doc::ApiDoc,
     routes::{
-        team_roles_routes::{team_role_create, team_role_delete, team_role_update},
-        team_routs::{team_create, team_delete, team_update},
+        team_invitations_routes::{
+            team_invitation_accept, team_invitation_decline, team_invitation_send,
+        },
+        team_members_routes::{team_get_members, team_member_kick},
+        team_roles_routes::{
+            team_role_change, team_role_create, team_role_delete, team_role_update, team_roles_get,
+        },
+        team_routs::{team_create, team_delete, team_leave, team_update},
         user_routs::{
             check, get_user_info, send_email_verification, user_log_in, user_log_out,
             user_password_reset, user_refresh, user_sign_up, user_update, user_update_default_team,
             user_update_profile_picture, verify_email,
         },
+        ws_routes::ws_handler,
     },
     utils::redis_service::RedisService,
+    ws::session::WebsocketState,
 };
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
@@ -22,7 +30,8 @@ use dotenv::dotenv;
 use once_cell::sync::OnceCell;
 use resend_rs::Resend;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::{env, time::Duration};
+use tokio::sync::Mutex;
+use std::{collections::HashMap, env, sync::Arc, time::Duration};
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use web::Data as WebData;
@@ -46,9 +55,12 @@ pub mod entity;
 pub mod enums;
 pub mod extensions;
 pub mod models;
+pub mod repositories;
 pub mod routes;
 pub mod traits;
+pub mod types;
 pub mod utils;
+pub mod ws;
 
 // ------------------------------------------------------------------------------------
 // FUNCTIONS
@@ -74,10 +86,22 @@ fn routes(cfg: &mut web::ServiceConfig) {
     cfg.service(team_create);
     cfg.service(team_delete);
     cfg.service(team_update);
+    cfg.service(team_leave);
 
     cfg.service(team_role_create);
-    cfg.service(team_role_delete);
     cfg.service(team_role_update);
+    cfg.service(team_role_change);
+    cfg.service(team_roles_get);
+    cfg.service(team_role_delete);
+
+    cfg.service(team_invitation_send);
+    cfg.service(team_invitation_accept);
+    cfg.service(team_invitation_decline);
+
+    cfg.service(team_get_members);
+    cfg.service(team_member_kick);
+
+    cfg.service(ws_handler);
 }
 
 /*
@@ -155,6 +179,14 @@ async fn main() -> std::io::Result<()> {
     let redis_manager: RedisConnectionManager = RedisConnectionManager::new(redis_url).expect("Failed to create redis connection manager.");
     let pool: Pool<RedisConnectionManager> = Pool::builder().build(redis_manager).await.expect("Failed to create redis connection pool.");
 
+
+    // Create websockets state
+    let ws_app_state: WebsocketState = WebsocketState {
+        sessions: Arc::new(Mutex::new(HashMap::new())),
+    };
+
+    let ws_app_state_data: WebData<WebsocketState> = WebData::new(ws_app_state);
+    
     
     // Start server
     HttpServer::new(move|| {
@@ -172,6 +204,7 @@ async fn main() -> std::io::Result<()> {
             )
             .app_data(WebData::new(database_connection.clone())) // Inject database into app state
             .app_data(WebData::new(redis_service))
+            .app_data(ws_app_state_data.clone())
             .configure(routes) // Register endpoints
     })
     .workers(worker_threads.parse::<usize>().unwrap())

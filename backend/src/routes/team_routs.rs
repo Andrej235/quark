@@ -16,8 +16,10 @@ use crate::models::middleware::advanced_authenticated_user::AdvancedAuthenticate
 use crate::models::middleware::validated_json::ValidatedJson;
 use crate::models::permission::Permission;
 use crate::models::sroute_error::SRouteError;
+use crate::repositories::team_repository::TeamRepository;
+use crate::utils::cache::user_team_permissions_cache::UserTeamPermissionsCache;
 use crate::utils::constants::{
-    TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
+    TEAM_CREATE_ROUTE_PATH, TEAM_DELETE_ROUTE_PATH, TEAM_LEAVE_ROUTE_PATH, TEAM_UPDATE_ROUTE_PATH,
 };
 use crate::utils::http_helper::HttpHelper;
 use crate::utils::redis_service::RedisService;
@@ -29,7 +31,7 @@ use lazy_static::lazy_static;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, PaginatorTrait,
-    QueryFilter, TransactionTrait,
+    QueryFilter,
 };
 use uuid::Uuid;
 
@@ -39,8 +41,8 @@ use uuid::Uuid;
 //
 // ************************************************************************************
 lazy_static! {
-    static ref OWNER_PERMISSIONS: i32 = Permission::all().bits();
-    static ref MODERATOR_PERMISSIONS: i32 = (Permission::CAN_VIEW_USERS
+    pub static ref OWNER_PERMISSIONS: i32 = Permission::all().bits();
+    pub static ref MODERATOR_PERMISSIONS: i32 = (Permission::CAN_VIEW_USERS
         | Permission::CAN_VIEW_PROSPECTS
         | Permission::CAN_CREATE_PROSPECTS
         | Permission::CAN_EDIT_PROSPECTS
@@ -51,6 +53,7 @@ lazy_static! {
         | Permission::CAN_DELETE_EMAILS
         | Permission::CAN_SEND_EMAILS)
         .bits();
+    pub static ref MEMBER_PERMISSIONS: i32 = Permission::CAN_VIEW_USERS.bits();
 }
 
 // ************************************************************************************
@@ -64,7 +67,7 @@ lazy_static! {
     request_body = CreateTeamDTO,
     responses(
         (status = 200, description = "Team created"),
-        (status = 401, description = ""),
+        (status = 409, description = "Team with same name already exists", body = SRouteError),
         (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
@@ -77,26 +80,22 @@ pub async fn team_create(
     team_json: ValidatedJson<CreateTeamDTO>,
 ) -> impl Responder {
 
-    // Get json data
     let team_data: &CreateTeamDTO = team_json.get_data();
 
     // Dont allow user to create team if there is team with same name
-    match TeamEntity::find()
-        .filter(TeamColumn::Name.eq(team_data.name.clone()))
-        .one(db.get_ref())
-        .await {
-        Ok(None) => (),
-        Ok(Some(_)) => return HttpResponse::BadRequest().json(SRouteError { message: "Team already exists" }),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Checking for existing team", Box::new(err)),
+    match TeamRepository::find_by_name(TEAM_CREATE_ROUTE_PATH, db.get_ref(), team_data.name.as_str(), false).await {
+        Ok(Some(_)) => return HttpResponse::Conflict().json(SRouteError { message: "Team with same name already exists" } ),
+        Ok(None) => {},
+        Err(err) => return err
     }
 
     // Begin transaction
     let team_id: Uuid = Uuid::now_v7(); // We create here teams id because we need to use it later for caching users team permissions
     let user_id: Uuid = auth_user.user.id; // Only reason that this is here is because of borrow checker
 
-    let transaction = match db.begin().await {
+    let transaction = match HttpHelper::begin_transaction(TEAM_CREATE_ROUTE_PATH, db.get_ref()).await {
         Ok(transaction) => transaction,
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Starting transaction", Box::new(err)),
+        Err(err) => return err
     };
 
     let transaction_result: Result<(), DbErr> = (|| async {
@@ -123,6 +122,13 @@ pub async fn team_create(
             ..Default::default()
         }.insert(&transaction).await?;
 
+        _ = TeamRoleActiveModel {
+            name: Set("Member".to_string()),
+            team_id: Set(team.id),
+            permissions: Set(MEMBER_PERMISSIONS.clone()),
+            ..Default::default()
+        }.insert(&transaction).await?;
+
         // Create team member
         _ = TeamMemberActiveModel {
             user_id: Set(user_id.clone()),
@@ -139,18 +145,18 @@ pub async fn team_create(
             user_active_model.update(&transaction).await?;
         }
 
-        transaction.commit().await
+        Ok(())
     })().await; 
 
-    match transaction_result {
+    match HttpHelper::commit_transaction(TEAM_CREATE_ROUTE_PATH, transaction, transaction_result).await {
         Ok(_) => (),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Creating team", Box::new(err)),
+        Err(err) => return err,
     }
 
     // Cache team permissions in redis
-    match HttpHelper::cache_user_team_permissions(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
+    match UserTeamPermissionsCache::cache(redis_service.get_ref(), user_id, team_id, OWNER_PERMISSIONS.clone()).await {
         Ok(_) => (),
-        Err(err) => return HttpHelper::endpoint_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
+        Err(err) => return HttpHelper::log_internal_server_error(TEAM_CREATE_ROUTE_PATH, "Caching team permissions", Box::new(err)),
     };
 
     return HttpResponse::Ok().finish();
@@ -162,7 +168,7 @@ pub async fn team_create(
 //
 // ************************************************************************************
 #[utoipa::path(
-    post,
+    put,
     path = TEAM_UPDATE_ROUTE_PATH.0,
     request_body = UpdateTeamDTO,
     params(
@@ -172,7 +178,7 @@ pub async fn team_create(
         (status = 200, description = "Team created"),
         (status = 404, description = "Team not found", body = SRouteError),
         (status = 409, description = "Team with same name already exists", body = SRouteError),
-        (status = 422, description = "", body = ValidationErrorDTO),
+        (status = 422, description = "Validation failed", body = ValidationErrorDTO),
     )
 )]
 #[put("/team/{team_id}")]
@@ -181,18 +187,16 @@ pub async fn team_update(
     db: Data<DatabaseConnection>,
     redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
-    team_id: Path<Uuid>,
+    path_data: Path<Uuid>,
     json_data: ValidatedJson<UpdateTeamDTO>,
 ) -> impl Responder {
     
-    println!("Team Update");
-
-    let team_id: Uuid = team_id.into_inner();
+    let team_id: Uuid = path_data.into_inner();
     let new_team_info: &UpdateTeamDTO = json_data.get_data();
 
     // Prevent user from updating team if they dont have permission
     // Also checks if user is member of team
-    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+    let team_permissions: i32 = match TeamRepository::get_user_permissions(
         TEAM_DELETE_ROUTE_PATH, 
         db.get_ref(),
         redis_service.get_ref(),
@@ -230,7 +234,7 @@ pub async fn team_update(
                     }
                 }
                 Err(err) => {
-                    return HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
+                    return HttpHelper::log_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Checking for name conflict", Box::new(err));
                 }
             };
 
@@ -241,11 +245,11 @@ pub async fn team_update(
 
             match model.update(db.get_ref()).await {
                 Ok(_) => HttpResponse::Ok().finish(),
-                Err(err) => HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
+                Err(err) => HttpHelper::log_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Updating team", Box::new(err)),
             }
         }
         Ok(None) => HttpResponse::NotFound().json(SRouteError { message: "Team not found" }),
-        Err(err) => { HttpHelper::endpoint_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err)) }
+        Err(err) => { HttpHelper::log_internal_server_error(TEAM_UPDATE_ROUTE_PATH, "Finding team", Box::new(err)) }
     }
 }
 
@@ -262,8 +266,7 @@ pub async fn team_update(
     ),
     responses(
         (status = 200, description = "Team deleted"),
-        (status = 403, description = "Possibe messages: Not memeber of team, 
-                                                        Not allowed to delete team", body = SRouteError),
+        (status = 403, description = "Not memeber of team, Not allowed to delete team", body = SRouteError),
     )
 )]
 #[delete("/team/{team_id}")]
@@ -272,13 +275,13 @@ pub async fn team_delete(
     db: Data<DatabaseConnection>,
     redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
-    team_id: Path<Uuid>,
+    path_data: Path<Uuid>,
 ) -> impl Responder {
 
-    let team_id = team_id.into_inner();
+    let team_id = path_data.into_inner();
 
     // Prevent user from deleting team if they are not member of the team or user does not have permission to delete team
-    let team_permissions: i32 = match HttpHelper::get_user_team_permissions(
+    let team_permissions: i32 = match TeamRepository::get_user_permissions(
         TEAM_DELETE_ROUTE_PATH, 
         db.get_ref(), 
         redis_service.get_ref(),
@@ -295,27 +298,79 @@ pub async fn team_delete(
     }
 
     // Delete team
-    let delete_result = TeamEntity::delete_by_id(team_id).exec(db.get_ref()).await;
+    match TeamRepository::delete_by_id(TEAM_DELETE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id).await {
+        Ok(_) => (),
+        Err(err) => return err
+    }
 
-    match delete_result {
+    return HttpResponse::Ok().finish();
+}
+
+#[utoipa::path(
+    delete,
+    path = TEAM_LEAVE_ROUTE_PATH.0,
+    params(
+        ("team_id" = Uuid, Path),
+    ),
+    responses(
+        (status = 200, description = "Left team"),
+        (status = 403, description = "Not member of team", body = SRouteError),
+        (status = 409, description = "Too many team members to leave", body = SRouteError),
+    )
+)]
+#[delete("/team/leave/{team_id}")]
+#[rustfmt::skip]
+pub async fn team_leave(
+    db: Data<DatabaseConnection>,
+    redis_service: Data<RedisService>,
+    auth_user: AdvancedAuthenticatedUser,
+    path_data: Path<Uuid>,
+) -> impl Responder {
+
+    let team_id: Uuid = path_data.into_inner();
+
+    // Check if user is member of team
+    match TeamRepository::is_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id, true).await {
         Ok(_) => {},
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(
-                TEAM_DELETE_ROUTE_PATH,
-                "Deleting team",
-                Box::new(err),
-            );
+        Err(err) => return err
+    };
+
+    // Stop user from leaving team if there is only one member and user is not owner of team
+    let members_count: u64 = match TeamRepository::get_members_count(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), team_id).await {
+        Ok(members) => members,
+        Err(err) => return err
+    };
+
+    let user_permissions = match TeamRepository::get_user_permissions(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), auth_user.user.id, team_id).await {
+        Ok(permissions) => permissions,
+        Err(err) => return err
+    };
+
+    let owner_permissions: i32 = OWNER_PERMISSIONS.clone();
+
+
+    // Delete team if there is only one member and user is owner
+    if members_count == 1 && user_permissions == owner_permissions {
+        match TeamRepository::delete_by_id(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id).await {
+            Ok(_) => (),
+            Err(err) => return err
         }
     }
 
-    // Delete all cached users team permissions
-    // There is no need for that cached data to exist anymore
-    match HttpHelper::delete_unused_cached_user_team_permissions(redis_service.get_ref(), team_id).await {
-        Ok(_) => (),
-        Err(err) => {
-            return HttpHelper::endpoint_internal_server_error(TEAM_DELETE_ROUTE_PATH, "Deleting cached user team permissions", Box::new(err));
+    // Stop user from leaving team if there is more than one member and user is owner
+    if members_count > 1 && user_permissions == owner_permissions {
+        return HttpResponse::Conflict().json(SRouteError { message: "Too many team members to leave" });
+    }
+
+    // Remove user from team if user is not owner
+    if user_permissions != owner_permissions {
+        match TeamRepository::delete_member(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
+            Ok(_) => (),
+            Err(err) => return err
         }
-    };
+    }
+
+    // TODO in future maybe implement transfering ownership to another team member to not lose team data
 
     return HttpResponse::Ok().finish();
 }
