@@ -1,8 +1,8 @@
 // ------------------------------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------------------------------
-use crate::traits::endpoint_json_body_data::EndpointJsonBodyData;
-use crate::utils::constants::TEAM_NAME_REGEX;
+use crate::{traits::endpoint_json_body_data::EndpointJsonBodyData, utils::constants::TEAM_NAME_MAX_LENGTH};
+use crate::utils::constants::{TEAM_NAME_MIN_LENGTH, TEAM_NAME_REGEX};
 use macros::GenerateFieldEnum;
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -17,7 +17,7 @@ pub struct CreateTeamDTO {
 
     #[enum_name("Name")]
     #[validate(regex(path = "*TEAM_NAME_REGEX"))]
-    #[validate(length(min = 1, max = 150))]
+    #[validate(length(min = TEAM_NAME_MIN_LENGTH, max = TEAM_NAME_MAX_LENGTH))]
     pub name:           String,
 
     #[enum_name("Description")]

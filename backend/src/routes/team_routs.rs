@@ -200,8 +200,8 @@ pub async fn team_update(
         TEAM_DELETE_ROUTE_PATH, 
         db.get_ref(),
         redis_service.get_ref(),
-        auth_user.user.id, 
         team_id,
+        auth_user.user.id, 
     ).await {
         Ok(permissions) => permissions,
         Err(err) => return err,
@@ -285,8 +285,8 @@ pub async fn team_delete(
         TEAM_DELETE_ROUTE_PATH, 
         db.get_ref(), 
         redis_service.get_ref(),
-        auth_user.user.id, 
         team_id,
+        auth_user.user.id, 
     ).await {
         Ok(permissions) => permissions,
         Err(err) => return err,
@@ -341,7 +341,7 @@ pub async fn team_leave(
         Err(err) => return err
     };
 
-    let user_permissions = match TeamRepository::get_user_permissions(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), auth_user.user.id, team_id).await {
+    let user_permissions = match TeamRepository::get_user_permissions(TEAM_LEAVE_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id,).await {
         Ok(permissions) => permissions,
         Err(err) => return err
     };

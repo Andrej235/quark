@@ -4,7 +4,7 @@
 use crate::{
     traits::endpoint_json_body_data::EndpointJsonBodyData,
     types::aliases::TeamRoleId,
-    utils::constants::{USER_USERNAME_MAX_LENGTH, USER_USERNAME_MIN_LENGTH},
+    utils::constants::{TEAM_NAME_MAX_LENGTH, TEAM_NAME_MIN_LENGTH, USER_USERNAME_MAX_LENGTH, USER_USERNAME_MIN_LENGTH},
 };
 use macros::GenerateFieldEnum;
 use serde::Deserialize;
@@ -21,6 +21,10 @@ pub struct ChangeUserRoleDTO {
 
     #[enum_name("TeamId")]
     pub team_id: Uuid,
+
+    #[enum_name("TeamName")]
+    #[validate(length(min = TEAM_NAME_MIN_LENGTH, max = TEAM_NAME_MAX_LENGTH))]
+    pub team_name: String,
 
     #[enum_name("RoleId")]
     pub role_id: TeamRoleId,
