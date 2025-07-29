@@ -45,15 +45,9 @@ export default function NotificationSettingsPage() {
         <div className="flex w-1/3 items-center justify-center p-2">
           <h1 className="text-4xl">Notification center</h1>
         </div>
-        {notificationSelection.map((section, index) => (
-          <div
-            key={index}
-            className="bg-secondary item-start flex w-1/3 flex-col justify-start gap-4 rounded-xl p-4 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-          >
-            <h1 className="text-xl font-semibold">{section.titleCard}</h1>
-            <NotificationAccordionList groups={section.groups} />
-          </div>
-        ))}
+        <div className="flex w-1/2 flex-col gap-4">
+          <NotificationAccordionList sections={notificationSelection} />
+        </div>
       </div>
     </div>
   );
