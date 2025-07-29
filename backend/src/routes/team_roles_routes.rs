@@ -26,7 +26,7 @@ use crate::{
         permission::Permission,
         sroute_error::SRouteError,
     },
-    repositories::team_repository::TeamRepository,
+    repositories::{team_repository::TeamRepository, user_repository::UserRepository},
     utils::{
         constants::{
             DEFAULT_TEAM_ROLE_NAMES, TEAM_ROLE_CHANGE_ROUTE_PATH, TEAM_ROLE_CREATE_ROUTE_PATH,
@@ -34,7 +34,9 @@ use crate::{
         },
         http_helper::HttpHelper,
         redis_service::RedisService,
+        websocket_helper::WebsocketHelper,
     },
+    ws::session::WebsocketState,
 };
 use actix_web::{
     delete, get, patch, post, put,
@@ -186,6 +188,7 @@ pub async fn team_role_update(
 #[rustfmt::skip]
 pub async fn team_role_change(
     db: Data<DatabaseConnection>,
+    websocket: Data<WebsocketState>,
     redis_service: Data<RedisService>,
     auth_user: AdvancedAuthenticatedUser,
     json_data: ValidatedJson<ChangeUserRoleDTO>,
@@ -199,7 +202,7 @@ pub async fn team_role_change(
         Err(err) => return err
     }
 
-    // Check if role is valid
+    // Check if role exists
     let is_team_role_valid: bool = match TeamRoleEntity::find()
         .filter(TeamRoleColumn::TeamId.eq(data.team_id))
         .filter(TeamRoleColumn::Id.eq(data.role_id))
@@ -215,7 +218,12 @@ pub async fn team_role_change(
     }
 
     // Update user role
-    let member = match TeamRepository::find_member(TEAM_ROLE_CHANGE_ROUTE_PATH, db.get_ref(), data.team_id, auth_user.user.id, true).await {
+    let change_role_user_id: Uuid = match UserRepository::get_id_by_username(TEAM_ROLE_CHANGE_ROUTE_PATH, db.get_ref(), &data.user_username, true).await {
+        Ok(user) => user.unwrap(),
+        Err(err) => return err
+    };
+
+    let member = match TeamRepository::find_member(TEAM_ROLE_CHANGE_ROUTE_PATH, db.get_ref(), data.team_id, change_role_user_id, true).await {
         Ok(member) => member.unwrap(),
         Err(err) => return err
     };
@@ -228,7 +236,11 @@ pub async fn team_role_change(
         Err(err) => return HttpHelper::log_internal_server_error(TEAM_ROLE_CHANGE_ROUTE_PATH, "Updating user role", Box::new(err))
     }
 
-    return HttpResponse::Ok().finish();   
+    // Send notification
+    match WebsocketHelper::send_team_role_changed_notification(TEAM_ROLE_CHANGE_ROUTE_PATH, websocket.get_ref(), change_role_user_id, &data.team_name).await {
+        Ok(_) => return HttpResponse::Ok().finish(),
+        Err(err) => return err
+    };
 }
 
 // ************************************************************************************
@@ -275,6 +287,7 @@ pub async fn team_roles_get(
                 .into_iter()
                 .map(|team_role| {
                     TeamRoleInfoDTO {
+                        id: team_role.id,
                         name: team_role.name,
                         permissions: team_role.permissions,
                     }
@@ -404,7 +417,7 @@ async fn check_user_can_edit_roles(db: &DatabaseConnection, redis_service: &Redi
     };
 
     // Chcek if user is part of team and has require permissions
-    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_ROLE_CREATE_ROUTE_PATH, db, redis_service, user_id, team_id).await {
+    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_ROLE_CREATE_ROUTE_PATH, db, redis_service, team_id, user_id).await {
         Ok(user_permissions) => user_permissions,
         Err(err) => return Err(err)
     };

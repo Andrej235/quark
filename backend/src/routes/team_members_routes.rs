@@ -65,8 +65,8 @@ pub async fn team_get_members(
         TEAM_MEMBERS_GET_ROUTE_PATH, 
         db.get_ref(),
         redis_service.get_ref(),
-        auth_user.user.id, 
         team_id,
+        auth_user.user.id, 
     ).await {
         Ok(permissions) => permissions,
         Err(err) => return err,
@@ -144,7 +144,7 @@ pub async fn team_member_kick(
 
     // Check if user can kick someone
     // This functions all will return ForbiddenError if user is not member of team
-    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), auth_user.user.id, team_id).await {
+    let user_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, auth_user.user.id).await {
         Ok(permissions) => permissions,
         Err(err) => return err
     };
@@ -160,7 +160,7 @@ pub async fn team_member_kick(
         Err(err) => return err
     };
 
-    let user_to_remove_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), user_to_remove_id, team_id).await {
+    let user_to_remove_permissions: i32 = match TeamRepository::get_user_permissions(TEAM_MEMBERS_KICK_ROUTE_PATH, db.get_ref(), redis_service.get_ref(), team_id, user_to_remove_id, ).await {
         Ok(permissions) => permissions,
         Err(err) => return err
     };
