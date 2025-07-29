@@ -1,6 +1,7 @@
 import { isSlotParent } from "@/lib/prospects/is-slot-parent";
 import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
 import { Slot } from "@/lib/prospects/slot-types/slot";
+import { SlotEditorProps } from "@/lib/prospects/slot-types/slot-editor-prop";
 import { SlotFlexWrapper } from "@/lib/prospects/slot-types/slot-flex-wrapper";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
@@ -19,6 +20,8 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
+import TextFieldEditor from "./editors/text-field-editor";
+import ImageFieldEditor from "./editors/image-field-editor";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);
@@ -196,8 +199,23 @@ export default function SlotEditorDialog() {
               </div>
             </div>
           )}
+
+          <SpecificTypeEditor slot={slot} setLocalSlot={setSlot} />
         </CardContent>
       </Card>
     </motion.div>
   );
+}
+
+function SpecificTypeEditor({ slot, setLocalSlot }: SlotEditorProps) {
+  switch (slot.type) {
+    case "text-field":
+      return <TextFieldEditor slot={slot} setLocalSlot={setLocalSlot} />;
+
+    case "image-field":
+      return <ImageFieldEditor slot={slot} setLocalSlot={setLocalSlot} />;
+
+    default:
+      return null;
+  }
 }

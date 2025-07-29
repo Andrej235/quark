@@ -39,6 +39,9 @@ export const defaultSlots: {
     id: "image-field",
     type: "image-field",
     name: "Select an Image",
+    compressionQuality: 0.5,
+    inputTypes: ["png", "jpg", "webp", "gif", "svg"],
+    savedAs: "webp",
   },
   "text-field": {
     id: "text-field",
