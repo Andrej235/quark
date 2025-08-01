@@ -1,4 +1,5 @@
 import { isSlotParent } from "@/lib/prospects/is-slot-parent";
+import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
 import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
 import { Slot } from "@/lib/prospects/slot-types/slot";
 import { SlotEditorProps } from "@/lib/prospects/slot-types/slot-editor-prop";
@@ -20,9 +21,9 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
-import TextFieldEditor from "./editors/text-field-editor";
+import CardHeaderEditor from "./editors/card-header-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
-import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
+import TextFieldEditor from "./editors/text-field-editor";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);
@@ -33,7 +34,7 @@ export default function SlotEditorDialog() {
   const [parentSlot, setParentSlot] = useState<Slot | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null!);
+  const containerRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
   const isInsideFlexLayout =
@@ -47,7 +48,8 @@ export default function SlotEditorDialog() {
     : -1;
 
   useEffect(() => {
-    setSlot(editingSlot);
+    if (editingSlot) setSlot(editingSlot);
+
     setParentSlot(
       editingSlot ? findSlot((x) => isSlotParent(x, editingSlot)) : null,
     );
@@ -68,16 +70,20 @@ export default function SlotEditorDialog() {
   useEffect(() => {
     setIsOpen(!!editingSlot);
 
+    console.log(editingSlot, containerRef.current);
     if (!editingSlot || !containerRef.current) return;
 
-    const offset = 25;
+    const offsetX = 25;
+    const offsetY = -50;
+
     const x =
-      mousePosition.current.x + containerRef.current.offsetWidth / 2 + offset;
-    const y = mousePosition.current.y;
+      mousePosition.current.x + containerRef.current.offsetWidth / 2 + offsetX;
+    const y =
+      mousePosition.current.y + containerRef.current.offsetHeight / 2 + offsetY;
 
     containerRef.current.style.left = `${x}px`;
     containerRef.current.style.top = `${y}px`;
-  }, [editingSlot]);
+  }, [editingSlot, containerRef]);
 
   function handleLocalChangeId(e: ChangeEvent<HTMLInputElement>) {
     if (!slot) return;
@@ -162,8 +168,6 @@ export default function SlotEditorDialog() {
     }
   }
 
-  if (!slot) return null;
-
   return (
     <motion.div
       ref={containerRef}
@@ -214,7 +218,7 @@ export default function SlotEditorDialog() {
             </Label>
             <Input
               id="id"
-              value={slot.id}
+              value={slot?.id ?? ""}
               onChange={handleLocalChangeId}
               onBlur={handleChangeId}
             />
@@ -258,7 +262,7 @@ export default function SlotEditorDialog() {
             </div>
           )}
 
-          <SpecificTypeEditor slot={slot} setLocalSlot={setSlot} />
+          {slot && <SpecificTypeEditor slot={slot} setLocalSlot={setSlot} />}
         </CardContent>
       </Card>
     </motion.div>
@@ -272,6 +276,9 @@ function SpecificTypeEditor({ slot, setLocalSlot }: SlotEditorProps) {
 
     case "image-field":
       return <ImageFieldEditor slot={slot} setLocalSlot={setLocalSlot} />;
+
+    case "card-header":
+      return <CardHeaderEditor slot={slot} setLocalSlot={setLocalSlot} />;
 
     default:
       return null;
