@@ -22,10 +22,12 @@ import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import TextFieldEditor from "./editors/text-field-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
+import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);
   const findSlot = useSlotTreeRootStore((x) => x.findSlot);
+  const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
   const [slot, setSlot] = useState<Slot | null>(null);
   const [parentSlot, setParentSlot] = useState<Slot | null>(null);
@@ -39,7 +41,7 @@ export default function SlotEditorDialog() {
   const flex = isInsideFlexLayout
     ? ((
         parentSlot.content.find(
-          (x) => "slot" in x && x.slot === editingSlot,
+          (x) => "slot" in x && x.slot.id === editingSlot?.id,
         ) as SlotFlexWrapper
       )?.flex ?? -1)
     : -1;
@@ -84,23 +86,66 @@ export default function SlotEditorDialog() {
     setSlot((prev) => ({ ...prev, [property]: value }) as Slot);
   }
 
+  function handleLocalChangeFlex(newValue: string | number) {
+    if (
+      !slot ||
+      !parentSlot ||
+      !(parentSlot.type === "row" || parentSlot.type === "column")
+    )
+      return;
+
+    const flex = parseInt(newValue.toString()) || 0;
+
+    for (let i = 0; i < parentSlot.content.length; i++) {
+      const current = parentSlot.content[i];
+
+      if (
+        ("slot" in current && current.slot.id === slot.id) ||
+        (current as Slot).id === slot.id
+      ) {
+        parentSlot.content[i] =
+          flex < 0
+            ? editingSlot!
+            : {
+                flex,
+                slot: editingSlot!,
+              };
+
+        setParentSlot({ ...parentSlot });
+        break;
+      }
+    }
+  }
+
   function handleChangeFlex(newValue: string | number) {
-    if (!slot || !parentSlot) return;
+    if (
+      !slot ||
+      !parentSlot ||
+      !(parentSlot.type === "row" || parentSlot.type === "column")
+    )
+      return;
 
-    const flex = +newValue || 0;
-    const parent = parentSlot as RowSlot;
+    const flex = parseInt(newValue.toString()) || -1;
 
-    for (let i = 0; i < parent.content.length; i++) {
-      const current = parent.content[i];
+    for (let i = 0; i < parentSlot.content.length; i++) {
+      const current = parentSlot.content[i];
 
-      if (("slot" in current && current.slot === slot) || current === slot) {
-        console.log(current);
+      if (
+        ("slot" in current && current.slot.id === slot.id) ||
+        (current as Slot).id === slot.id
+      ) {
+        parentSlot.content[i] =
+          flex < 0
+            ? editingSlot!
+            : {
+                flex,
+                slot: editingSlot!,
+              };
 
-        parent.content[i] = {
-          flex,
-          slot: editingSlot!,
-        };
-        setParentSlot({ ...parent });
+        setParentSlot({ ...parentSlot });
+        updateSlot<RowSlot | ColumnSlot>(parentSlot.id, (x) => {
+          x.content = parentSlot.content;
+        });
         break;
       }
     }
@@ -175,14 +220,15 @@ export default function SlotEditorDialog() {
                   value={flex < 0 ? "Automatic" : flex}
                   disabled={flex < 0}
                   readOnly={flex < 0}
-                  onChange={(e) => handleChangeFlex(e.target.value)}
+                  onChange={(e) => handleLocalChangeFlex(e.target.value)}
+                  onBlur={(e) => handleChangeFlex(e.target.value)}
                 />
 
                 {flex < 0 && (
                   <Button
                     variant="outline"
                     className="w-48"
-                    onClick={() => handleChangeFlex(0)}
+                    onClick={() => handleChangeFlex(1)}
                   >
                     Set Manually
                   </Button>
