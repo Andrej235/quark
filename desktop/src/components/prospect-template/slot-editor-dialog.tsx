@@ -79,11 +79,22 @@ export default function SlotEditorDialog() {
     containerRef.current.style.top = `${y}px`;
   }, [editingSlot]);
 
-  function handleChange(property: string, e: ChangeEvent<HTMLInputElement>) {
+  function handleLocalChangeId(e: ChangeEvent<HTMLInputElement>) {
     if (!slot) return;
 
     const value = e.target.value;
-    setSlot((prev) => ({ ...prev, [property]: value }) as Slot);
+    setSlot((prev) => ({ ...prev!, id: value }));
+  }
+
+  function handleChangeId(e: ChangeEvent<HTMLInputElement>) {
+    if (!slot) return;
+
+    const value = e.target.value.trim();
+
+    setSlot((prev) => ({ ...prev!, id: value }));
+    updateSlot(editingSlot!.id, (x) => {
+      x.id = value;
+    });
   }
 
   function handleLocalChangeFlex(newValue: string | number) {
@@ -204,7 +215,8 @@ export default function SlotEditorDialog() {
             <Input
               id="id"
               value={slot.id}
-              onChange={(e) => handleChange("id", e)}
+              onChange={handleLocalChangeId}
+              onBlur={handleChangeId}
             />
           </div>
 
