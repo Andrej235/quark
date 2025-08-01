@@ -1,4 +1,5 @@
 import { deleteSlot } from "@/lib/delete-slot";
+import { getDefaultSlot } from "@/lib/get-default-slot";
 import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
 import { cloneSlot } from "@/lib/prospects/clone-slot";
 import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
@@ -262,6 +263,14 @@ function SlotWrapper({
         (x) => (x.content = cloneSlot(selectedSlot)),
       );
     }
+  }
+
+  function handleAddButtonToCardFooter() {
+    if (slot.type !== "card-footer") return;
+
+    updateSlot<CardFooterSlot>(slot.id, (x) =>
+      x.buttons.push(cloneSlot(getDefaultSlot("button"))),
+    );
   }
 
   function handlePaste() {
@@ -563,6 +572,13 @@ function SlotWrapper({
               <AlignEndHorizontal className="ml-auto" />
             </ContextMenuCheckboxItem>
           </>
+        )}
+
+        {slot.type === "card-footer" && (
+          <ContextMenuItem onClick={handleAddButtonToCardFooter}>
+            <span>Add Button</span>
+            <Plus className="ml-auto" />
+          </ContextMenuItem>
         )}
 
         <ContextMenuSeparator />

@@ -7,12 +7,12 @@ export default function CardFooterSlot({
   slot,
 }: RenderSlotProps<CardFooterSlotType>) {
   return (
-    <CardFooter className="px-2">
+    <CardFooter className="gap-4 px-2">
       {slot.buttons.length === 0 && (
         <>
-          <div className="bg-muted-foreground/50 mr-4 h-8 w-32 rounded-md" />
-          <div className="bg-muted-foreground/50 mr-4 h-8 w-24 rounded-md" />
-          <div className="bg-muted-foreground/50 mr-4 h-8 w-48 rounded-md" />
+          <div className="bg-muted-foreground/50 h-8 w-32 rounded-md" />
+          <div className="bg-muted-foreground/50 h-8 w-24 rounded-md" />
+          <div className="bg-muted-foreground/50 h-8 w-48 rounded-md" />
         </>
       )}
 
