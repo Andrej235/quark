@@ -8,8 +8,7 @@ import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { GripVertical } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { useEventListener } from "usehooks-ts";
+import { ChangeEvent, useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -21,10 +20,10 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
+import ButtonEditor from "./editors/button-editor";
 import CardHeaderEditor from "./editors/card-header-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
 import TextFieldEditor from "./editors/text-field-editor";
-import ButtonEditor from "./editors/button-editor";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);
@@ -35,7 +34,6 @@ export default function SlotEditorDialog() {
   const [parentSlot, setParentSlot] = useState<Slot | null>(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
   const isInsideFlexLayout =
@@ -56,35 +54,9 @@ export default function SlotEditorDialog() {
     );
   }, [editingSlot, findSlot]);
 
-  const mousePosition = useRef<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
-
-  useEventListener("mousemove", (event) => {
-    mousePosition.current = {
-      x: event.clientX,
-      y: event.clientY,
-    };
-  });
-
   useEffect(() => {
     setIsOpen(!!editingSlot);
-
-    console.log(editingSlot, containerRef.current);
-    if (!editingSlot || !containerRef.current) return;
-
-    const offsetX = 25;
-    const offsetY = -50;
-
-    const x =
-      mousePosition.current.x + containerRef.current.offsetWidth / 2 + offsetX;
-    const y =
-      mousePosition.current.y + containerRef.current.offsetHeight / 2 + offsetY;
-
-    containerRef.current.style.left = `${x}px`;
-    containerRef.current.style.top = `${y}px`;
-  }, [editingSlot, containerRef]);
+  }, [editingSlot]);
 
   function handleLocalChangeId(e: ChangeEvent<HTMLInputElement>) {
     if (!slot) return;
@@ -171,7 +143,6 @@ export default function SlotEditorDialog() {
 
   return (
     <motion.div
-      ref={containerRef}
       className="-translate-1/2 fixed left-1/2 top-1/2"
       initial={{
         scale: 0.5,
