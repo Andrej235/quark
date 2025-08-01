@@ -73,7 +73,7 @@ export default function ButtonEditor({
                 variant: "outline",
               })}
             >
-              <SelectValue />
+              <SelectValue placeholder="Select variant" />
             </SelectTrigger>
 
             <SelectContent>
@@ -107,7 +107,7 @@ export default function ButtonEditor({
                 variant: "outline",
               })}
             >
-              <SelectValue />
+              <SelectValue placeholder="Select size" />
             </SelectTrigger>
 
             <SelectContent>

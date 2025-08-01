@@ -85,6 +85,8 @@ const exampleSlot: Slot = {
             id: "save-button",
             type: "button",
             label: "Save",
+            variant: "default",
+            size: "default",
           },
         ],
       },

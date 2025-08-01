@@ -38,11 +38,22 @@ export default function ImageFieldEditor({
     e: ChangeEvent<HTMLInputElement>,
   ) {
     const value = e.target.value.trim();
+
     update(slot.id, (x) => {
       // As never is needed because x[property] can either be a string or a value and so it's looking for a (string & number) which turns into never
       x[property] = (
         property === "compressionQuality" ? +value || 0 : value
       ) as never;
+    });
+  }
+
+  function handleChangeSavedAs(value: string) {
+    const savedAs =
+      value === "null" ? null : (value as ImageFieldSlot["savedAs"]);
+
+    setLocalSlot({ ...slot, savedAs });
+    update(slot.id, (x) => {
+      x.savedAs = savedAs;
     });
   }
 
@@ -148,7 +159,10 @@ export default function ImageFieldEditor({
             Image saved as:
           </Label>
 
-          <Select value={slot.savedAs ?? "Same as uploaded"}>
+          <Select
+            value={slot.savedAs ?? "Same as uploaded"}
+            onValueChange={handleChangeSavedAs}
+          >
             <SelectTrigger
               className={buttonVariants({
                 className: "w-full justify-between",
