@@ -24,6 +24,7 @@ import { Separator } from "../ui/separator";
 import CardHeaderEditor from "./editors/card-header-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
 import TextFieldEditor from "./editors/text-field-editor";
+import ButtonEditor from "./editors/button-editor";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);
@@ -279,6 +280,9 @@ function SpecificTypeEditor({ slot, setLocalSlot }: SlotEditorProps) {
 
     case "card-header":
       return <CardHeaderEditor slot={slot} setLocalSlot={setLocalSlot} />;
+
+    case "button":
+      return <ButtonEditor slot={slot} setLocalSlot={setLocalSlot} />;
 
     default:
       return null;

@@ -53,5 +53,7 @@ export const defaultSlots: {
     id: "button",
     type: "button",
     label: "Button",
+    variant: "default",
+    size: "default",
   },
 };

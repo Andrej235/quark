@@ -518,7 +518,7 @@ function SlotWrapper({
           </ContextMenuItem>
         )}
 
-        {slot.type.includes("field") && (
+        {slot.type === "text-field" && (
           <ContextMenuItem
             onClick={() => {
               console.log("ai", slot.type);
