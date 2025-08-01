@@ -8,6 +8,14 @@ export default function CardFooterSlot({
 }: RenderSlotProps<CardFooterSlotType>) {
   return (
     <CardFooter className="px-2">
+      {slot.buttons.length === 0 && (
+        <>
+          <div className="bg-muted-foreground/50 mr-4 h-8 w-32 rounded-md" />
+          <div className="bg-muted-foreground/50 mr-4 h-8 w-24 rounded-md" />
+          <div className="bg-muted-foreground/50 mr-4 h-8 w-48 rounded-md" />
+        </>
+      )}
+
       {slot.buttons.map((button, index) => (
         <RenderSlot key={index} slot={button} />
       ))}
