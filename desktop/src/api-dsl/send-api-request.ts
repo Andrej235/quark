@@ -70,7 +70,7 @@ export default async function sendApiRequest<
       : null;
 
   const requestInit: RequestInit = {
-    method: requestCopy.method as string,
+    method: (requestCopy.method as string).toUpperCase(),
     signal: options.abortSignal,
     body: body,
     headers: {
