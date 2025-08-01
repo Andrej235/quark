@@ -18,15 +18,9 @@ Quark is a cross-platform, online-only desktop application targeting Windows, ma
 - Support web scraping for prospect data enrichment.
 - Ensure cross-platform compatibility and secure data handling.
 
-## 2. Team and Collaboration
+## 2. Requirements
 
-- **Team**: Four developers with fluid roles, collaborating via Notion for communication and task tracking
-- **Repository**: Hosted on GitHub
-- **Workflow**: Use GitHub for version control, pull requests, and code reviews; Notion for discussions and sprint planning
-
-## 3. Requirements
-
-### 3.1 Functional Requirements
+### 2.1 Functional Requirements
 
 - **Prospect Management**:
   - Add, edit, and delete prospect profiles.
@@ -44,7 +38,7 @@ Quark is a cross-platform, online-only desktop application targeting Windows, ma
   - Scrape public web data (e.g., LinkedIn, company websites) to enrich prospect profiles.
   - Allow users to trigger and review scraped data within the app.
 
-### 3.2 Non-Functional Requirements
+### 2.2 Non-Functional Requirements
 
 - **Compatibility**: Support Windows 10+, macOS 10.15+, and major Linux distributions.
 - **Scalability**: Handle up to 1,000 prospects per team for the MVP, with efficient database queries.
@@ -52,9 +46,9 @@ Quark is a cross-platform, online-only desktop application targeting Windows, ma
 - **Performance**: App should load in under 3 seconds; API responses within 1 second.
 - **Online-Only**: Requires internet connectivity for all operations (data sync, AI, scraping).
 
-## 4. System Architecture
+## 3. System Architecture
 
-### 4.1 Technology Stack
+### 3.1 Technology Stack
 
 - **Frontend**:
   - Tauri (Rust-based, lightweight alternative to Electron for cross-platform desktop apps).
@@ -69,7 +63,7 @@ Quark is a cross-platform, online-only desktop application targeting Windows, ma
 - **AI and Scraping**: To be determined (placeholder for external AI service and scraping library).
 - **Collaboration Tools**: GitHub for version control, Notion for team communication.
 
-### 4.2 Data Flow
+### 3.2 Data Flow
 
 1. User interacts with React-based UI to manage prospects, emails, or their teams.
 2. Tauri frontend communicates with Rust backend via a REST API.
@@ -78,46 +72,21 @@ Quark is a cross-platform, online-only desktop application targeting Windows, ma
 5. Web scraping module (TBD) fetches and processes prospect data, storing results in Postgres.
 6. Real-time collaboration syncs data via WebSocket or polling through the Actix backend.
 
-## 5. User Interface Design
+## 4. User Interface Details
 
-### 5.1 Mockups
-
-- **Main Window**: Split layout with sidebar (Prospects, Emails, Settings) and main panel (prospect list, email editor, or scraped data view).
-- **Prospect List View**: Table with customizable columns (e.g., name, email, company, custom fields), filterable and sortable.
-- **Email Editor**: Collaborative text editor with AI suggestion panel (e.g., "Improve tone", "Suggest subject").
-- **Prospect Profile**: Form for editing prospect data, with sections for scraped data and custom fields.
-- **Settings**: Options for template customization and notification preferences.
-
-### 5.2 Navigation
+### 4.1 Navigation
 
 - Sidebar navigation for quick access to Prospects, Emails, and Settings.
 - Keyboard shortcuts (e.g., Ctrl+P for new prospect, Ctrl+E for new email).
 - Breadcrumb navigation for nested views (e.g., Prospect > Profile > Edit).
 
-### 5.3 Theme and Styling
+### 4.2 Theme and Styling
 
 - Light and dark themes using Tailwind CSS.
 - Smooth animations (e.g., modal transitions, list updates) via Framer Motion.
 - Consistent UI with Shadcn components for buttons, forms, and tables.
 
-## 6. Development Plan
-
-### 6.1 Phases (6-Week MVP Timeline)
-
-1. **Week 1**: Set up Tauri, React, Actix, and Postgres; setup the basic workflow.
-2. **Week 2**: Implement JWT based authentication, and develop basic team management features.
-3. **Week 3**: Built out prospect management, and notification system.
-4. **Week 4**: Create email editor, and real-time collaboration features.
-5. **Week 5**: Polish UI, and implement AI email suggestions and scheduling.
-6. **Week 6**: Implement web scraping (placeholder library) and notification system.
-
-### 6.2 Collaboration
-
-- **GitHub**: Use branches for features, pull requests for reviews, and main branch for stable code.
-- **Notion**: Document sprint goals, track tasks, and store meeting notes.
-- **Weekly Syncs**: Review progress, update design document, and assign tasks.
-
-## 7. Security Considerations
+## 5. Security Considerations
 
 - **Authentication**: Implement JWT and refresh tokens for user sessions.
 - **Input Validation**: Sanitize all user inputs in Actix to prevent injection attacks.
