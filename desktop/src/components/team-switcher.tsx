@@ -83,10 +83,52 @@ export function TeamSwitcher() {
     setUser({ ...user!, defaultTeamId: team.id });
   }
 
-  function handleLeaveTeam(team: Schema<"TeamInfoDTO">) {
+  async function handleLeaveTeam(team: Schema<"TeamInfoDTO">) {
+    if (!user) return;
+
+    const isDefault = defaultTeam === team;
+
+    if (isDefault) {
+      const { isOk } = await sendApiRequest("/user/me/default-team/{team_id}", {
+        method: "patch",
+        parameters: {
+          team_id: teams[0]?.id,
+        },
+      });
+
+      if (!isOk) {
+        toast.error("Failed to leave team");
+        return;
+      }
+    }
+
+    if (activeTeam === team) {
+      setActiveTeam(isDefault ? user.teamsInfo[0] : defaultTeam!);
+    }
+
+    const { isOk } = await sendApiRequest(
+      "/team/{team_id}",
+      {
+        method: "delete",
+        parameters: {
+          team_id: team.id,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Leaving team, please wait...",
+          success: `Successfully left ${team.name}!`,
+        },
+      },
+    );
+
+    if (!isOk) return;
+
     setUser({
-      ...user!,
-      teamsInfo: user!.teamsInfo.filter((x) => x.id !== team.id),
+      ...user,
+      teamsInfo: user.teamsInfo.filter((x) => x.id !== team.id),
+      defaultTeamId: isDefault ? user.teamsInfo[0].id : defaultTeam?.id,
     });
   }
 
@@ -111,7 +153,7 @@ export function TeamSwitcher() {
 
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeTeam.name}</span>
-                <span className="truncate text-xs">Role</span>
+                <span className="truncate text-xs">{activeTeam.roleName}</span>
               </div>
 
               <ChevronsUpDown className="ml-auto" />
