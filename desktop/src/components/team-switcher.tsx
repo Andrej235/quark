@@ -36,6 +36,18 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import { AlertDialog } from "@radix-ui/react-alert-dialog";
+import {
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
+import { Button } from "./ui/button";
+import { AlertDescription } from "./ui/alert";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
@@ -210,14 +222,40 @@ export function TeamSwitcher() {
 
                   <ContextMenuSeparator />
 
-                  <ContextMenuItem
-                    className="group"
-                    onClick={() => handleLeaveTeam(team)}
-                  >
-                    <span>Leave team</span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <ContextMenuItem
+                        className="group"
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        <span>Leave team</span>
 
-                    <LogOut className="group-hover:stroke-destructive ml-auto" />
-                  </ContextMenuItem>
+                        <LogOut className="group-hover:stroke-destructive ml-auto" />
+                      </ContextMenuItem>
+                    </AlertDialogTrigger>
+
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Are you sure you want to leave {team.name}?
+                        </AlertDialogTitle>
+                        <AlertDescription>
+                          This action is irreversible.
+                        </AlertDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button variant="destructive" asChild>
+                          <AlertDialogAction
+                            onClick={() => handleLeaveTeam(team)}
+                          >
+                            Leave
+                          </AlertDialogAction>
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </ContextMenuContent>
               </ContextMenu>
             ))}
