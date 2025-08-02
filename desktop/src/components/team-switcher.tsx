@@ -63,8 +63,8 @@ export function TeamSwitcher() {
   );
 
   useEffect(
-    () => setActiveTeam(defaultTeam ?? null),
-    [defaultTeam, setActiveTeam],
+    () => setActiveTeam(activeTeam ?? defaultTeam ?? null),
+    [defaultTeam, setActiveTeam, activeTeam],
   );
 
   async function handleSetSetDefault(team: Schema<"TeamInfoDTO">) {

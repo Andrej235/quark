@@ -204,7 +204,7 @@ export default function UserSettingsPage() {
     isWaitingForRequest.current = false;
   }
 
-  function handleUpdatePassword(e: MouseEvent) {
+  async function handleUpdatePassword(e: MouseEvent) {
     if (isWaitingForRequest.current) return;
     if (!user) return;
 
@@ -220,6 +220,25 @@ export default function UserSettingsPage() {
       e.preventDefault();
       return;
     }
+
+    isWaitingForRequest.current = true;
+    await sendApiRequest(
+      "/user/reset-password",
+      {
+        method: "post",
+        payload: {
+          oldPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          success: "Successfully updated password!",
+        },
+      },
+    );
+    isWaitingForRequest.current = false;
   }
 
   async function handleDefaultTeamChange(id: string) {
