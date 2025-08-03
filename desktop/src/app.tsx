@@ -60,8 +60,6 @@ export default function App() {
       (user && sameUser && user.teamsInfo.length > 0) ||
       (!sameUser && userQuery.data.teamsInfo.length > 0);
 
-    console.log(user, userQuery.data);
-
     if (cameFromVerifyPage && user && sameUser && !user.isEmailVerified) {
       setUser({ ...user, isEmailVerified: true });
     }
