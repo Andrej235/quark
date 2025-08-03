@@ -41,10 +41,6 @@ export function NavUser() {
       queryKey: ["isLoggedIn"],
       exact: true,
     });
-    await queryClient.resetQueries({
-      queryKey: ["user"],
-      exact: true,
-    });
 
     await navigate("/login");
   }

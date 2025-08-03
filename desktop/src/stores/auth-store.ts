@@ -215,7 +215,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         get().setRefreshToken(null),
       ]);
     } catch (error) {
-      console.error("Failed to save refresh token:", error);
+      console.error("Failed to log out:", error);
     }
   },
 
