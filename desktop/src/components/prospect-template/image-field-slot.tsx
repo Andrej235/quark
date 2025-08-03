@@ -25,7 +25,7 @@ export default function ImageFieldSlot({
   };
 
   return (
-    <>
+    <div>
       <Label htmlFor={name}>{name}</Label>
       <div className="mt-2 flex items-center gap-4">
         {imagePreview ? (
@@ -41,6 +41,7 @@ export default function ImageFieldSlot({
             <Upload className="text-muted-foreground h-6 w-6" />
           </div>
         )}
+
         <div className="flex-1">
           <Input
             id={name}
@@ -55,6 +56,6 @@ export default function ImageFieldSlot({
           </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

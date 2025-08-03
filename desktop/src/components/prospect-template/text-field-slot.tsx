@@ -11,7 +11,7 @@ export default function TextFieldSlot({
   const isEditing = useIsSlotInEditMode();
 
   return (
-    <>
+    <div>
       <Label htmlFor={name}>{name}</Label>
       <Input
         className="mt-2"
@@ -20,6 +20,6 @@ export default function TextFieldSlot({
         placeholder={placeholder}
         disabled={isEditing}
       />
-    </>
+    </div>
   );
 }
