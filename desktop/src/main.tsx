@@ -20,6 +20,7 @@ import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import VerifyEmailPage from "./components/verify-email-page";
 import "./globals.css";
+import ProspectsPage from "./components/prospects-page";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,10 @@ const router = createBrowserRouter([
           {
             path: "/settings",
             element: <UserSettingsPage />,
+          },
+          {
+            path: "/prospects",
+            element: <ProspectsPage />,
           },
           {
             path: "/prospects/template",

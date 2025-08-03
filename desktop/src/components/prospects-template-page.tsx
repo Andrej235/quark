@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "./ui/card";
 
-const exampleSlot: Slot = {
+export const exampleSlot: Slot = {
   id: "root",
   type: "column",
   content: [

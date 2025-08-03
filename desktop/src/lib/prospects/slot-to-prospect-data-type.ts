@@ -1,22 +1,20 @@
 import { getSlotChildren } from "./get-slot-children";
+import {
+  ProspectFieldDefinition,
+  ProspectDataType,
+} from "./prospect-data-definition";
 import { Slot } from "./slot-types/slot";
 
-type ProspectDataType = "text" | "image";
-
-export function slotToProspectDataType(slot: Slot): {
-  [slotId: string]: ProspectDataType;
-} {
-  const data = slotToDataTypeShallow(slot);
-
-  return {
-    ...data,
-    ...getSlotChildren(slot)
-      .map((x) => ("slot" in x ? slotToProspectDataType(x.slot) : slotToProspectDataType(x)))
-      .reduce((a, b) => ({ ...a, ...b }), {}),
-  };
+export function slotToProspectDataType(slot: Slot): ProspectFieldDefinition[] {
+  return [
+    slotToDataTypeShallow(slot),
+    ...getSlotChildren(slot).flatMap((x) =>
+      "slot" in x ? slotToProspectDataType(x.slot) : slotToProspectDataType(x),
+    ),
+  ].filter((x) => !!x);
 }
 
-function slotToDataTypeShallow(slot: Slot): Record<string, ProspectDataType> | null {
+function slotToDataTypeShallow(slot: Slot): ProspectFieldDefinition | null {
   function getType(): ProspectDataType | null {
     switch (slot.type) {
       case "text-field":
@@ -32,6 +30,7 @@ function slotToDataTypeShallow(slot: Slot): Record<string, ProspectDataType> | n
   if (!type) return null;
 
   return {
-    [slot.id]: type,
+    id: slot.id,
+    type,
   };
 }
