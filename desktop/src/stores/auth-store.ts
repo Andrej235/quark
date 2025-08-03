@@ -20,6 +20,7 @@ type AuthStore = {
   setJwt: (jwt: string | null) => Promise<void>;
   setRefreshToken: (refreshToken: string | null) => Promise<void>;
   logOut: () => Promise<void>;
+  getIsLoggedIn: () => Promise<boolean>;
   refreshPromise: Promise<string | null> | null;
 };
 
@@ -236,6 +237,11 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         await stronghold!.save();
       },
     };
+  },
+
+  getIsLoggedIn: async () => {
+    const jwt = await get().getJwt();
+    return !!jwt;
   },
 }));
 

@@ -2,39 +2,39 @@ import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useQuery from "./api-dsl/use-query";
+import { useQuery as useTanQuery } from "@tanstack/react-query";
 import LoadingIndicator from "./components/loading-indicator";
 import { Toaster } from "./components/ui/sonner";
 import { useUserStore } from "./stores/user-store";
+import useAuthStore from "./stores/auth-store";
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation().pathname;
+  const getIsLoggedIn = useAuthStore((x) => x.getIsLoggedIn);
 
-  const isLoggedIn = useQuery("/user/check", {
+  const isLoggedIn = useTanQuery({
     queryKey: ["isLoggedIn"],
+    queryFn: getIsLoggedIn,
     retry: false,
   });
 
   const user = useQuery("/user/me", {
     queryKey: ["user"],
-    enabled: isLoggedIn.isSuccess,
+    enabled: !!isLoggedIn.data,
     retry: false,
   });
 
   useEffect(() => {
     if (isLoggedIn.isLoading) return;
 
-    if (
-      location !== "/login" &&
-      location !== "/signup" &&
-      !isLoggedIn.isSuccess
-    )
+    if (location !== "/login" && location !== "/signup" && !isLoggedIn.data)
       navigate("/login");
-  }, [isLoggedIn.isSuccess, isLoggedIn.isLoading, navigate, location]);
+  }, [isLoggedIn.data, isLoggedIn.isLoading, navigate, location]);
 
   const setUser = useUserStore((state) => state.setUser);
   useEffect(() => {
-    if (!user.data || !isLoggedIn.isSuccess) return;
+    if (!user.data || !isLoggedIn.data) return;
 
     if (user.error) {
       toast.error(user.error.message ?? "Something went wrong < app");
@@ -56,18 +56,11 @@ export default function App() {
     ) {
       navigate("/first-team");
     }
-  }, [
-    isLoggedIn.isSuccess,
-    user.data,
-    user.error,
-    navigate,
-    setUser,
-    location,
-  ]);
+  }, [isLoggedIn.data, user.data, user.error, navigate, setUser, location]);
 
   return (
     <div className="min-w-svw bg-background max-w-svw max-h-svh min-h-svh overflow-x-clip">
-      {!isLoggedIn.isLoading && (!isLoggedIn.isSuccess || !user.isLoading) && (
+      {!isLoggedIn.isLoading && (!isLoggedIn.data || !user.isLoading) && (
         <Outlet />
       )}
 
