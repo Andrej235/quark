@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
 import { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/slot-types/image-field-slot";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
+import { useSubscribeSlotToEventSystem } from "@/lib/prospects/use-subscribe-slot-to-event-system";
 import { Upload } from "lucide-react";
 import { ChangeEvent, useState } from "react";
 
@@ -12,6 +13,8 @@ export default function ImageFieldSlot({
   const { name } = slot;
   const isEditing = useIsSlotInEditMode();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useSubscribeSlotToEventSystem(slot, imagePreview);
 
   const handleImageInput = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
