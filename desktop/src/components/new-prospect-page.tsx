@@ -12,9 +12,11 @@ import { useProspectsStore } from "@/stores/prospects-store";
 import { useCallback, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import RenderSlotTree from "./prospect-template/render-slot-tree";
+import { Prospect } from "@/lib/prospects/prospect-data-definition";
 
 export default function NewProspectsPage() {
   const template = useProspectsStore((x) => x.template);
+  const setProspects = useProspectsStore((x) => x.setProspects);
   const [subscribedSlots, setSubscribedSlots] = useState<
     (() => SlotData | null)[]
   >([]);
@@ -34,6 +36,12 @@ export default function NewProspectsPage() {
   function handleSave() {
     const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
     console.log(values);
+
+    const newProspect: Prospect = {
+      id: Date.now().toString(),
+      fields: values,
+    };
+    setProspects((x) => [...x, newProspect]);
   }
 
   return (
