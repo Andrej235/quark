@@ -28,7 +28,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -50,8 +50,9 @@ type EditProspectListViewItemDialogProps = {
 export default function EditProspectListViewItemDialog({
   isOpen,
   fullPropsectDataDefinition: allFields,
-  listView: selectedFields,
+  listView,
   setListView,
+  requestClose,
 }: EditProspectListViewItemDialogProps) {
   const dragControls = useDragControls();
   const sensors = useSensors(
@@ -65,6 +66,14 @@ export default function EditProspectListViewItemDialog({
     }),
   );
 
+  const [selectedFields, setSelectedFields] = useState<
+    ProspectFieldDefinition[]
+  >([]);
+  useEffect(
+    () => setSelectedFields((x) => (isOpen ? listView : x)),
+    [listView, isOpen],
+  );
+
   const unselectedListItems = useMemo(
     () => allFields.filter((field) => !selectedFields.includes(field)),
     [allFields, selectedFields],
@@ -73,11 +82,11 @@ export default function EditProspectListViewItemDialog({
   const [isChoosingField, setIsChoosingField] = useState(false);
   function handleAddField(field: ProspectFieldDefinition) {
     setIsChoosingField(false);
-    setListView([...selectedFields, field]);
+    setSelectedFields([...selectedFields, field]);
   }
 
   function handleRemoveField(field: ProspectFieldDefinition) {
-    setListView(selectedFields.filter((x) => x.id !== field.id));
+    setSelectedFields(selectedFields.filter((x) => x.id !== field.id));
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -92,7 +101,12 @@ export default function EditProspectListViewItemDialog({
     );
 
     const newChildren = arrayMove(selectedFields, oldIndex, newIndex);
-    setListView(newChildren);
+    setSelectedFields(newChildren);
+  }
+
+  function handleSave() {
+    setListView(selectedFields);
+    requestClose();
   }
 
   return (
@@ -196,9 +210,11 @@ export default function EditProspectListViewItemDialog({
         <Separator />
 
         <CardFooter className="justify-end gap-2">
-          <Button variant="secondary">Cancel</Button>
+          <Button variant="secondary" onClick={requestClose}>
+            Cancel
+          </Button>
 
-          <Button>Save</Button>
+          <Button onClick={handleSave}>Save</Button>
         </CardFooter>
       </Card>
     </motion.div>
