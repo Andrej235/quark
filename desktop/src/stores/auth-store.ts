@@ -20,12 +20,14 @@ type AuthStore = {
   setJwt: (jwt: string | null) => Promise<void>;
   setRefreshToken: (refreshToken: string | null) => Promise<void>;
   logOut: () => Promise<void>;
+  refreshPromise: Promise<string | null> | null;
 };
 
 const useAuthStore = create<AuthStore>((set, get) => ({
   stronghold: null,
   client: null,
   localJwt: null,
+  refreshPromise: null,
 
   initStorage: async () => {
     get().stronghold?.unload();
@@ -89,43 +91,55 @@ const useAuthStore = create<AuthStore>((set, get) => ({
       // JWT is not expired
       if (payload.exp && Date.now() / 1000 < payload.exp) return jwt;
 
-      const refreshTokenData = await store.get(REFRESH_TOKEN_KEY);
-      if (!refreshTokenData) return null;
-      const refreshToken = new TextDecoder().decode(
-        new Uint8Array(refreshTokenData),
-      );
+      const { refreshPromise } = get();
+      if (refreshPromise) return await refreshPromise;
 
-      // Try to refresh the JWT
-      const { error, response, code } = await sendApiRequest(
-        "/user/refresh",
-        {
-          method: "post",
-          payload: {
-            jwtToken: jwt,
-            refreshTokenId: refreshToken,
-          },
-        },
-        {
-          omitCredentials: true,
-        },
-      );
-
-      // Failed to refresh, either the user has mismatched claims or the refresh token is expired, log them out
-      if (error || !response) {
-        console.error(
-          `Failed to refresh JWT (${code}):`,
-          error?.message || "No response",
+      async function refresh() {
+        const refreshTokenData = await store.get(REFRESH_TOKEN_KEY);
+        if (!refreshTokenData) return null;
+        const refreshToken = new TextDecoder().decode(
+          new Uint8Array(refreshTokenData),
         );
 
-        get().setJwt(null);
-        get().setRefreshToken(null);
+        // Try to refresh the JWT
+        const { error, response, code } = await sendApiRequest(
+          "/user/refresh",
+          {
+            method: "post",
+            payload: {
+              jwtToken: jwt,
+              refreshTokenId: refreshToken,
+            },
+          },
+          {
+            omitCredentials: true,
+          },
+        );
 
-        return null;
+        // Failed to refresh, either the user has mismatched claims or the refresh token is expired, log them out
+        if (error || !response) {
+          console.error(
+            `Failed to refresh JWT (${code}):`,
+            error?.message || "No response",
+          );
+
+          get().setJwt(null);
+          get().setRefreshToken(null);
+          set({ refreshPromise: null });
+
+          return null;
+        }
+
+        get().setRefreshToken(response.refreshTokenId);
+        get().setJwt(response.jwtToken);
+        set({ refreshPromise: null });
+        return response.jwtToken;
       }
 
-      get().setRefreshToken(response.refreshTokenId);
-      get().setJwt(response.jwtToken);
-      return response.jwtToken;
+      const promise = refresh();
+      set({ refreshPromise: promise });
+
+      return await promise;
     } catch (error) {
       console.error("Failed to retrieve jwt:", error);
       return null;
