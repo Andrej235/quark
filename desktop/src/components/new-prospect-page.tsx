@@ -6,9 +6,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { exampleSlot } from "@/components/prospects-template-page";
+import { useProspectsStore } from "@/stores/prospects-store";
 
 export default function NewProspectsPage() {
+  const template = useProspectsStore((x) => x.template);
+
   return (
     <Card className="border-0 bg-transparent">
       <CardHeader className="pb-6">
@@ -24,7 +26,7 @@ export default function NewProspectsPage() {
       </CardHeader>
 
       <CardContent className="bg-transparent">
-        <RenderSlotTree slot={exampleSlot} />
+        <RenderSlotTree slot={template} />
       </CardContent>
     </Card>
   );

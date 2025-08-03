@@ -1,5 +1,9 @@
+import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
+import { useProspectsStore } from "@/stores/prospects-store";
 import { Edit, Plus } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import EditProspectListViewItemDialog from "./edit-prospect-list-view-item-dialog";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -9,17 +13,12 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Separator } from "./ui/separator";
-import { useState } from "react";
-import EditProspectListViewItemDialog from "./edit-prospect-list-view-item-dialog";
-import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
-import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
-import { exampleSlot } from "./prospects-template-page";
-
-const exampleProspectDataDefinition = slotToProspectDataType(exampleSlot);
 
 export default function ProspectsPage() {
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
   const [listView, setListView] = useState<ProspectFieldDefinition[]>([]);
+
+  const dataFields = useProspectsStore((x) => x.dataFields);
 
   return (
     <Card className="min-h-full">
@@ -59,7 +58,7 @@ export default function ProspectsPage() {
         requestClose={() => setIsEditListViewOpen(false)}
         listView={listView}
         setListView={setListView}
-        fullPropsectDataDefinition={exampleProspectDataDefinition}
+        fullPropsectDataDefinition={dataFields}
       />
     </Card>
   );
