@@ -58,7 +58,9 @@ export default function App() {
 
     const hasTeams =
       (user && sameUser && user.teamsInfo.length > 0) ||
-      userQuery.data.teamsInfo.length > 0;
+      (!sameUser && userQuery.data.teamsInfo.length > 0);
+
+    console.log(user, userQuery.data);
 
     if (cameFromVerifyPage && user && sameUser && !user.isEmailVerified) {
       setUser({ ...user, isEmailVerified: true });
@@ -85,6 +87,11 @@ export default function App() {
       navigate("/first-team");
       return;
     }
+
+    if (hasTeams && location === "/first-team") {
+      navigate("/");
+      return;
+    }
   }, [
     isLoggedIn.data,
     userQuery.data,
@@ -95,6 +102,10 @@ export default function App() {
     location,
     locationState,
   ]);
+
+  useEffect(() => {
+    setUser(userQuery.data ?? null);
+  }, [userQuery.data, setUser]);
 
   return (
     <div className="min-w-svw bg-background max-w-svw max-h-svh min-h-svh overflow-x-clip">

@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/stores/team-store";
 import { useUserStore } from "@/stores/user-store";
+import { AlertDialog } from "@radix-ui/react-alert-dialog";
 import {
   ChevronsUpDown,
   LogOut,
@@ -29,14 +30,7 @@ import {
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "./ui/context-menu";
-import { AlertDialog } from "@radix-ui/react-alert-dialog";
+import { AlertDescription } from "./ui/alert";
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,7 +41,13 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
-import { AlertDescription } from "./ui/alert";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "./ui/context-menu";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
@@ -63,8 +63,13 @@ export function TeamSwitcher() {
   );
 
   useEffect(
-    () => setActiveTeam(activeTeam ?? defaultTeam ?? null),
-    [defaultTeam, setActiveTeam, activeTeam],
+    () =>
+      setActiveTeam(
+        activeTeam && teams.includes(activeTeam)
+          ? (activeTeam ?? defaultTeam ?? null)
+          : (defaultTeam ?? null),
+      ),
+    [defaultTeam, setActiveTeam, activeTeam, teams],
   );
 
   async function handleSetSetDefault(team: Schema<"TeamInfoDTO">) {
@@ -100,7 +105,7 @@ export function TeamSwitcher() {
 
     const isDefault = defaultTeam === team;
 
-    if (isDefault) {
+    if (isDefault && teams.length > 1) {
       const { isOk } = await sendApiRequest("/user/me/default-team/{team_id}", {
         method: "patch",
         parameters: {
@@ -115,7 +120,9 @@ export function TeamSwitcher() {
     }
 
     if (activeTeam === team) {
-      setActiveTeam(isDefault ? user.teamsInfo[0] : defaultTeam!);
+      setActiveTeam(
+        isDefault ? (user.teamsInfo[0] ?? null) : (defaultTeam ?? null),
+      );
     }
 
     const { isOk } = await sendApiRequest(
@@ -140,7 +147,9 @@ export function TeamSwitcher() {
     setUser({
       ...user,
       teamsInfo: user.teamsInfo.filter((x) => x.id !== team.id),
-      defaultTeamId: isDefault ? user.teamsInfo[0].id : defaultTeam?.id,
+      defaultTeamId: isDefault
+        ? (user.teamsInfo[0]?.id ?? null)
+        : (defaultTeam?.id ?? null),
     });
   }
 
