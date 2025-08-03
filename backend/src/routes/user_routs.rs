@@ -627,6 +627,8 @@ async fn send_email_verification(
     // Generate token that will be use in link for verification or for use to manually verify
     let code: String = HttpHelper::gen_email_verification_code();
 
+    println!("Verification code: {}", code);
+
     match send_verification_email(&auth_user.user.username, &auth_user.user.email, &code).await {
         Ok(_) => {},
         Err(err) => return HttpHelper::log_internal_server_error(SEND_VERIFICATION_EMAIL_ROUTE_PATH, "Sending verification email", Box::new(err))
