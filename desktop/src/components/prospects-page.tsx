@@ -3,7 +3,7 @@ import { Edit, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import EditProspectListViewItemDialog from "./edit-prospect-list-view-item-dialog";
-import ProspectListItem from "./prospect-list-item";
+import ProspectsTable from "./prospects-table";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -18,7 +18,6 @@ export default function ProspectsPage() {
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
 
   const dataFields = useProspectsStore((x) => x.dataFields);
-  const prospects = useProspectsStore((x) => x.prospects);
   const listView = useProspectsStore((x) => x.listView);
   const setListView = useProspectsStore((x) => x.setListView);
 
@@ -54,9 +53,7 @@ export default function ProspectsPage() {
       <Separator />
 
       <CardContent>
-        {prospects.map((x) => (
-          <ProspectListItem key={x.id} prospect={x} />
-        ))}
+        <ProspectsTable />
       </CardContent>
 
       <EditProspectListViewItemDialog

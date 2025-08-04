@@ -11,7 +11,7 @@ export const defaultProspectTemplate: Slot = {
         {
           flex: 2,
           slot: {
-            id: "company-name-slot",
+            id: "company-name",
             type: "text-field",
             name: "Company Name",
             placeholder: "Enter company name",
@@ -20,7 +20,7 @@ export const defaultProspectTemplate: Slot = {
         {
           flex: 1,
           slot: {
-            id: "logo-slot",
+            id: "logo",
             type: "image-field",
             name: "Logo",
             compressionQuality: 0.5,
