@@ -6,6 +6,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
+import ArchivedProspectsPage from "./components/archived-prospects-page";
 import DashboardLayout from "./components/dashboard-layout";
 import EditProspectPage from "./components/edit-prospect-page";
 import EditRolePage from "./components/edit-role-page";
@@ -71,6 +72,10 @@ const router = createBrowserRouter([
           {
             path: "/prospects",
             element: <ProspectsPage />,
+          },
+          {
+            path: "/prospects/archived",
+            element: <ArchivedProspectsPage />,
           },
           {
             path: "/prospects/:prospectId",

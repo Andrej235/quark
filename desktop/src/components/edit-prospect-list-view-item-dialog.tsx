@@ -38,6 +38,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { useShortcut } from "@/hooks/use-shortcut";
 
 type EditProspectListViewItemDialogProps = {
   isOpen: boolean;
@@ -88,6 +89,14 @@ export default function EditProspectListViewItemDialog({
   function handleRemoveField(field: ProspectFieldDefinition) {
     setSelectedFields(selectedFields.filter((x) => x.id !== field.id));
   }
+
+  useShortcut({
+    key: "Escape",
+    callback: requestClose,
+    enabled: isOpen,
+    preventDefault: true,
+    stopPropagation: true,
+  });
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
