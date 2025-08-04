@@ -38,7 +38,7 @@ export default function DashboardHeader() {
       </div>
 
       {isInBaseMode && (
-        <div className="flex items-center gap-2 px-4">
+        <div className="flex items-center justify-end gap-2 px-4">
           <HeaderSearchBar />
 
           <Separator

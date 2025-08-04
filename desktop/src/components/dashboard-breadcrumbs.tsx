@@ -1,4 +1,3 @@
-
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -46,7 +45,7 @@ export default function HeaderBreadcrumbs() {
 
   return (
     <>
-      <Breadcrumb className="hidden md:block">
+      <Breadcrumb className="hidden min-w-max md:block">
         <BreadcrumbList>
           {items.map((item, index) =>
             index !== items.length - 1 ? (

@@ -9,7 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { buttonVariants } from "./ui/button";
+import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
 export default function HeaderSearchBar() {
@@ -25,18 +25,17 @@ export default function HeaderSearchBar() {
 
   return (
     <AlertDialog open={isActive} onOpenChange={setIsActive}>
-      <AlertDialogTrigger
-        className={buttonVariants({
-          variant: "outline",
-          className:
-            "md:w-196 md:max-w-2/5 ml-auto flex items-center gap-2 md:size-auto md:justify-start",
-        })}
-      >
-        <LucideSearch />
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="md:max-w-2/5 md:w-196 flex items-center gap-2 md:h-auto md:justify-start"
+        >
+          <LucideSearch />
 
-        <span className="text-muted-foreground hidden text-sm md:block">
-          Press / to search
-        </span>
+          <span className="text-muted-foreground hidden text-sm md:block">
+            Press / to search
+          </span>
+        </Button>
       </AlertDialogTrigger>
 
       <AlertDialogContent className="p-4" ref={alertDialogRef}>

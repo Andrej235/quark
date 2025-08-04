@@ -8,10 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import useAuthStore from "@/stores/auth-store";
 import { useUserStore } from "@/stores/user-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { Mail } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CountdownTimer from "./countdown-timer";
 import {
@@ -20,24 +22,14 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "./ui/input-otp";
-import useAuthStore from "@/stores/auth-store";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function ConfirmEmailInstructions() {
   const user = useUserStore((x) => x.user);
-  const setUser = useUserStore((x) => x.setUser);
   const [otp, setOtp] = useState("");
 
   const navigate = useNavigate();
   const logOut = useAuthStore((x) => x.logOut);
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!user) return;
-
-    if (!user) navigate("/login");
-    else if (user.isEmailVerified) navigate("/payment");
-  }, [user, navigate]);
 
   const [isCountdownActive, setIsCountdownActive] = useState(false);
 
@@ -94,8 +86,12 @@ export default function ConfirmEmailInstructions() {
     );
 
     if (!isOk) return;
-    setUser({ ...user, isEmailVerified: true });
-    await navigate("/first-team");
+    navigate("/first-team", {
+      state: {
+        isEmailVerified: true,
+      },
+      flushSync: true,
+    }) as Promise<void>;
   }
 
   return (
@@ -192,10 +188,6 @@ export default function ConfirmEmailInstructions() {
                 // Force revalidation, without this app.tsx would just redirect the user to the dashboard
                 await queryClient.resetQueries({
                   queryKey: ["isLoggedIn"],
-                  exact: true,
-                });
-                await queryClient.resetQueries({
-                  queryKey: ["user"],
                   exact: true,
                 });
 

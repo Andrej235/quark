@@ -204,7 +204,7 @@ export default function UserSettingsPage() {
     isWaitingForRequest.current = false;
   }
 
-  function handleUpdatePassword(e: MouseEvent) {
+  async function handleUpdatePassword(e: MouseEvent) {
     if (isWaitingForRequest.current) return;
     if (!user) return;
 
@@ -220,6 +220,25 @@ export default function UserSettingsPage() {
       e.preventDefault();
       return;
     }
+
+    isWaitingForRequest.current = true;
+    await sendApiRequest(
+      "/user/reset-password",
+      {
+        method: "post",
+        payload: {
+          oldPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          success: "Successfully updated password!",
+        },
+      },
+    );
+    isWaitingForRequest.current = false;
   }
 
   async function handleDefaultTeamChange(id: string) {
@@ -261,8 +280,8 @@ export default function UserSettingsPage() {
   if (!user) return;
 
   return (
-    <div className="bg-muted/50 flex h-full min-h-[100vh] flex-row rounded-xl p-12 md:min-h-min">
-      <div className="w-md flex h-full flex-col gap-4">
+    <div className="flex flex-col items-center gap-24 rounded-xl p-12 lg:flex-row lg:gap-0">
+      <div className="flex h-full w-full flex-col gap-4 lg:w-64 xl:w-96">
         <Card>
           <CardHeader>
             <CardTitle>Profile picture</CardTitle>
@@ -365,7 +384,7 @@ export default function UserSettingsPage() {
         </Card>
       </div>
 
-      <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full max-w-128 xl:max-w-2xl flex-1 flex-col gap-2">
         <div className="flex flex-col gap-2 px-24">
           <h1 className="flex items-center gap-2 text-4xl">
             <Settings className="size-8" />
@@ -383,7 +402,7 @@ export default function UserSettingsPage() {
             <Input
               name="username"
               autoComplete="off"
-              className="bg-input w-md"
+              className="bg-input"
               value={user.username || ""}
               onChange={(e) => {
                 handleUserChange(e, "username");
@@ -402,7 +421,7 @@ export default function UserSettingsPage() {
             <Input
               name="first-name"
               autoComplete="off"
-              className="bg-input w-md"
+              className="bg-input"
               value={user.name || ""}
               onChange={(e) => {
                 handleUserChange(e, "name");
@@ -421,7 +440,7 @@ export default function UserSettingsPage() {
             <Input
               name="last-name"
               autoComplete="off"
-              className="bg-input w-md"
+              className="bg-input"
               value={user.lastName || ""}
               onChange={(e) => {
                 handleUserChange(e, "lastName");
@@ -450,7 +469,7 @@ export default function UserSettingsPage() {
               type="password"
               name="new-password"
               autoComplete="off"
-              className="bg-input w-md"
+              className="bg-input"
               value={passwordData.newPassword || ""}
               onChange={(e) => handlePasswordDataChange(e, "newPassword")}
               onBlur={() => handlePasswordBlur("newPassword")}
@@ -468,7 +487,7 @@ export default function UserSettingsPage() {
               type="password"
               name="repeat-password"
               autoComplete="off"
-              className="bg-input w-md"
+              className="bg-input"
               value={passwordData.repeatPassword || ""}
               onChange={(e) => handlePasswordDataChange(e, "repeatPassword")}
               onBlur={() => handlePasswordBlur("repeatPassword")}
@@ -520,7 +539,7 @@ export default function UserSettingsPage() {
                   type="password"
                   name="current-password"
                   autoComplete="current-password"
-                  className="bg-input w-md"
+                  className="bg-input"
                   value={passwordData.currentPassword || ""}
                   onChange={(e) =>
                     handlePasswordDataChange(e, "currentPassword")

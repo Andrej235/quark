@@ -149,13 +149,48 @@ function CreateTeam() {
 
     if (!isOk) return;
 
-    await queryClient.resetQueries({
+    await queryClient.refetchQueries({
       queryKey: ["user"],
       exact: true,
     });
   };
 
-  const handleInvite = () => {};
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    } else if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(inviteEmail)
+    ) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    const { isOk } = await sendApiRequest(
+      "/team-invitations",
+      {
+        method: "post",
+        payload: {
+          // TODO: Change this to an actual id returned by the backend
+          teamId: user!.teamsInfo[user!.teamsInfo.length - 1].id,
+          email: inviteEmail,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Inviting user, please wait...",
+          success: "User invited successfully!",
+          error: (x) => {
+            return x.message || "Failed to invite user, please try again";
+          },
+        },
+      },
+    );
+
+    if (!isOk) return;
+    setInviteEmail("");
+  };
 
   const renderStepContent = () => {
     switch (step) {
@@ -405,10 +440,6 @@ function CreateTeam() {
     // Force revalidation, without this app.tsx would just redirect the user to the dashboard
     await queryClient.resetQueries({
       queryKey: ["isLoggedIn"],
-      exact: true,
-    });
-    await queryClient.resetQueries({
-      queryKey: ["user"],
       exact: true,
     });
 

@@ -41,10 +41,6 @@ export function NavUser() {
       queryKey: ["isLoggedIn"],
       exact: true,
     });
-    await queryClient.resetQueries({
-      queryKey: ["user"],
-      exact: true,
-    });
 
     await navigate("/login");
   }
@@ -72,7 +68,7 @@ export function NavUser() {
               </Avatar>
 
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{user.username}</span>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
 
@@ -108,7 +104,7 @@ export function NavUser() {
 
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link to="/settings/user">
+                <Link to="/settings">
                   <BadgeCheck />
                   Account
                 </Link>

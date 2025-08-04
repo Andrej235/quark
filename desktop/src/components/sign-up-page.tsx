@@ -82,9 +82,7 @@ export default function SignUpPage() {
     setIsValid(Object.keys(newErrors).length === 0);
   }, [fields]);
 
-  useEffect(() => {
-    validateForm();
-  }, [fields, validateForm]);
+  useEffect(validateForm, [fields, validateForm]);
 
   const handleChange =
     (field: keyof typeof fields) => (e: ChangeEvent<HTMLInputElement>) => {

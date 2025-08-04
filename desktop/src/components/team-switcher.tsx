@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/stores/team-store";
 import { useUserStore } from "@/stores/user-store";
+import { AlertDialog } from "@radix-ui/react-alert-dialog";
 import {
   ChevronsUpDown,
   LogOut,
@@ -29,6 +30,17 @@ import {
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { AlertDescription } from "./ui/alert";
+import {
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
+import { Button } from "./ui/button";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -51,8 +63,13 @@ export function TeamSwitcher() {
   );
 
   useEffect(
-    () => setActiveTeam(defaultTeam ?? null),
-    [defaultTeam, setActiveTeam],
+    () =>
+      setActiveTeam(
+        activeTeam && teams.includes(activeTeam)
+          ? (activeTeam ?? defaultTeam ?? null)
+          : (defaultTeam ?? null),
+      ),
+    [defaultTeam, setActiveTeam, activeTeam, teams],
   );
 
   async function handleSetSetDefault(team: Schema<"TeamInfoDTO">) {
@@ -83,10 +100,56 @@ export function TeamSwitcher() {
     setUser({ ...user!, defaultTeamId: team.id });
   }
 
-  function handleLeaveTeam(team: Schema<"TeamInfoDTO">) {
+  async function handleLeaveTeam(team: Schema<"TeamInfoDTO">) {
+    if (!user) return;
+
+    const isDefault = defaultTeam === team;
+
+    if (isDefault && teams.length > 1) {
+      const { isOk } = await sendApiRequest("/user/me/default-team/{team_id}", {
+        method: "patch",
+        parameters: {
+          team_id: teams[0]?.id,
+        },
+      });
+
+      if (!isOk) {
+        toast.error("Failed to leave team");
+        return;
+      }
+    }
+
+    if (activeTeam === team) {
+      setActiveTeam(
+        isDefault ? (user.teamsInfo[0] ?? null) : (defaultTeam ?? null),
+      );
+    }
+
+    const { isOk } = await sendApiRequest(
+      "/team/{team_id}",
+      {
+        method: "delete",
+        parameters: {
+          team_id: team.id,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Leaving team, please wait...",
+          success: `Successfully left ${team.name}!`,
+        },
+      },
+    );
+
+    if (!isOk) return;
+
     setUser({
-      ...user!,
-      teamsInfo: user!.teamsInfo.filter((x) => x.id !== team.id),
+      ...user,
+      teamsInfo: user.teamsInfo.filter((x) => x.id !== team.id),
+      defaultTeamId: isDefault
+        ? (user.teamsInfo[0]?.id ?? null)
+        : (defaultTeam?.id ?? null),
     });
   }
 
@@ -111,7 +174,7 @@ export function TeamSwitcher() {
 
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeTeam.name}</span>
-                <span className="truncate text-xs">Role</span>
+                <span className="truncate text-xs">{activeTeam.roleName}</span>
               </div>
 
               <ChevronsUpDown className="ml-auto" />
@@ -168,14 +231,40 @@ export function TeamSwitcher() {
 
                   <ContextMenuSeparator />
 
-                  <ContextMenuItem
-                    className="group"
-                    onClick={() => handleLeaveTeam(team)}
-                  >
-                    <span>Leave team</span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <ContextMenuItem
+                        className="group"
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        <span>Leave team</span>
 
-                    <LogOut className="group-hover:stroke-destructive ml-auto" />
-                  </ContextMenuItem>
+                        <LogOut className="group-hover:stroke-destructive ml-auto" />
+                      </ContextMenuItem>
+                    </AlertDialogTrigger>
+
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Are you sure you want to leave {team.name}?
+                        </AlertDialogTitle>
+                        <AlertDescription>
+                          This action is irreversible.
+                        </AlertDescription>
+                      </AlertDialogHeader>
+
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button variant="destructive" asChild>
+                          <AlertDialogAction
+                            onClick={() => handleLeaveTeam(team)}
+                          >
+                            Leave
+                          </AlertDialogAction>
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </ContextMenuContent>
               </ContextMenu>
             ))}
