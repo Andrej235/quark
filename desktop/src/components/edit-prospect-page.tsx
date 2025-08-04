@@ -69,7 +69,6 @@ export default function EditProspectPage() {
 
   function handleSave() {
     const values = onReadSubscribedSlots.map((x) => x()).filter((x) => !!x);
-    console.log(values);
 
     setProspects((x) => {
       const idx = x.findIndex((y) => y.id === prospectId);

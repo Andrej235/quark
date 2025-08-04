@@ -2,7 +2,7 @@ import toTitleCase from "@/lib/title-case";
 import { useProspectsStore } from "@/stores/prospects-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { DataTable } from "./data-table";
 import { Button } from "./ui/button";
 import {
@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 
 export default function ProspectsTable() {
   const prospects = useProspectsStore((x) => x.prospects);
+  const setProspects = useProspectsStore((x) => x.setProspects);
   const dataFields = useProspectsStore((x) => x.listView);
 
   const mappedProspects = useMemo(
@@ -26,6 +27,13 @@ export default function ProspectsTable() {
         ...Object.fromEntries(x.fields.map((y) => [y.id, y.value])),
       })),
     [prospects],
+  );
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      setProspects((x) => x.filter((x) => x.id !== id));
+    },
+    [setProspects],
   );
 
   const columns = useMemo<ColumnDef<(typeof mappedProspects)[number]>[]>(() => {
@@ -46,6 +54,7 @@ export default function ProspectsTable() {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
@@ -65,7 +74,10 @@ export default function ProspectsTable() {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem variant="destructive">
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => handleDelete(row.original.id)}
+              >
                 <span>Delete</span>
                 <Trash2 className="ml-auto size-4" />
               </DropdownMenuItem>
@@ -76,7 +88,7 @@ export default function ProspectsTable() {
     });
 
     return columns;
-  }, [dataFields]);
+  }, [dataFields, handleDelete]);
 
   return <DataTable columns={columns} data={mappedProspects} />;
 }

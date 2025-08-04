@@ -13,10 +13,14 @@ import { useCallback, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import RenderSlotTree from "./prospect-template/render-slot-tree";
 import { Prospect } from "@/lib/prospects/prospect-data-definition";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function NewProspectsPage() {
+  const navigate = useNavigate();
   const template = useProspectsStore((x) => x.template);
   const setProspects = useProspectsStore((x) => x.setProspects);
+
   const [subscribedSlots, setSubscribedSlots] = useState<
     (() => SlotData | null)[]
   >([]);
@@ -38,7 +42,9 @@ export default function NewProspectsPage() {
 
   function handleSave() {
     const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
-    console.log(values);
+
+    navigate("/prospects");
+    toast.success("Prospect created successfully!");
 
     const newProspect: Prospect = {
       id: Date.now().toString(),
