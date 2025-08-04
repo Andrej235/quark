@@ -7,6 +7,7 @@ import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
 import DashboardLayout from "./components/dashboard-layout";
+import EditProspectPage from "./components/edit-prospect-page";
 import EditRolePage from "./components/edit-role-page";
 import ErrorPage from "./components/error-page";
 import FirstTeamPage from "./components/first-team-page";
@@ -21,6 +22,7 @@ import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import VerifyEmailPage from "./components/verify-email-page";
+import ViewProspectPage from "./components/view-prospect-page";
 import "./globals.css";
 
 const queryClient = new QueryClient();
@@ -69,6 +71,14 @@ const router = createBrowserRouter([
           {
             path: "/prospects",
             element: <ProspectsPage />,
+          },
+          {
+            path: "/prospects/:prospectId",
+            element: <ViewProspectPage />,
+          },
+          {
+            path: "/prospects/:prospectId/edit",
+            element: <EditProspectPage />,
           },
           {
             path: "/prospects/new",

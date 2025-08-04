@@ -1,7 +1,7 @@
 import toTitleCase from "@/lib/title-case";
 import { useProspectsStore } from "@/stores/prospects-store";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 import { DataTable } from "./data-table";
 import { Button } from "./ui/button";
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { Link } from "react-router-dom";
 
 export default function ProspectsTable() {
   const prospects = useProspectsStore((x) => x.prospects);
@@ -27,15 +28,16 @@ export default function ProspectsTable() {
     [prospects],
   );
 
-  const columns = useMemo<ColumnDef<object>[]>(() => {
-    const columns: ColumnDef<object>[] = dataFields.map((x) => ({
-      header: toTitleCase(x.id.replace("-", " ")),
-      accessorKey: x.id,
-    }));
+  const columns = useMemo<ColumnDef<(typeof mappedProspects)[number]>[]>(() => {
+    const columns: ColumnDef<(typeof mappedProspects)[number]>[] =
+      dataFields.map((x) => ({
+        header: toTitleCase(x.id.replace("-", " ")),
+        accessorKey: x.id,
+      }));
 
     columns.push({
       header: "Actions",
-      cell: () => {
+      cell: ({ row }) => {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -46,9 +48,19 @@ export default function ProspectsTable() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <span>Edit</span>
-                <Edit2 className="ml-auto size-4" />
+
+              <DropdownMenuItem asChild>
+                <Link to={row.original.id}>
+                  <span>View</span>
+                  <Eye className="ml-auto size-4" />
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild>
+                <Link to={`${row.original.id}/edit`}>
+                  <span>Edit</span>
+                  <Edit2 className="ml-auto size-4" />
+                </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
