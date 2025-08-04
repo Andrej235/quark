@@ -11,11 +11,14 @@ import {
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
 import { useProspectsStore } from "@/stores/prospects-store";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export default function EditProspectPage() {
   const prospectId = useParams().prospectId as string;
+  const prospect = useProspectsStore((x) =>
+    x.prospects.find((x) => x.id === prospectId),
+  );
 
   const template = useProspectsStore((x) => x.template);
   const setProspects = useProspectsStore((x) => x.setProspects);
@@ -53,6 +56,16 @@ export default function EditProspectPage() {
       onSetSubscribe,
     ],
   );
+
+  useEffect(() => {
+    if (!prospect) return;
+
+    onSetSubscribedSlots.forEach((callback) => {
+      const [id, set] = callback();
+      const value = prospect.fields.find((x) => x.id === id)?.value;
+      set(value ?? null);
+    });
+  }, [onSetSubscribedSlots, prospect]);
 
   function handleSave() {
     const values = onReadSubscribedSlots.map((x) => x()).filter((x) => !!x);
