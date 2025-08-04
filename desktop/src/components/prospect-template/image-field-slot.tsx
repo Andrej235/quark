@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
 import { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/slot-types/image-field-slot";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
+import { useSubscribeSlotToEventSystem } from "@/lib/prospects/use-subscribe-slot-to-event-system";
 import { Upload } from "lucide-react";
 import { ChangeEvent, useState } from "react";
 
@@ -12,6 +13,8 @@ export default function ImageFieldSlot({
   const { name } = slot;
   const isEditing = useIsSlotInEditMode();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useSubscribeSlotToEventSystem(slot, imagePreview, setImagePreview);
 
   const handleImageInput = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -25,7 +28,7 @@ export default function ImageFieldSlot({
   };
 
   return (
-    <>
+    <div>
       <Label htmlFor={name}>{name}</Label>
       <div className="mt-2 flex items-center gap-4">
         {imagePreview ? (
@@ -41,6 +44,7 @@ export default function ImageFieldSlot({
             <Upload className="text-muted-foreground h-6 w-6" />
           </div>
         )}
+
         <div className="flex-1">
           <Input
             id={name}
@@ -55,6 +59,6 @@ export default function ImageFieldSlot({
           </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

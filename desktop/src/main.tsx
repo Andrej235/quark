@@ -6,19 +6,24 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./app";
+import ArchivedProspectsPage from "./components/archived-prospects-page";
 import DashboardLayout from "./components/dashboard-layout";
+import EditProspectPage from "./components/edit-prospect-page";
 import EditRolePage from "./components/edit-role-page";
 import ErrorPage from "./components/error-page";
 import FirstTeamPage from "./components/first-team-page";
+import NewProspectsPage from "./components/new-prospect-page";
 import NewRolePage from "./components/new-role-page";
 import NewTeamPage from "./components/new-team-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
+import ProspectsPage from "./components/prospects-page";
 import ProspectsTemplatePage from "./components/prospects-template-page";
 import TeamMemberSettingsTab from "./components/team-member-settings-page";
 import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
 import UserSettingsPage from "./components/user-settings-page";
 import VerifyEmailPage from "./components/verify-email-page";
+import ViewProspectPage from "./components/view-prospect-page";
 import "./globals.css";
 
 const queryClient = new QueryClient();
@@ -63,6 +68,26 @@ const router = createBrowserRouter([
           {
             path: "/settings",
             element: <UserSettingsPage />,
+          },
+          {
+            path: "/prospects",
+            element: <ProspectsPage />,
+          },
+          {
+            path: "/prospects/archived",
+            element: <ArchivedProspectsPage />,
+          },
+          {
+            path: "/prospects/:prospectId",
+            element: <ViewProspectPage />,
+          },
+          {
+            path: "/prospects/:prospectId/edit",
+            element: <EditProspectPage />,
+          },
+          {
+            path: "/prospects/new",
+            element: <NewProspectsPage />,
           },
           {
             path: "/prospects/template",
