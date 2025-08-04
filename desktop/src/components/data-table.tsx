@@ -30,6 +30,7 @@ export function DataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
     pageCount: -1,
   });
 
@@ -88,6 +89,8 @@ export function DataTable<TData, TValue>({
           <ChevronLeft />
           <span className="sr-only">Previous</span>
         </Button>
+
+        <span>{table.getState().pagination.pageIndex + 1}</span>
 
         <Button
           variant="outline"
