@@ -1,10 +1,10 @@
+import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
 import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
 import { TextFieldSlot as TextFieldSlotType } from "@/lib/prospects/slot-types/text-field-slot";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/use-subscribe-slot-to-event-system";
 import { useState } from "react";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 
 export default function TextFieldSlot({
   slot,
@@ -13,7 +13,7 @@ export default function TextFieldSlot({
   const isEditing = useIsSlotInEditMode();
   const [text, setText] = useState("");
 
-  useSubscribeSlotToEventSystem(slot, text);
+  useSubscribeSlotToEventSystem(slot, text, setText);
 
   return (
     <div>

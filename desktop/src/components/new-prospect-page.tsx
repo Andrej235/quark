@@ -27,8 +27,11 @@ export default function NewProspectsPage() {
   );
   const contextValue = useMemo(
     () => ({
-      subscribers: subscribedSlots,
-      subscribe,
+      onReadSubscribers: subscribedSlots,
+      onReadSubscribe: subscribe,
+
+      onSetSubscribers: [],
+      onSetSubscribe: () => {},
     }),
     [subscribedSlots, subscribe],
   );

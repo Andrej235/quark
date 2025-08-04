@@ -1,12 +1,12 @@
 import RenderSlotTree from "@/components/prospect-template/render-slot-tree";
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
@@ -19,24 +19,43 @@ export default function EditProspectPage() {
 
   const template = useProspectsStore((x) => x.template);
   const setProspects = useProspectsStore((x) => x.setProspects);
-  const [subscribedSlots, setSubscribedSlots] = useState<
+
+  const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
     (() => SlotData | null)[]
   >([]);
-
-  const subscribe = useCallback(
-    (x: () => SlotData | null) => setSubscribedSlots((prev) => [...prev, x]),
+  const onReadSubscribe = useCallback(
+    (x: () => SlotData | null) =>
+      setOnReadSubscribedSlots((prev) => [...prev, x]),
     [],
   );
+
+  const [onSetSubscribedSlots, setOnSetSubscribedSlots] = useState<
+    (() => [id: string, setCallback: (newValue: string | null) => void])[]
+  >([]);
+  const onSetSubscribe = useCallback(
+    (x: () => [id: string, setCallback: (newValue: string | null) => void]) =>
+      setOnSetSubscribedSlots((prev) => [...prev, x]),
+    [],
+  );
+
   const contextValue = useMemo(
     () => ({
-      subscribers: subscribedSlots,
-      subscribe,
+      onReadSubscribers: onReadSubscribedSlots,
+      onReadSubscribe: onReadSubscribe,
+
+      onSetSubscribers: onSetSubscribedSlots,
+      onSetSubscribe: onSetSubscribe,
     }),
-    [subscribedSlots, subscribe],
+    [
+      onReadSubscribedSlots,
+      onReadSubscribe,
+      onSetSubscribedSlots,
+      onSetSubscribe,
+    ],
   );
 
   function handleSave() {
-    const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
+    const values = onReadSubscribedSlots.map((x) => x()).filter((x) => !!x);
     console.log(values);
 
     setProspects((x) => {
