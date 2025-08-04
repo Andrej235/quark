@@ -1,4 +1,8 @@
-import { defaultProspectTemplate } from "@/lib/default-prospect-template";
+import {
+  defaultProspectDataFields,
+  defaultProspectListView,
+  defaultProspectTemplate,
+} from "@/lib/default-prospect-template";
 import {
   Prospect,
   ProspectFieldDefinition,
@@ -22,15 +26,21 @@ type ProspectsStore = {
 
 export const useProspectsStore = create<ProspectsStore>()((set, get) => ({
   template: defaultProspectTemplate,
-  dataFields: slotToProspectDataType(defaultProspectTemplate),
+  dataFields: defaultProspectDataFields,
+  listView: defaultProspectListView,
   prospects: [],
-  listView: [],
 
-  setTemplate: (template: Slot | null) =>
-    set({
+  setTemplate: (template: Slot | null) => {
+    const dataFields = slotToProspectDataType(
+      template ?? defaultProspectTemplate,
+    );
+
+    set((prev) => ({
       template: template ?? defaultProspectTemplate,
-      dataFields: slotToProspectDataType(template ?? defaultProspectTemplate),
-    }),
+      dataFields: dataFields,
+      listView: prev.listView || dataFields.slice(0, 5),
+    }));
+  },
   setProspects: (
     prospects: Prospect[] | ((prospects: Prospect[]) => Prospect[]),
   ) =>

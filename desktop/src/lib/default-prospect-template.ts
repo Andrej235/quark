@@ -1,3 +1,4 @@
+import { slotToProspectDataType } from "./prospects/slot-to-prospect-data-type";
 import { Slot } from "./prospects/slot-types/slot";
 
 export const defaultProspectTemplate: Slot = {
@@ -85,3 +86,9 @@ export const defaultProspectTemplate: Slot = {
     },
   ],
 };
+
+export const defaultProspectDataFields = slotToProspectDataType(
+  defaultProspectTemplate,
+);
+
+export const defaultProspectListView = defaultProspectDataFields.slice(0, 5);
