@@ -105,6 +105,8 @@ export default function EditProspectListViewItemDialog({
   }
 
   function handleSave() {
+    if (selectedFields.length < 1) return;
+
     setListView(selectedFields);
     requestClose();
   }
@@ -209,12 +211,22 @@ export default function EditProspectListViewItemDialog({
 
         <Separator />
 
-        <CardFooter className="justify-end gap-2">
-          <Button variant="secondary" onClick={requestClose}>
-            Cancel
-          </Button>
+        <CardFooter className="flex-col items-end">
+          <div className="space-x-2">
+            <Button variant="secondary" onClick={requestClose}>
+              Cancel
+            </Button>
 
-          <Button onClick={handleSave}>Save</Button>
+            <Button onClick={handleSave} disabled={selectedFields.length < 1}>
+              Save
+            </Button>
+          </div>
+
+          {selectedFields.length < 1 && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Please select at least one field
+            </p>
+          )}
         </CardFooter>
       </Card>
     </motion.div>
