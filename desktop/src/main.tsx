@@ -25,6 +25,7 @@ import UserSettingsPage from "./components/user-settings-page";
 import VerifyEmailPage from "./components/verify-email-page";
 import ViewProspectPage from "./components/view-prospect-page";
 import "./globals.css";
+import NotificationPage from "./components/notification-page";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,10 @@ const router = createBrowserRouter([
             path: "*",
             element: <ErrorPage />,
           },
+          {
+            path: "/notifications",
+            element: <NotificationPage />,
+          }
         ],
       },
       {
