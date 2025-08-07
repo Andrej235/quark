@@ -1,14 +1,18 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Quark.Data;
 using Quark.Exceptions;
 using Quark.Models;
 using Quark.Services.ConnectionMapper;
 using Quark.Services.EmailSender;
+using Quark.Services.ModelServices.TokenService;
 using Quark.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,7 +65,40 @@ builder.Services.AddDbContext<DataContext>(options =>
 });
 
 #region Identity / Auth
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AuthPolicies.CookieOnly,
+        policy =>
+        {
+            policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
+            policy.RequireAuthenticatedUser();
+        }
+    );
+
+    options.AddPolicy(
+        AuthPolicies.JwtOnly,
+        policy =>
+        {
+            policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
+        }
+    );
+
+    options.AddPolicy(
+        AuthPolicies.CookieOrJwt,
+        policy =>
+        {
+            policy.AddAuthenticationSchemes(
+                IdentityConstants.ApplicationScheme,
+                JwtBearerDefaults.AuthenticationScheme
+            );
+            policy.RequireAuthenticatedUser();
+        }
+    );
+
+    options.DefaultPolicy = options.GetPolicy(AuthPolicies.CookieOnly)!;
+});
 
 builder
     .Services.AddIdentity<User, IdentityRole>(options =>
@@ -116,6 +153,37 @@ builder.Services.ConfigureApplicationCookie(options =>
         return Task.CompletedTask;
     };
 });
+
+builder
+    .Services.AddAuthentication()
+    .AddJwtBearer(
+        JwtBearerDefaults.AuthenticationScheme,
+        options =>
+        {
+            var key = configuration["Jwt:SecretKey"];
+            var issuer = configuration["Jwt:Issuer"];
+            var audience = configuration["Jwt:Audience"];
+
+            if (
+                string.IsNullOrWhiteSpace(key)
+                || string.IsNullOrWhiteSpace(issuer)
+                || string.IsNullOrWhiteSpace(audience)
+            )
+                throw new MissingConfigException("Missing JWT configuration");
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = issuer,
+                ValidAudience = audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                ClockSkew = TimeSpan.FromSeconds(30),
+            };
+        }
+    );
 
 builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
 #endregion
@@ -172,6 +240,10 @@ builder.Services.AddCors(options =>
 #endregion
 
 #region Model Services
+
+#region Tokens
+builder.Services.AddScoped<ITokenService, TokenService>();
+#endregion
 
 #endregion
 
