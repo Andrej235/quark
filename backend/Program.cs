@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using brevo_csharp.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -34,6 +35,7 @@ builder
 
 var configuration = builder.Configuration;
 builder.Services.AddSingleton(configuration);
+Configuration.Default.ApiKey.Add("api-key", configuration["Brevo:ApiKey"]);
 
 builder.Services.AddOpenApi();
 if (isDevelopment)
