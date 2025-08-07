@@ -1,0 +1,226 @@
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using Quark.Data;
+using Quark.Exceptions;
+using Quark.Models;
+using Quark.Services.ConnectionMapper;
+using Quark.Services.EmailSender;
+using Quark.Utilities;
+
+var builder = WebApplication.CreateBuilder(args);
+var isDevelopment = builder.Environment.IsDevelopment();
+
+if (File.Exists("./secrets.json"))
+    builder.Configuration.AddJsonFile("./secrets.json");
+
+var env = builder.Environment;
+var keysPath = Path.Combine(env.ContentRootPath, "keys");
+Directory.CreateDirectory(keysPath);
+
+builder
+    .Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+    .SetApplicationName("Quark");
+
+var configuration = builder.Configuration;
+builder.Services.AddSingleton(configuration);
+
+builder.Services.AddOpenApi();
+if (isDevelopment)
+{
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SupportNonNullableReferenceTypes();
+        options.SwaggerDoc("v1", new() { Title = "API", Version = "v1" });
+    });
+}
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.RespectNullableAnnotations = true;
+});
+
+builder.Logging.ClearProviders().AddConsole();
+builder.Services.AddExceptionHandler<ExceptionHandler>();
+
+var connectionString = configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new MissingConfigException("Connection string is null or empty");
+
+builder.Services.AddDbContext<DataContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+
+    if (isDevelopment)
+        options.EnableSensitiveDataLogging();
+});
+
+#region Identity / Auth
+builder.Services.AddAuthorization();
+
+builder
+    .Services.AddIdentity<User, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = false;
+        options.Password.RequireLowercase = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequiredLength = 8;
+        options.User.RequireUniqueEmail = true;
+        options.User.AllowedUserNameCharacters =
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._";
+        options.Lockout.MaxFailedAccessAttempts = 10;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+        options.SignIn.RequireConfirmedAccount = false;
+    })
+    .AddEntityFrameworkStores<DataContext>()
+    .AddApiEndpoints()
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.ExpireTimeSpan = TimeSpan.FromDays(1);
+    options.SlidingExpiration = true;
+
+    if (isDevelopment)
+    {
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    }
+    else
+    {
+        var domain = configuration["Domain"];
+        if (string.IsNullOrWhiteSpace(domain))
+            throw new MissingConfigException("Domain is null or empty");
+
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.Domain = domain;
+    }
+
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = 401;
+        return Task.CompletedTask;
+    };
+
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = 403;
+        return Task.CompletedTask;
+    };
+});
+
+builder.Services.AddTransient<IEmailSender<User>, EmailSender>();
+#endregion
+
+#region Rate limiting
+builder.Services.AddRateLimiter(x =>
+{
+    x.AddTokenBucketLimiter(
+        policyName: RateLimitingPolicies.Global,
+        options =>
+        {
+            options.TokenLimit = 10;
+            options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            options.QueueLimit = 15;
+            options.ReplenishmentPeriod = TimeSpan.FromSeconds(1);
+            options.TokensPerPeriod = 2;
+            options.AutoReplenishment = true;
+        }
+    );
+
+    x.AddTokenBucketLimiter(
+        policyName: RateLimitingPolicies.EmailConfirmation,
+        options =>
+        {
+            options.TokenLimit = 1;
+            options.QueueLimit = 0;
+            options.ReplenishmentPeriod = TimeSpan.FromSeconds(60);
+            options.TokensPerPeriod = 1;
+            options.AutoReplenishment = true;
+        }
+    );
+});
+#endregion
+
+#region CORS
+var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>();
+if (allowedOrigins is null || allowedOrigins.Length == 0)
+    throw new MissingConfigException("AllowedOrigins is null or empty");
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "WebsitePolicy",
+        policyBuilder =>
+        {
+            policyBuilder
+                .WithOrigins(allowedOrigins)
+                .AllowCredentials()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
+    );
+});
+#endregion
+
+#region Model Services
+
+#endregion
+
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.RespectNullableAnnotations = true;
+    });
+;
+
+#region SignalR
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ConnectionMapper>();
+#endregion
+
+var app = builder.Build();
+
+if (isDevelopment)
+{
+    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseExceptionHandler("/error");
+app.UseRateLimiter();
+app.UseCors("WebsitePolicy");
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers().RequireRateLimiting(RateLimitingPolicies.Global);
+
+app.MapMethods("/", ["HEAD"], () => Results.Ok());
+
+#region Test endpoints
+if (isDevelopment)
+{
+    app.MapGet("test-connection", () => new { status = "OK" })
+        .RequireRateLimiting(RateLimitingPolicies.Global);
+
+    app.MapGet("test-auth", () => new { status = "OK" })
+        .RequireRateLimiting(RateLimitingPolicies.Global)
+        .RequireAuthorization();
+}
+#endregion
+
+await app.RunAsync();
