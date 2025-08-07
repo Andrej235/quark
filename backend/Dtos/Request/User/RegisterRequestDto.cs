@@ -9,6 +9,14 @@ public class RegisterRequestDto
     public string Username { get; set; } = null!;
 
     [Required]
+    [MinLength(1)]
+    public string FirstName { get; set; } = null!;
+
+    [Required]
+    [MinLength(1)]
+    public string LastName { get; set; } = null!;
+
+    [Required]
     [EmailAddress]
     public string Email { get; set; } = null!;
 

@@ -12,7 +12,14 @@ public partial class UserService
 {
     public async Task<Result> Register(RegisterRequestDto request)
     {
-        var user = new User { Email = request.Email, UserName = request.Username };
+        var user = new User
+        {
+            Email = request.Email,
+            UserName = request.Username,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            ProfilePicture = null,
+        };
         var userResult = await userManager.CreateAsync(user, request.Password);
 
         if (!userResult.Succeeded)
