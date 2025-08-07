@@ -11,8 +11,10 @@ using Quark.Data;
 using Quark.Exceptions;
 using Quark.Models;
 using Quark.Services.ConnectionMapper;
+using Quark.Services.Delete;
 using Quark.Services.EmailSender;
 using Quark.Services.ModelServices.TokenService;
+using Quark.Services.Read;
 using Quark.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -243,6 +245,8 @@ builder.Services.AddCors(options =>
 
 #region Tokens
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IReadSingleService<RefreshToken>, ReadService<RefreshToken>>();
+builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshToken>>();
 #endregion
 
 #endregion

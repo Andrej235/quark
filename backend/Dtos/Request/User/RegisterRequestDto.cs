@@ -5,7 +5,7 @@ namespace Quark.Dtos.Request.User;
 public class RegisterRequestDto
 {
     [Required]
-    [EmailAddress]
+    [MinLength(3)]
     public string Username { get; set; } = null!;
 
     [Required]

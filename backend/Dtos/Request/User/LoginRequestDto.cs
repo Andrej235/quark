@@ -6,9 +6,11 @@ public class LoginRequestDto
 {
     [Required]
     [MinLength(3)]
-    public string Username { get; set; } = null!;
+    public string UsernameOrEmail { get; set; } = null!;
 
     [Required]
     [MinLength(8)]
     public string Password { get; set; } = null!;
+
+    public bool UseCookies { get; set; }
 }
