@@ -22,6 +22,7 @@ using Quark.Services.Mapping.Request.TeamMappers;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Mapping.Response.TeamMappers;
 using Quark.Services.Mapping.Response.UserMappers;
+using Quark.Services.ModelServices.ProspectLayoutService;
 using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
@@ -288,6 +289,7 @@ builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshTo
 #region Teams
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ICreateSingleService<Team>, CreateService<Team>>();
+builder.Services.AddScoped<IReadSingleSelectedService<Team>, ReadService<Team>>();
 builder.Services.AddScoped<IRequestMapper<CreateTeamRequestDto, Team>, CreateTeamRequestMapper>();
 builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseMapper>();
 #endregion
@@ -299,6 +301,10 @@ builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>
 
 #region Team Invitaions
 builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<TeamInvitation>>();
+#endregion
+
+#region Prospect Layouts
+builder.Services.AddScoped<IProspectLayoutService, ProspectLayoutService>();
 #endregion
 
 #endregion
