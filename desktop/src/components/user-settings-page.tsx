@@ -169,7 +169,11 @@ export default function UserSettingsPage() {
       );
       isWaitingForRequest.current = false;
 
-      if (isOk) setUser({ ...userData! });
+      if (isOk)
+        setUser({
+          ...user!,
+          profilePicture: imageBase64,
+        });
     };
   }
 

@@ -28,7 +28,15 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
         {
             team.HasKey(x => x.Id);
 
-            team.HasOne(x => x.Owner).WithMany().OnDelete(DeleteBehavior.Cascade);
+            team.HasOne(x => x.Owner)
+                .WithMany()
+                .HasForeignKey(x => x.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            team.HasOne(x => x.DefaultProspectLayout)
+                .WithMany()
+                .HasForeignKey(x => x.DefaultProspectLayoutId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             team.HasIndex(x => x.Name).IsUnique();
         });
@@ -102,11 +110,22 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
         {
             refreshToken.HasKey(x => x.Id);
 
-            refreshToken.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+            refreshToken
+                .HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             refreshToken.HasIndex(x => x.Token).IsUnique();
 
             refreshToken.HasIndex(x => new { x.UserId, x.Token });
+        });
+
+        builder.Entity<ProspectLayout>(layout =>
+        {
+            layout.HasKey(x => x.Id);
+
+            layout.Property(x => x.JsonStructure).HasColumnType("jsonb");
         });
     }
 }

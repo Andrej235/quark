@@ -14,5 +14,6 @@ public class CreateTeamRequestMapper : IRequestMapper<CreateTeamRequestDto, Team
             Logo = from.Logo,
             Members = [],
             Roles = DefaultTeamRoles.GetDefaultTeamRoles(),
+            DefaultProspectLayout = DefaultProspectLayout.GetDefaultLayout(),
         };
 }
