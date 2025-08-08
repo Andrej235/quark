@@ -363,8 +363,7 @@ export default function UserSettingsPage() {
           <CardContent>
             <Select
               value={
-                user.teamsInfo.find((team) => team.id === user.defaultTeamId)
-                  ?.id
+                user.teams.find((team) => team.id === user.defaultTeamId)?.id
               }
               onValueChange={handleDefaultTeamChange}
             >
@@ -373,7 +372,7 @@ export default function UserSettingsPage() {
               </SelectTrigger>
 
               <SelectContent>
-                {user.teamsInfo.map((team) => (
+                {user.teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}
                   </SelectItem>
@@ -384,7 +383,7 @@ export default function UserSettingsPage() {
         </Card>
       </div>
 
-      <div className="flex w-full max-w-128 xl:max-w-2xl flex-1 flex-col gap-2">
+      <div className="max-w-128 flex w-full flex-1 flex-col gap-2 xl:max-w-2xl">
         <div className="flex flex-col gap-2 px-24">
           <h1 className="flex items-center gap-2 text-4xl">
             <Settings className="size-8" />

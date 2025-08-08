@@ -1016,7 +1016,12 @@ export type ApiSpec={
           "isEmailVerified": {
             "type": "boolean"
           },
-          "teamsInfo": {
+          "defaultTeamId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "teams": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TeamResponseDto"

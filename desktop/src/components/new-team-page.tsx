@@ -173,7 +173,7 @@ function CreateTeam() {
         method: "post",
         payload: {
           // TODO: Change this to an actual id returned by the backend
-          teamId: user!.teamsInfo[user!.teamsInfo.length - 1].id,
+          teamId: user!.teams[user!.teams.length - 1].id,
           email: inviteEmail,
         },
       },

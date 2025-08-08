@@ -16,7 +16,8 @@ public class UserResponseMapper(IResponseMapper<Team, TeamResponseDto> teamRespo
             ProfilePicture = from.ProfilePicture,
             Username = from.UserName!,
             IsEmailVerified = from.EmailConfirmed,
-            TeamsInfo = from.MemberOfTeams.Select(x =>
+            DefaultTeamId = from.DefaultTeamId,
+            Teams = from.MemberOfTeams.Select(x =>
             {
                 var mapped = teamResponseMapper.Map(x.Team);
                 mapped.RoleName = x.Role.Name;

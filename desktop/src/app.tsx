@@ -57,8 +57,8 @@ export default function App() {
       cameFromVerifyPage;
 
     const hasTeams =
-      (user && sameUser && user.teamsInfo.length > 0) ||
-      (!sameUser && userQuery.data.teamsInfo.length > 0);
+      (user && sameUser && user.teams.length > 0) ||
+      (!sameUser && userQuery.data.teams.length > 0);
 
     if (cameFromVerifyPage && user && sameUser && !user.isEmailVerified) {
       setUser({ ...user, isEmailVerified: true });

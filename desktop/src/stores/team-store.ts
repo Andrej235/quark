@@ -2,8 +2,8 @@ import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import { create } from "zustand";
 
 type TeamStore = {
-  activeTeam: Schema<"TeamInfoDTO"> | null;
-  setActiveTeam: (team: Schema<"TeamInfoDTO"> | null) => void;
+  activeTeam: Schema<"TeamResponseDto"> | null;
+  setActiveTeam: (team: Schema<"TeamResponseDto"> | null) => void;
 };
 
 export const useTeamStore = create<TeamStore>()((set) => ({

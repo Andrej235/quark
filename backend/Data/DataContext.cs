@@ -16,6 +16,14 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<User>(user =>
+        {
+            user.HasOne(x => x.DefaultTeam)
+                .WithMany()
+                .HasForeignKey(x => x.DefaultTeamId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         builder.Entity<Team>(team =>
         {
             team.HasKey(x => x.Id);
