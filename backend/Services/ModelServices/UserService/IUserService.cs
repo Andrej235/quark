@@ -22,4 +22,11 @@ public interface IUserService
 
     Task<Result> SetTeamAsDefault(Guid teamId, ClaimsPrincipal claim);
     Task<Result> LeaveTeam(Guid teamId, ClaimsPrincipal claim);
+
+    Task<Result> UpdateInfo(UpdateUserInfoRequestDto request, ClaimsPrincipal claims);
+    Task<Result> UpdatePassword(UpdatePasswordRequestDto request, ClaimsPrincipal claims);
+    Task<Result> UpdateProfilePicture(
+        UpdateProfilePictureRequestDto request,
+        ClaimsPrincipal claims
+    );
 }

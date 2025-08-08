@@ -1,7 +1,7 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import { useUserStore } from "@/stores/user-store";
 import { CircleAlert, Edit, Settings } from "lucide-react";
-import { ChangeEvent, MouseEvent, useRef, useState } from "react";
+import { ChangeEvent, MouseEvent, useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,10 +31,16 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Separator } from "./ui/separator";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function UserSettingsPage() {
   const user = useUserStore((x) => x.user);
   const setUser = useUserStore((x) => x.setUser);
+  const queryClient = useQueryClient();
+
+  const [userData, setUserData] = useState<typeof user>(null);
+  useEffect(() => setUserData(user ? { ...user } : null), [user]);
+
   const [userDataTouched, setUserDataTouched] = useState<{
     username?: boolean;
     firstName?: boolean;
@@ -64,17 +70,17 @@ export default function UserSettingsPage() {
 
   function handleUserChange(
     e: ChangeEvent<HTMLInputElement>,
-    field: "username" | "name" | "lastName",
+    field: "username" | "firstName" | "lastName",
   ) {
-    if (!user) return;
+    if (!userData) return;
 
-    const newUserData = { ...user, [field]: e.target.value };
-    setUser(newUserData);
+    const newUserData = { ...userData, [field]: e.target.value };
+    setUserData(newUserData);
 
     validateUserData(newUserData);
   }
 
-  function validateUserData(newUserData: NonNullable<typeof user>) {
+  function validateUserData(newUserData: NonNullable<typeof userData>) {
     const newErrors: typeof userDataErrors = {};
     if (!newUserData.username || newUserData.username.length < 3)
       newErrors.username = "Username must be at least 3 characters";
@@ -125,8 +131,8 @@ export default function UserSettingsPage() {
   }
 
   function handleRemoveProfilePicture() {
-    setUser({
-      ...user!,
+    setUserData({
+      ...userData!,
       profilePicture: null,
     });
   }
@@ -141,13 +147,13 @@ export default function UserSettingsPage() {
     reader.readAsDataURL(file);
     reader.onload = async () => {
       const imageBase64 = reader.result as string;
-      setUser({
-        ...user!,
+      setUserData({
+        ...userData!,
         profilePicture: imageBase64,
       });
 
-      await sendApiRequest(
-        "/user/me/profile-picture",
+      const { isOk } = await sendApiRequest(
+        "/users/profile-picture",
         {
           method: "patch",
           payload: {
@@ -162,13 +168,15 @@ export default function UserSettingsPage() {
         },
       );
       isWaitingForRequest.current = false;
+
+      if (isOk) setUser({ ...userData! });
     };
   }
 
   const isWaitingForRequest = useRef(false);
   async function handleUpdateInfo(e: MouseEvent) {
     if (isWaitingForRequest.current) return;
-    if (!user) return;
+    if (!userData) return;
 
     setUserDataTouched({
       username: true,
@@ -176,21 +184,21 @@ export default function UserSettingsPage() {
       lastName: true,
     });
 
-    const isValid = validateUserData(user);
+    const isValid = validateUserData(userData);
     if (!isValid) {
       e.preventDefault();
       return;
     }
 
     isWaitingForRequest.current = true;
-    await sendApiRequest(
-      "/user/me",
+    const { isOk } = await sendApiRequest(
+      "/users",
       {
-        method: "put",
+        method: "patch",
         payload: {
-          username: user.username,
-          name: user.firstName,
-          lastName: user.lastName,
+          username: userData.username,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
         },
       },
       {
@@ -202,11 +210,17 @@ export default function UserSettingsPage() {
     );
 
     isWaitingForRequest.current = false;
+
+    if (isOk) {
+      setUser({ ...userData });
+      // In case username has been changed app's query data also needs to reflect that because otherwise it would just reset local data from the zustand store thinking the user changed accounts
+      queryClient.setQueryData(["user"], { ...userData });
+    }
   }
 
   async function handleUpdatePassword(e: MouseEvent) {
     if (isWaitingForRequest.current) return;
-    if (!user) return;
+    if (!userData) return;
 
     setPasswordTouched({
       currentPassword: true,
@@ -223,12 +237,12 @@ export default function UserSettingsPage() {
 
     isWaitingForRequest.current = true;
     await sendApiRequest(
-      "/user/reset-password",
+      "/users/password",
       {
-        method: "post",
+        method: "patch",
         payload: {
-          oldPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
+          oldPassword: passwordData.currentPassword!,
+          newPassword: passwordData.newPassword!,
         },
       },
       {
@@ -242,12 +256,10 @@ export default function UserSettingsPage() {
   }
 
   async function handleDefaultTeamChange(id: string) {
-    if (isWaitingForRequest.current) return;
-    if (!user) return;
+    if (isWaitingForRequest.current || !userData) return;
 
-    const prevDefaultTeamId = user.defaultTeamId;
-    setUser({
-      ...user,
+    setUserData({
+      ...userData,
       defaultTeamId: id,
     });
 
@@ -269,15 +281,14 @@ export default function UserSettingsPage() {
     );
     isWaitingForRequest.current = false;
 
-    if (!isOk) {
+    if (isOk)
       setUser({
-        ...user,
-        defaultTeamId: prevDefaultTeamId,
+        ...user!,
+        defaultTeamId: id,
       });
-    }
   }
 
-  if (!user) return;
+  if (!userData) return;
 
   return (
     <div className="flex flex-col items-center gap-24 rounded-xl p-12 lg:flex-row lg:gap-0">
@@ -293,7 +304,7 @@ export default function UserSettingsPage() {
           <CardContent>
             <div className="bg-muted group relative mx-auto flex size-max items-center justify-center rounded-full">
               <img
-                src={user.profilePicture || "/default-profile-picture.png"}
+                src={userData.profilePicture || "/default-profile-picture.png"}
                 className="size-40 rounded-full"
               />
 
@@ -319,7 +330,7 @@ export default function UserSettingsPage() {
             </div>
 
             <h1 className="mt-4 text-center text-2xl">
-              {user.firstName} {user.lastName}
+              {userData.firstName} {userData.lastName}
             </h1>
 
             <div className="mt-4 flex gap-2">
@@ -345,6 +356,7 @@ export default function UserSettingsPage() {
                 variant="destructive"
                 className="flex-1 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
                 onClick={handleRemoveProfilePicture}
+                disabled={!userData.profilePicture}
               >
                 Remove
               </Button>
@@ -363,7 +375,9 @@ export default function UserSettingsPage() {
           <CardContent>
             <Select
               value={
-                user.teams.find((team) => team.id === user.defaultTeamId)?.id
+                userData.teams.find(
+                  (team) => team.id === userData.defaultTeamId,
+                )?.id
               }
               onValueChange={handleDefaultTeamChange}
             >
@@ -372,7 +386,7 @@ export default function UserSettingsPage() {
               </SelectTrigger>
 
               <SelectContent>
-                {user.teams.map((team) => (
+                {userData.teams.map((team) => (
                   <SelectItem key={team.id} value={team.id}>
                     {team.name}
                   </SelectItem>
@@ -402,7 +416,7 @@ export default function UserSettingsPage() {
               name="username"
               autoComplete="off"
               className="bg-input"
-              value={user.username || ""}
+              value={userData.username || ""}
               onChange={(e) => {
                 handleUserChange(e, "username");
               }}
@@ -421,9 +435,9 @@ export default function UserSettingsPage() {
               name="first-name"
               autoComplete="off"
               className="bg-input"
-              value={user.firstName || ""}
+              value={userData.firstName || ""}
               onChange={(e) => {
-                handleUserChange(e, "name");
+                handleUserChange(e, "firstName");
               }}
               onBlur={() => handleUserBlur("firstName")}
             />
@@ -440,7 +454,7 @@ export default function UserSettingsPage() {
               name="last-name"
               autoComplete="off"
               className="bg-input"
-              value={user.lastName || ""}
+              value={userData.lastName || ""}
               onChange={(e) => {
                 handleUserChange(e, "lastName");
               }}

@@ -273,6 +273,7 @@ builder.Services.AddCors(options =>
 #region Users
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReadSingleService<User>, ReadService<User>>();
+builder.Services.AddScoped<IReadSingleSelectedService<User>, ReadService<User>>();
 builder.Services.AddScoped<IExecuteUpdateService<User>, UpdateService<User>>();
 builder.Services.AddScoped<IResponseMapper<User, UserResponseDto>, UserResponseMapper>();
 #endregion
@@ -294,6 +295,10 @@ builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseM
 #region Team Members
 builder.Services.AddScoped<ICreateSingleService<TeamMember>, CreateService<TeamMember>>();
 builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>>();
+#endregion
+
+#region Team Invitaions
+builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<TeamInvitation>>();
 #endregion
 
 #endregion
