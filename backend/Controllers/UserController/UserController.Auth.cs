@@ -8,6 +8,12 @@ namespace Quark.Controllers.UserController;
 
 public partial class UserController
 {
+    [Authorize]
+    [HttpGet("check-auth")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public Task<OkResult> CheckAuth() => Task.FromResult(Ok());
+
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

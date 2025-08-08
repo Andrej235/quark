@@ -3,6 +3,7 @@ import useAuthStore from "@/stores/auth-store";
 import { Endpoints, Methods } from "./types/endpoints/endpoints";
 import { Request } from "./types/endpoints/request-parser";
 import { ApiResponse } from "./types/endpoints/response-parser";
+import { appType } from "@/lib/app-type";
 
 const baseApiUrl = import.meta.env.VITE_PUBLIC_API_URL as string;
 if (!baseApiUrl) throw new Error("VITE_PUBLIC_API_URL not defined");
@@ -63,16 +64,19 @@ export default async function sendApiRequest<
   const body =
     "payload" in requestCopy ? JSON.stringify(requestCopy.payload) : null;
 
+  const cookieBasedAuth = appType === "web";
   const requestInit: RequestInit = {
     method: (requestCopy.method as string).toUpperCase(),
     signal: options.abortSignal,
     body: body,
-    credentials: "include",
+    credentials:
+      cookieBasedAuth && !options.omitCredentials ? "include" : "omit",
     headers: {
       "Content-Type": "application/json",
-      ...(!options.omitCredentials && {
-        Authorization: `Bearer ${await useAuthStore.getState().getJwt()}`,
-      }),
+      ...(!cookieBasedAuth &&
+        !options.omitCredentials && {
+          Authorization: `Bearer ${await useAuthStore.getState().getJwt()}`,
+        }),
     },
   };
 

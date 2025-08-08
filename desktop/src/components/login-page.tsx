@@ -14,14 +14,15 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { appType } from "@/lib/app-type";
 
 type Errors = {
-  email?: string;
+  usernameOrEmail?: string;
   password?: string;
 };
 
 type Touched = {
-  email?: boolean;
+  usernameOrEmail?: boolean;
   password?: boolean;
 };
 
@@ -29,7 +30,7 @@ export default function LoginPage() {
   const queryClient = useQueryClient();
 
   const [fields, setFields] = useState({
-    email: "",
+    usernameOrEmail: "",
     password: "",
   });
 
@@ -45,11 +46,8 @@ export default function LoginPage() {
   const validateForm = useCallback(() => {
     const newErrors: Errors = {};
 
-    if (!fields.email.trim()) newErrors.email = "Please enter an email address";
-    else if (
-      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(fields.email)
-    )
-      newErrors.email = "Please enter a valid email address";
+    if (!fields.usernameOrEmail.trim())
+      newErrors.usernameOrEmail = "Please enter a username or email address";
 
     if (!fields.password.trim()) newErrors.password = "Please enter a password";
     else if (fields.password.trim().length < 8)
@@ -94,7 +92,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault();
     setTouched({
-      email: true,
+      usernameOrEmail: true,
       password: true,
     });
     validateForm();
@@ -106,9 +104,9 @@ export default function LoginPage() {
       {
         method: "post",
         payload: {
-          usernameOrEmail: fields.email.trim(),
+          usernameOrEmail: fields.usernameOrEmail.trim(),
           password: fields.password.trim(),
-          useCookies: false,
+          useCookies: appType === "web",
         },
       },
       {
@@ -150,18 +148,18 @@ export default function LoginPage() {
             <p className="mb-5">Ready for a new day?</p>
 
             <div className="flex w-full flex-col gap-2">
-              <h6 className="text-sm">Email</h6>
+              <h6 className="text-sm">Username or Email</h6>
               <Input
                 type="text"
                 className="bg-input text-foreground h-12 w-full rounded-md p-2 shadow-[0_0_5px_rgba(59,130,246,0.5)]"
-                value={fields.email}
-                onChange={handleChange("email")}
-                onBlur={handleBlur("email")}
+                value={fields.usernameOrEmail}
+                onChange={handleChange("usernameOrEmail")}
+                onBlur={handleBlur("usernameOrEmail")}
                 onKeyDown={handleKeyDown}
               />
-              {touched.email && errors.email && (
+              {touched.usernameOrEmail && errors.usernameOrEmail && (
                 <p className="text-destructive flex flex-row items-center gap-2 text-xs">
-                  <CircleAlert /> {errors.email}
+                  <CircleAlert /> {errors.usernameOrEmail}
                 </p>
               )}
             </div>
