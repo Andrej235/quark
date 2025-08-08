@@ -1,20 +1,12 @@
-using brevo_csharp.Api;
-using brevo_csharp.Model;
 using Microsoft.AspNetCore.Identity;
-using Quark.Exceptions;
 using Quark.Models;
+using Resend;
 using Task = System.Threading.Tasks.Task;
 
 namespace Quark.Services.EmailSender;
 
-public class EmailSender(IConfiguration configuration) : IEmailSender<User>
+public class EmailSender(IResend resend) : IEmailSender<User>
 {
-    private readonly TransactionalEmailsApi emailApi = new();
-    private readonly string senderEmail =
-        configuration["Brevo:SenderEmail"] ?? throw new MissingConfigException("Sender Email");
-    private readonly string senderName =
-        configuration["Brevo:SenderName"] ?? throw new MissingConfigException("Sender Name");
-
     public async Task SendConfirmationLinkAsync(User user, string email, string confirmationLink)
     {
         var subject = "Confirm Your Email";
@@ -24,6 +16,7 @@ public class EmailSender(IConfiguration configuration) : IEmailSender<User>
                     <h2>Confirm Your Email Address</h2>
                     <p>Please click the link below to confirm your email address:</p>
                     <a href='{confirmationLink}'>Confirm Email</a>
+                    <p>Or enter this code: <strong>{confirmationLink.Split('?').Last().Split("&").First(x => x.Contains("token")).Split("=").Last()}</strong> into the app.</p>
                 </body>
             </html>";
 
@@ -62,13 +55,14 @@ public class EmailSender(IConfiguration configuration) : IEmailSender<User>
 
     private async Task SendEmailAsync(string toEmail, string subject, string htmlContent)
     {
-        var sendSmtpEmail = new SendSmtpEmail(
-            sender: new SendSmtpEmailSender(senderName, senderEmail),
-            to: [new(toEmail)],
-            subject: subject,
-            htmlContent: htmlContent
-        );
+        var message = new EmailMessage
+        {
+            From = "Quark <email@quarkapi.dev>",
+            Subject = subject,
+            HtmlBody = htmlContent,
+            To = [toEmail],
+        };
 
-        await emailApi.SendTransacEmailAsync(sendSmtpEmail);
+        await resend.EmailSendAsync(message);
     }
 }

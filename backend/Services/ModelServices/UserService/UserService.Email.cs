@@ -34,11 +34,15 @@ public partial class UserService
         if (user.EmailConfirmed)
             return Result.Fail(new BadRequest("Email already confirmed"));
 
-        var emailToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var token = await userManager.GenerateUserTokenAsync(
+            user,
+            "ShortEmail",
+            "EmailConfirmation"
+        );
         await emailSender.SendConfirmationLinkAsync(
             user,
             user.Email,
-            $"{configuration["FrontendUrl"]}/confirm-email?token={HttpUtility.UrlEncode(emailToken)}&email={HttpUtility.UrlEncode(user.Email)}"
+            $"{configuration["FrontendUrl"]}/confirm-email?token={HttpUtility.UrlEncode(token)}&email={HttpUtility.UrlEncode(user.Email)}"
         );
 
         return Result.Ok();

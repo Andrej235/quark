@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using brevo_csharp.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +21,7 @@ using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
 using Quark.Services.Read;
 using Quark.Utilities;
+using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment();
@@ -40,7 +40,18 @@ builder
 
 var configuration = builder.Configuration;
 builder.Services.AddSingleton(configuration);
-Configuration.Default.ApiKey.Add("api-key", configuration["Brevo:ApiKey"]);
+
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.Configure<ResendClientOptions>(options =>
+{
+    var apiKey = configuration["Resend:ApiKey"];
+    if (string.IsNullOrWhiteSpace(apiKey))
+        throw new MissingConfigException("Resend API key is null or empty");
+
+    options.ApiToken = apiKey;
+});
+builder.Services.AddTransient<IResend, ResendClient>();
 
 builder.Services.AddOpenApi();
 if (isDevelopment)
@@ -123,10 +134,12 @@ builder
         options.Lockout.MaxFailedAccessAttempts = 10;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
         options.SignIn.RequireConfirmedAccount = false;
+        options.Tokens.EmailConfirmationTokenProvider = "ShortEmail";
     })
     .AddEntityFrameworkStores<DataContext>()
     .AddApiEndpoints()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddTokenProvider<EmailTokenProvider<User>>("ShortEmail");
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
