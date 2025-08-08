@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Quark.Data;
+using Quark.Dtos.Request.Team;
+using Quark.Dtos.Response.Team;
 using Quark.Dtos.Response.User;
 using Quark.Exceptions;
 using Quark.Models;
@@ -15,8 +17,12 @@ using Quark.Services.ConnectionMapper;
 using Quark.Services.Create;
 using Quark.Services.Delete;
 using Quark.Services.EmailSender;
+using Quark.Services.Mapping.Request;
+using Quark.Services.Mapping.Request.TeamMappers;
 using Quark.Services.Mapping.Response;
+using Quark.Services.Mapping.Response.TeamMappers;
 using Quark.Services.Mapping.Response.UserMappers;
+using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
 using Quark.Services.Read;
@@ -265,6 +271,7 @@ builder.Services.AddCors(options =>
 
 #region Users
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IReadSingleService<User>, ReadService<User>>();
 builder.Services.AddScoped<IResponseMapper<User, UserResponseDto>, UserResponseMapper>();
 #endregion
 
@@ -273,6 +280,17 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICreateSingleService<RefreshToken>, CreateService<RefreshToken>>();
 builder.Services.AddScoped<IReadSingleService<RefreshToken>, ReadService<RefreshToken>>();
 builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshToken>>();
+#endregion
+
+#region Teams
+builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<ICreateSingleService<Team>, CreateService<Team>>();
+builder.Services.AddScoped<IRequestMapper<CreateTeamRequestDto, Team>, CreateTeamRequestMapper>();
+builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseMapper>();
+#endregion
+
+#region Team Members
+builder.Services.AddScoped<ICreateSingleService<TeamMember>, CreateService<TeamMember>>();
 #endregion
 
 #endregion

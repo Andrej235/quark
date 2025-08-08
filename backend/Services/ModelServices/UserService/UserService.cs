@@ -13,6 +13,7 @@ public partial class UserService(
     IEmailSender<User> emailSender,
     ITokenService tokenService,
     IReadSingleService<RefreshToken> tokenReadService,
+    IReadSingleService<User> userReadService,
     IDeleteService<RefreshToken> tokenDeleteService,
     IResponseMapper<User, UserResponseDto> responseMapper,
     IConfiguration configuration

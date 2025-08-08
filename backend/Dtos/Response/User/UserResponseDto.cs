@@ -10,5 +10,5 @@ public class UserResponseDto
     public string LastName { get; set; } = null!;
     public string? ProfilePicture { get; set; }
     public bool IsEmailVerified { get; set; }
-    public List<TeamResponseDto> TeamsInfo { get; set; } = [];
+    public IEnumerable<TeamResponseDto> TeamsInfo { get; set; } = [];
 }

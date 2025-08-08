@@ -1,9 +1,11 @@
+using Quark.Dtos.Response.Team;
 using Quark.Dtos.Response.User;
 using Quark.Models;
 
 namespace Quark.Services.Mapping.Response.UserMappers;
 
-public class UserResponseMapper : IResponseMapper<User, UserResponseDto>
+public class UserResponseMapper(IResponseMapper<Team, TeamResponseDto> teamResponseMapper)
+    : IResponseMapper<User, UserResponseDto>
 {
     public UserResponseDto Map(User from) =>
         new()
@@ -14,6 +16,12 @@ public class UserResponseMapper : IResponseMapper<User, UserResponseDto>
             ProfilePicture = from.ProfilePicture,
             Username = from.UserName!,
             IsEmailVerified = from.EmailConfirmed,
-            TeamsInfo = [],
+            TeamsInfo = from.MemberOfTeams.Select(x =>
+            {
+                var mapped = teamResponseMapper.Map(x.Team);
+                mapped.RoleName = x.Role.Name;
+                mapped.Permissions = (int)x.Role.Permissions;
+                return mapped;
+            }),
         };
 }

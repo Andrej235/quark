@@ -21,6 +21,8 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
             team.HasKey(x => x.Id);
 
             team.HasOne(x => x.Owner).WithMany().OnDelete(DeleteBehavior.Cascade);
+
+            team.HasIndex(x => x.Name).IsUnique();
         });
 
         builder.Entity<TeamMember>(teamMember =>

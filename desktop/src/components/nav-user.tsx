@@ -60,10 +60,10 @@ export function NavUser() {
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
                   src={user.profilePicture ?? undefined}
-                  alt={user.name}
+                  alt={user.firstName}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {user.name[0].toUpperCase()}
+                  {user.firstName[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
@@ -87,14 +87,14 @@ export function NavUser() {
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
                     src={user.profilePicture ?? undefined}
-                    alt={user.name}
+                    alt={user.firstName}
                   />
                   <AvatarFallback className="rounded-lg">
                     {user.username[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{user.firstName}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
