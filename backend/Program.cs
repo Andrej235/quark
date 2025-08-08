@@ -305,6 +305,7 @@ builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<T
 
 #region Prospect Layouts
 builder.Services.AddScoped<IProspectLayoutService, ProspectLayoutService>();
+builder.Services.AddScoped<IExecuteUpdateService<ProspectLayout>, UpdateService<ProspectLayout>>();
 #endregion
 
 #endregion

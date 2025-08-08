@@ -1,7 +1,7 @@
 import { useProspectsStore } from "@/stores/prospects-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { Save } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import RenderSlotTree from "./prospect-template/render-slot-tree";
 import {
@@ -26,6 +26,7 @@ import {
 import useQuery from "@/api-dsl/use-query";
 import { useTeamStore } from "@/stores/team-store";
 import { Slot } from "@/lib/prospects/slot-types/slot";
+import sendApiRequest from "@/api-dsl/send-api-request";
 
 export default function ProspectsTemplatePage() {
   const teamId = useTeamStore((x) => x.activeTeam)?.id;
@@ -46,11 +47,42 @@ export default function ProspectsTemplatePage() {
   );
 
   const treeRoot = useSlotTreeRootStore((x) => x.slotTreeRoot);
-  function handleSave() {
-    if (!treeRoot) return;
+  const isWaitingForResponse = useRef(false);
+  async function handleSave() {
+    if (!treeRoot || !template.data) return;
+
+    if (isWaitingForResponse.current) {
+      toast.info("Please wait, template is being saved", {
+        duration: 3000,
+      });
+      return;
+    }
+    isWaitingForResponse.current = true;
 
     setLocalTemplate({ ...treeRoot });
-    toast.success("Template saved successfully!");
+    await sendApiRequest(
+      "/prospect-layouts",
+      {
+        method: "put",
+        payload: {
+          id: template.data.id,
+          newJsonStructure: JSON.stringify(treeRoot),
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving template, please wait...",
+          success: "Template saved successfully!",
+          error: (x) =>
+            x.message || "Failed to save template, please try again",
+        },
+      },
+    );
+
+    setTimeout(() => {
+      isWaitingForResponse.current = false;
+    }, 300);
   }
 
   useEffect(() => {

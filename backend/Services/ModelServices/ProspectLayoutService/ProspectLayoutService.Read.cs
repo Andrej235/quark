@@ -17,13 +17,14 @@ public partial class ProspectLayoutService
             return Result.Fail(new Unauthorized());
 
         var teamResult = await teamReadSelectedService.Get(
-            x => x.DefaultProspectLayout.JsonStructure,
+            x => x.DefaultProspectLayout,
             x => x.Id == teamId
         );
 
         return new ProspectLayoutResponseDto()
         {
-            JsonStructure = teamResult.Value.RootElement.GetRawText(),
+            Id = teamResult.Value.Id,
+            JsonStructure = teamResult.Value.JsonStructure.RootElement.GetRawText(),
         };
     }
 }
