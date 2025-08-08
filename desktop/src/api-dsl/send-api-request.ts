@@ -73,6 +73,7 @@ export default async function sendApiRequest<
     method: (requestCopy.method as string).toUpperCase(),
     signal: options.abortSignal,
     body: body,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(!options.omitCredentials && {
@@ -108,6 +109,7 @@ export default async function sendApiRequest<
 function mapFromCamelToSnake(
   object: Record<string, unknown>,
 ): Record<string, unknown> {
+  return object;
   const toSnake = (str: string) => str.replace(/([A-Z])/g, "_$1").toLowerCase();
 
   const result: Record<string, unknown> = {};

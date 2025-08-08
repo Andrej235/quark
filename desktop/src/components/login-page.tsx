@@ -102,12 +102,13 @@ export default function LoginPage() {
     if (Object.keys(errors).length > 0) return;
 
     const { error, response } = await sendApiRequest(
-      "/user/login",
+      "/users/login",
       {
         method: "post",
         payload: {
-          email: fields.email.trim(),
+          usernameOrEmail: fields.email.trim(),
           password: fields.password.trim(),
+          useCookies: false,
         },
       },
       {
@@ -120,8 +121,8 @@ export default function LoginPage() {
 
     if (error || !response) return;
 
-    setJwt(response.jwtToken);
-    setRefreshToken(response.refreshTokenId);
+    setJwt(response.jwt);
+    setRefreshToken(response.refreshToken);
 
     // Force revalidation, without this app.tsx would just redirect the user back here after logging in
     await queryClient.resetQueries({

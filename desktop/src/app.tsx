@@ -23,7 +23,7 @@ export default function App() {
     retry: false,
   });
 
-  const userQuery = useQuery("/user/me", {
+  const userQuery = useQuery("/users/me", {
     queryKey: ["user"],
     enabled: !!isLoggedIn.data,
     retry: false,

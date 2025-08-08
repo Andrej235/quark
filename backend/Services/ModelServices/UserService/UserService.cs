@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
+using Quark.Dtos.Response.User;
 using Quark.Models;
 using Quark.Services.Delete;
+using Quark.Services.Mapping.Response;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.Read;
 
@@ -12,5 +14,6 @@ public partial class UserService(
     ITokenService tokenService,
     IReadSingleService<RefreshToken> tokenReadService,
     IDeleteService<RefreshToken> tokenDeleteService,
+    IResponseMapper<User, UserResponseDto> responseMapper,
     IConfiguration configuration
 ) : IUserService;

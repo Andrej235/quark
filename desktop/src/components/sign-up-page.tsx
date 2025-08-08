@@ -108,10 +108,13 @@ export default function SignUpPage() {
     if (Object.keys(errors).length > 0) return;
 
     const { isOk } = await sendApiRequest(
-      "/user/signup",
+      "/users/register",
       {
         method: "post",
-        payload: fields,
+        payload: {
+          ...fields,
+          firstName: fields.name,
+        },
       },
       {
         showToast: true,

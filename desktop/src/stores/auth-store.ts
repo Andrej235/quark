@@ -104,7 +104,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
         // Try to refresh the JWT
         const { error, response, code } = await sendApiRequest(
-          "/user/refresh",
+          "/users/refresh",
           {
             method: "post",
             payload: {
@@ -197,7 +197,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
       Promise.all([
         sendApiRequest(
-          "/user/logout/{refresh_token_id}",
+          "/users/logout/{refresh_token_id}",
           {
             method: "post",
             parameters: {

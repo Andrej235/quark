@@ -9,12 +9,17 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Quark.Data;
+using Quark.Dtos.Response.User;
 using Quark.Exceptions;
 using Quark.Models;
 using Quark.Services.ConnectionMapper;
+using Quark.Services.Create;
 using Quark.Services.Delete;
 using Quark.Services.EmailSender;
+using Quark.Services.Mapping.Response;
+using Quark.Services.Mapping.Response.UserMappers;
 using Quark.Services.ModelServices.TokenService;
+using Quark.Services.ModelServices.UserService;
 using Quark.Services.Read;
 using Quark.Utilities;
 
@@ -164,7 +169,7 @@ builder
         JwtBearerDefaults.AuthenticationScheme,
         options =>
         {
-            var key = configuration["Jwt:SecretKey"];
+            var key = configuration["Jwt:Key"];
             var issuer = configuration["Jwt:Issuer"];
             var audience = configuration["Jwt:Audience"];
 
@@ -245,8 +250,14 @@ builder.Services.AddCors(options =>
 
 #region Model Services
 
+#region Users
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IResponseMapper<User, UserResponseDto>, UserResponseMapper>();
+#endregion
+
 #region Tokens
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ICreateSingleService<RefreshToken>, CreateService<RefreshToken>>();
 builder.Services.AddScoped<IReadSingleService<RefreshToken>, ReadService<RefreshToken>>();
 builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshToken>>();
 #endregion
