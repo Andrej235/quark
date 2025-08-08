@@ -253,11 +253,11 @@ export default function UserSettingsPage() {
 
     isWaitingForRequest.current = true;
     const { isOk } = await sendApiRequest(
-      "/user/me/default-team/{team_id}",
+      "/users/set-default-team/{teamId}",
       {
         method: "patch",
         parameters: {
-          team_id: id,
+          teamId: id,
         },
       },
       {

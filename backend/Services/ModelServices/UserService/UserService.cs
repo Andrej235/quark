@@ -17,6 +17,7 @@ public partial class UserService(
     IReadSingleService<User> userReadService,
     IExecuteUpdateService<User> userUpdateService,
     IDeleteService<RefreshToken> tokenDeleteService,
+    IDeleteService<TeamMember> teamMemberDeleteService,
     IResponseMapper<User, UserResponseDto> responseMapper,
     IConfiguration configuration
 ) : IUserService;

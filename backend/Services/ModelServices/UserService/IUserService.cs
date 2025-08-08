@@ -21,4 +21,5 @@ public interface IUserService
     Task<Result<UserResponseDto>> Get(ClaimsPrincipal claim);
 
     Task<Result> SetTeamAsDefault(Guid teamId, ClaimsPrincipal claim);
+    Task<Result> LeaveTeam(Guid teamId, ClaimsPrincipal claim);
 }

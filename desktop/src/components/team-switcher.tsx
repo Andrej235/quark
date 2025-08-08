@@ -129,11 +129,11 @@ export function TeamSwitcher() {
     }
 
     const { isOk } = await sendApiRequest(
-      "/team/{team_id}",
+      "/users/leave-team/{teamId}",
       {
         method: "delete",
         parameters: {
-          team_id: team.id,
+          teamId: team.id,
         },
       },
       {

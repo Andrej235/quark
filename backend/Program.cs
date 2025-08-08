@@ -293,6 +293,7 @@ builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseM
 
 #region Team Members
 builder.Services.AddScoped<ICreateSingleService<TeamMember>, CreateService<TeamMember>>();
+builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>>();
 #endregion
 
 #endregion
