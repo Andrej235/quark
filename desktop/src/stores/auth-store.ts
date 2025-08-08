@@ -1,11 +1,10 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { appType } from "@/lib/app-type";
 import { LocalDataStore } from "@/lib/local-data-store";
 import { localStorageStore } from "@/lib/local-storage-store";
 import { appDataDir } from "@tauri-apps/api/path";
 import { Client, Stronghold } from "@tauri-apps/plugin-stronghold";
 import { create } from "zustand";
-
-const appType = "__TAURI_INTERNALS__" in window ? "desktop" : "web";
 
 const REFRESH_TOKEN_KEY = "refresh_token";
 const JWT_KEY = "jwt";
@@ -108,8 +107,8 @@ const useAuthStore = create<AuthStore>((set, get) => ({
           {
             method: "post",
             payload: {
-              jwtToken: jwt,
-              refreshTokenId: refreshToken,
+              jwt: jwt!,
+              refreshToken: refreshToken,
             },
           },
           {
@@ -120,7 +119,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         // Failed to refresh, either the user has mismatched claims or the refresh token is expired, log them out
         if (error || !response) {
           console.error(
-            `Failed to refresh JWT (${code}):`,
+            `Failed to refresh JWT (${code.toString()}):`,
             error?.message || "No response",
           );
 
@@ -131,10 +130,10 @@ const useAuthStore = create<AuthStore>((set, get) => ({
           return null;
         }
 
-        get().setRefreshToken(response.refreshTokenId);
-        get().setJwt(response.jwtToken);
+        get().setRefreshToken(response.refreshToken);
+        get().setJwt(response.jwt);
         set({ refreshPromise: null });
-        return response.jwtToken;
+        return response.jwt;
       }
 
       const promise = refresh();
@@ -197,11 +196,11 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
       Promise.all([
         sendApiRequest(
-          "/users/logout/{refresh_token_id}",
+          "/users/logout/token",
           {
             method: "post",
-            parameters: {
-              refresh_token_id: refreshToken,
+            payload: {
+              refreshToken,
             },
           },
           {

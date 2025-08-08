@@ -25,7 +25,7 @@ public partial class UserController
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult> Login([FromBody] LoginRequestDto request)
+    public async Task<ActionResult<TokensResponseDto?>> Login([FromBody] LoginRequestDto request)
     {
         if (request.UseCookies)
         {

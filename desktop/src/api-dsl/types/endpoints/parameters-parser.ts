@@ -2,7 +2,7 @@ import { ParseSchemaProperty } from "./property-parser";
 
 export type ParseParameters<ParametersInfo> = ParametersInfo extends [
   infer First,
-  ...infer Rest,
+  ...infer Rest
 ]
   ? (First extends {
       required: infer Required;

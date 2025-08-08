@@ -25,15 +25,6 @@ export type ApiResponse<
     }
   : null;
 
-export type UnwrappedApiResponse<
-  Endpoint extends Endpoints,
-  Method extends Methods<Endpoint>,
-> = Paths[Endpoint][Method] extends {
-  responses: infer Responses;
-}
-  ? ParseResponse<Responses[IsCodeOk<keyof Responses>]> | null
-  : null;
-
 type ParseResponse<Response> = Response extends {
   content: {
     "application/json": {
@@ -43,3 +34,12 @@ type ParseResponse<Response> = Response extends {
 }
   ? ParseSchemaProperty<Schema>
   : object;
+
+export type UnwrappedApiResponse<
+  Endpoint extends Endpoints,
+  Method extends Methods<Endpoint>,
+> = Paths[Endpoint][Method] extends {
+  responses: infer Responses;
+}
+  ? ParseResponse<Responses[IsCodeOk<keyof Responses>]> | null
+  : null;
