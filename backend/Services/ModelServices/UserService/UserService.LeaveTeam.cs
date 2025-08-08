@@ -8,6 +8,6 @@ public partial class UserService
     public Task<Result> LeaveTeam(Guid teamId, ClaimsPrincipal claim)
     {
         var userId = userManager.GetUserId(claim);
-        return teamMemberDeleteService.Delete(x => x.UserId == userId);
+        return teamMemberDeleteService.Delete(x => x.UserId == userId && x.TeamId == teamId);
     }
 }

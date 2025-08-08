@@ -8,4 +8,6 @@ namespace Quark.Services.ModelServices.TeamService;
 public interface ITeamService
 {
     Task<Result<TeamResponseDto>> CreateTeam(CreateTeamRequestDto request, ClaimsPrincipal claims);
+
+    Task<Result> InviteUser(InviteUserRequestDto request, ClaimsPrincipal claims);
 }

@@ -1,4 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,6 +97,9 @@ function CreateTeam() {
   const queryClient = useQueryClient();
 
   const user = useUserStore((x) => x.user);
+  const setUser = useUserStore((x) => x.setUser);
+  const [createdTeam, setCreatedTeam] =
+    useState<Schema<"TeamResponseDto"> | null>(null);
   const logOut = useAuthStore((x) => x.logOut);
   const navigate = useNavigate();
 
@@ -125,7 +129,9 @@ function CreateTeam() {
   const handlePlanSelection = async () => {
     setStep(3);
 
-    const { isOk } = await sendApiRequest(
+    if (!user) return;
+
+    const { isOk, response } = await sendApiRequest(
       "/teams",
       {
         method: "post",
@@ -148,15 +154,18 @@ function CreateTeam() {
       },
     );
 
-    if (!isOk) return;
+    if (!isOk || !response) return;
 
-    await queryClient.refetchQueries({
-      queryKey: ["user"],
-      exact: true,
-    });
+    setUser({ ...user, teams: [...user.teams, response] });
+    setCreatedTeam(response);
   };
 
   const handleInvite = async () => {
+    if (!createdTeam) {
+      toast.error("Please choose a payment plan first");
+      return;
+    }
+
     if (!inviteEmail.trim()) {
       toast.error("Please enter an email address");
       return;
@@ -168,12 +177,11 @@ function CreateTeam() {
     }
 
     const { isOk } = await sendApiRequest(
-      "/team-invitations",
+      "/teams/invite",
       {
         method: "post",
         payload: {
-          // TODO: Change this to an actual id returned by the backend
-          teamId: user!.teams[user!.teams.length - 1].id,
+          teamId: createdTeam.id,
           email: inviteEmail,
         },
       },

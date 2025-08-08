@@ -79,7 +79,7 @@ export default function UserSettingsPage() {
     if (!newUserData.username || newUserData.username.length < 3)
       newErrors.username = "Username must be at least 3 characters";
 
-    if (!newUserData.name || newUserData.name.length < 1)
+    if (!newUserData.firstName || newUserData.firstName.length < 1)
       newErrors.firstName = "First name is required";
 
     if (!newUserData.lastName || newUserData.lastName.length < 1)
@@ -189,7 +189,7 @@ export default function UserSettingsPage() {
         method: "put",
         payload: {
           username: user.username,
-          name: user.name,
+          name: user.firstName,
           lastName: user.lastName,
         },
       },
@@ -319,7 +319,7 @@ export default function UserSettingsPage() {
             </div>
 
             <h1 className="mt-4 text-center text-2xl">
-              {user.name} {user.lastName}
+              {user.firstName} {user.lastName}
             </h1>
 
             <div className="mt-4 flex gap-2">
@@ -421,7 +421,7 @@ export default function UserSettingsPage() {
               name="first-name"
               autoComplete="off"
               className="bg-input"
-              value={user.name || ""}
+              value={user.firstName || ""}
               onChange={(e) => {
                 handleUserChange(e, "name");
               }}
