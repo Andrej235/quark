@@ -26,6 +26,7 @@ using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
 using Quark.Services.Read;
+using Quark.Services.Update;
 using Quark.Utilities;
 using Resend;
 
@@ -272,6 +273,7 @@ builder.Services.AddCors(options =>
 #region Users
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReadSingleService<User>, ReadService<User>>();
+builder.Services.AddScoped<IExecuteUpdateService<User>, UpdateService<User>>();
 builder.Services.AddScoped<IResponseMapper<User, UserResponseDto>, UserResponseMapper>();
 #endregion
 

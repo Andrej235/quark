@@ -19,4 +19,6 @@ public interface IUserService
     Task<Result> ResetPassword(ResetPasswordRequestDto request);
 
     Task<Result<UserResponseDto>> Get(ClaimsPrincipal claim);
+
+    Task<Result> SetTeamAsDefault(Guid teamId, ClaimsPrincipal claim);
 }

@@ -79,11 +79,11 @@ export function TeamSwitcher() {
     }
 
     const { isOk } = await sendApiRequest(
-      "/user/me/default-team/{team_id}",
+      "/users/set-default-team/{teamId}",
       {
         method: "patch",
         parameters: {
-          team_id: team.id,
+          teamId: team.id,
         },
       },
       {
@@ -106,12 +106,15 @@ export function TeamSwitcher() {
     const isDefault = defaultTeam === team;
 
     if (isDefault && teams.length > 1) {
-      const { isOk } = await sendApiRequest("/user/me/default-team/{team_id}", {
-        method: "patch",
-        parameters: {
-          team_id: teams[0]?.id,
+      const { isOk } = await sendApiRequest(
+        "/users/set-default-team/{teamId}",
+        {
+          method: "patch",
+          parameters: {
+            teamId: teams[0]?.id,
+          },
         },
-      });
+      );
 
       if (!isOk) {
         toast.error("Failed to leave team");
