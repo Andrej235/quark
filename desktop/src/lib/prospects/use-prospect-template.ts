@@ -1,12 +1,16 @@
 import useQuery from "@/api-dsl/use-query";
 import { useTeamStore } from "@/stores/team-store";
-import { Slot } from "./slot-types/slot";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { ProspectLayout } from "./prospect-layout";
+import { useQueryClient } from "@tanstack/react-query";
 
-export function useProspectLayout(): Slot | null {
+export function useProspectLayout(): readonly [
+  layout: ProspectLayout | null,
+  revalidate: () => void,
+] {
   const activeTeam = useTeamStore((x) => x.activeTeam);
 
-  const layout = useQuery("/prospect-layouts/default/{teamId}", {
+  const layoutQuery = useQuery("/prospect-layouts/default/{teamId}", {
     queryKey: ["default-prospect-template", activeTeam?.id],
     parameters: {
       // Actual api request won't run until active team is set
@@ -16,10 +20,28 @@ export function useProspectLayout(): Slot | null {
     refetchOnMount: false,
   });
 
-  const data = useMemo(
-    () => (layout.data ? JSON.parse(layout.data.jsonStructure) : null),
-    [layout.data],
+  const layout = useMemo<ProspectLayout | null>(
+    () =>
+      layoutQuery.data
+        ? {
+            id: layoutQuery.data.id,
+            root: JSON.parse(layoutQuery.data.jsonStructure),
+          }
+        : null,
+    [layoutQuery.data],
   );
 
-  return data;
+  const queryClient = useQueryClient();
+  const revalidate = useCallback(() => {
+    queryClient.refetchQueries({
+      queryKey: ["default-prospect-template", activeTeam?.id],
+    });
+  }, [activeTeam, queryClient]);
+
+  const tuple = useMemo(
+    () => [layout, revalidate] as const,
+    [layout, revalidate],
+  );
+
+  return tuple;
 }

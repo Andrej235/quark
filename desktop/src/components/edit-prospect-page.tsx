@@ -22,7 +22,7 @@ export default function EditProspectPage() {
   );
 
   const setProspects = useProspectsStore((x) => x.setProspects);
-  const template = useProspectLayout();
+  const [template] = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
     (() => SlotData | null)[]
@@ -97,7 +97,7 @@ export default function EditProspectPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={template} />
+          <RenderSlotTree slot={template.root} />
         </slotEventSystemContext.Provider>
       </CardContent>
 

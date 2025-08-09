@@ -21,7 +21,7 @@ import { Button } from "./ui/button";
 
 export default function NewProspectsPage() {
   const activeTeam = useTeamStore((x) => x.activeTeam);
-  const layout = useProspectLayout();
+  const [layout] = useProspectLayout();
 
   const navigate = useNavigate();
   const setProspects = useProspectsStore((x) => x.setProspects);
@@ -89,7 +89,7 @@ export default function NewProspectsPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={layout} />
+          <RenderSlotTree slot={layout.root} />
         </slotEventSystemContext.Provider>
       </CardContent>
 

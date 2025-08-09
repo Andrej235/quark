@@ -26,7 +26,7 @@ import {
 } from "./ui/card";
 
 export default function ProspectsTemplatePage() {
-  const template = useProspectLayout();
+  const [template, revalidateTemplate] = useProspectLayout();
 
   const treeRoot = useSlotTreeRootStore((x) => x.slotTreeRoot);
   const isWaitingForResponse = useRef(false);
@@ -41,7 +41,7 @@ export default function ProspectsTemplatePage() {
     }
     isWaitingForResponse.current = true;
 
-    await sendApiRequest(
+    const { isOk } = await sendApiRequest(
       "/prospect-layouts",
       {
         method: "put",
@@ -60,6 +60,8 @@ export default function ProspectsTemplatePage() {
         },
       },
     );
+
+    if (isOk) revalidateTemplate();
 
     setTimeout(() => {
       isWaitingForResponse.current = false;
@@ -83,7 +85,7 @@ export default function ProspectsTemplatePage() {
       </CardHeader>
 
       <CardContent className="bg-transparent">
-        <RenderSlotTree slot={template} editMode />
+        <RenderSlotTree slot={template.root} editMode />
       </CardContent>
 
       <div className="fixed bottom-16 right-16">
