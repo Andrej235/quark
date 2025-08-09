@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Quark.Dtos.Response;
 using Quark.Dtos.Response.Prospect;
+using Quark.Utilities;
 
 namespace Quark.Controllers.ProspectController;
 
@@ -25,6 +26,6 @@ public partial class ProspectController
         if (result.IsFailed)
             return BadRequest(new { result.Errors[0].Message });
 
-        return Ok(result.Value);
+        return Ok(result.Value.ToResponseDto());
     }
 }

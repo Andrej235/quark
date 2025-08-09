@@ -25,13 +25,8 @@ public class KeysetPaginationService<TEntity>(DataContext context)
         // Apply keyset filter
         if (cursor.LastKey is not null)
         {
-            var param = orderBy.Parameters[0];
-            var comparison = cursor.IsDescending
-                ? Expression.LessThan(orderBy.Body, Expression.Constant(cursor.LastKey))
-                : Expression.GreaterThan(orderBy.Body, Expression.Constant(cursor.LastKey));
-
-            var lambda = Expression.Lambda<Func<TEntity, bool>>(comparison, param);
-            query = query.Where(lambda);
+            var predicate = BuildKeysetPredicate(orderBy, cursor.LastKey, cursor.IsDescending);
+            query = query.Where(predicate);
         }
 
         query = cursor.IsDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
@@ -52,5 +47,38 @@ public class KeysetPaginationService<TEntity>(DataContext context)
             : null;
 
         return new PaginatedResult<TResult, KeysetCursor<TSortKey>>(pageItems, nextCursor, hasMore);
+    }
+
+    private static Expression<Func<TEntity, bool>> BuildKeysetPredicate<TSortKey>(
+        Expression<Func<TEntity, TSortKey>> orderBy,
+        TSortKey lastKey,
+        bool isDescending
+    )
+    {
+        var param = orderBy.Parameters[0];
+
+        // Comparer<T>.Default.Compare(orderBy, lastKey)
+        var compareMethod = typeof(Comparer<TSortKey>).GetMethod(
+            nameof(Comparer<TSortKey>.Compare),
+            [typeof(TSortKey), typeof(TSortKey)]
+        );
+
+        var compareCall = Expression.Call(
+            Expression.Property(
+                null,
+                typeof(Comparer<TSortKey>),
+                nameof(Comparer<TSortKey>.Default)
+            ),
+            compareMethod!,
+            orderBy.Body,
+            Expression.Constant(lastKey, typeof(TSortKey))
+        );
+
+        // isDescending ? compare < 0 : compare > 0
+        var comparison = isDescending
+            ? Expression.LessThan(compareCall, Expression.Constant(0))
+            : Expression.GreaterThan(compareCall, Expression.Constant(0));
+
+        return Expression.Lambda<Func<TEntity, bool>>(comparison, param);
     }
 }

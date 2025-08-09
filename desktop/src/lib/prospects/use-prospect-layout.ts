@@ -1,8 +1,7 @@
 import useQuery from "@/api-dsl/use-query";
 import { useTeamStore } from "@/stores/team-store";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { ProspectLayout } from "./prospect-layout";
-import { useQueryClient } from "@tanstack/react-query";
 
 export function useProspectLayout(): readonly [
   layout: ProspectLayout | null,
@@ -31,16 +30,9 @@ export function useProspectLayout(): readonly [
     [layoutQuery.data],
   );
 
-  const queryClient = useQueryClient();
-  const revalidate = useCallback(() => {
-    queryClient.refetchQueries({
-      queryKey: ["default-prospect-template", activeTeam?.id],
-    });
-  }, [activeTeam, queryClient]);
-
   const tuple = useMemo(
-    () => [layout, revalidate] as const,
-    [layout, revalidate],
+    () => [layout, layoutQuery.refetch] as const,
+    [layout, layoutQuery.refetch],
   );
 
   return tuple;

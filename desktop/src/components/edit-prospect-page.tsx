@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-template";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
 import { useProspectsStore } from "@/stores/prospects-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";

@@ -1,5 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-template";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { Save } from "lucide-react";
 import { useRef } from "react";

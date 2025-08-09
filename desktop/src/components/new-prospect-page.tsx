@@ -10,7 +10,7 @@ import {
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { Prospect } from "@/lib/prospects/prospect-data-definition";
 import { SlotData } from "@/lib/prospects/slot-data";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-template";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
 import { useProspectsStore } from "@/stores/prospects-store";
 import { useTeamStore } from "@/stores/team-store";
 import { useCallback, useMemo, useState } from "react";

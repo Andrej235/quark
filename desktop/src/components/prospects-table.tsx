@@ -4,7 +4,7 @@ import { useProspectsStore } from "@/stores/prospects-store";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "./data-table";
 import { Button } from "./ui/button";
@@ -21,17 +21,38 @@ export default function ProspectsTable() {
   const dataFields = useProspectsStore((x) => x.listView);
 
   const teamId = useTeamStore().activeTeam?.id ?? "";
+
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  const [pageCursors, setPageCursors] = useState<string[]>([]);
+  const currentCursor = useMemo(
+    () => pageCursors[pageIndex - 1],
+    [pageCursors, pageIndex],
+  );
+
   const prospectsQuery = useQuery("/prospects/partial/{teamId}", {
-    queryKey: ["prospects", teamId],
+    queryKey: ["partial-prospects", teamId, currentCursor ?? "first-page"],
     parameters: {
       teamId,
       include: dataFields[2]?.id,
       sortBy: dataFields[2]?.id,
+      ...(currentCursor && { cursor: currentCursor }),
     },
     enabled: !!teamId,
+    refetchOnMount: false,
+    staleTime: Infinity,
   });
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    if (!prospectsQuery.data?.cursorToken) return;
+    const newToken = prospectsQuery.data.cursorToken;
+
+    setPageCursors((x) => {
+      if (x.includes(newToken)) return x;
+      return [...x, newToken];
+    });
+  }, [prospectsQuery.data?.cursorToken]);
 
   const mappedProspects = useMemo(
     () =>

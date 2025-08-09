@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using Quark.Dtos.Response;
 using Quark.Services.Read.KeysetPagination;
 
 namespace Quark.Utilities;
@@ -57,4 +58,23 @@ public static class PaginationCursorExtensions
                     Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cursor, options))
                 )
             );
+
+    public static string? ToToken<T>(this KeysetCursor<T>? cursor) =>
+        cursor == null
+            ? null
+            : HttpUtility.UrlEncode(
+                Convert.ToBase64String(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(cursor, options))
+                )
+            );
+
+    public static PaginatedResponseDto<TResult> ToResponseDto<TResult, TKey>(
+        this PaginatedResult<TResult, KeysetCursor<TKey>> paginatedResult
+    ) =>
+        new()
+        {
+            Items = paginatedResult.Items,
+            CursorToken = paginatedResult.NextCursor.ToToken(),
+            HasMore = paginatedResult.HasMore,
+        };
 }
