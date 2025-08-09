@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-template";
 import { useProspectsStore } from "@/stores/prospects-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -20,8 +21,8 @@ export default function EditProspectPage() {
     x.prospects.find((x) => x.id === prospectId),
   );
 
-  const template = useProspectsStore((x) => x.template);
   const setProspects = useProspectsStore((x) => x.setProspects);
+  const template = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
     (() => SlotData | null)[]
@@ -77,6 +78,8 @@ export default function EditProspectPage() {
       return [...x];
     });
   }
+
+  if (!template) return null;
 
   return (
     <Card className="border-0 bg-transparent">

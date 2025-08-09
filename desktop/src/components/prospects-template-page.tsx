@@ -1,7 +1,8 @@
-import { useProspectsStore } from "@/stores/prospects-store";
+import sendApiRequest from "@/api-dsl/send-api-request";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-template";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { Save } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
 import RenderSlotTree from "./prospect-template/render-slot-tree";
 import {
@@ -23,34 +24,14 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import useQuery from "@/api-dsl/use-query";
-import { useTeamStore } from "@/stores/team-store";
-import { Slot } from "@/lib/prospects/slot-types/slot";
-import sendApiRequest from "@/api-dsl/send-api-request";
 
 export default function ProspectsTemplatePage() {
-  const teamId = useTeamStore((x) => x.activeTeam)?.id;
-
-  const template = useQuery("/prospect-layouts/default/{teamId}", {
-    queryKey: ["default-prospect-template", teamId],
-    parameters: {
-      teamId: teamId!,
-    },
-    enabled: !!teamId,
-    refetchOnMount: false,
-  });
-
-  const localTemplate = useProspectsStore((x) => x.template);
-  const setLocalTemplate = useProspectsStore((x) => x.setTemplate);
-  const localTemplateCopy = useMemo(
-    () => structuredClone(localTemplate),
-    [localTemplate],
-  );
+  const template = useProspectLayout();
 
   const treeRoot = useSlotTreeRootStore((x) => x.slotTreeRoot);
   const isWaitingForResponse = useRef(false);
   async function handleSave() {
-    if (!treeRoot || !template.data) return;
+    if (!treeRoot || !template) return;
 
     if (isWaitingForResponse.current) {
       toast.info("Please wait, template is being saved", {
@@ -60,13 +41,12 @@ export default function ProspectsTemplatePage() {
     }
     isWaitingForResponse.current = true;
 
-    setLocalTemplate({ ...treeRoot });
     await sendApiRequest(
       "/prospect-layouts",
       {
         method: "put",
         payload: {
-          id: template.data.id,
+          id: template.id,
           newJsonStructure: JSON.stringify(treeRoot),
         },
       },
@@ -86,10 +66,7 @@ export default function ProspectsTemplatePage() {
     }, 300);
   }
 
-  useEffect(() => {
-    if (template.isSuccess)
-      setLocalTemplate(JSON.parse(template.data!.jsonStructure) as Slot);
-  }, [template.data, template.isSuccess, setLocalTemplate]);
+  if (!template) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -106,7 +83,7 @@ export default function ProspectsTemplatePage() {
       </CardHeader>
 
       <CardContent className="bg-transparent">
-        <RenderSlotTree slot={localTemplateCopy} editMode />
+        <RenderSlotTree slot={template} editMode />
       </CardContent>
 
       <div className="fixed bottom-16 right-16">

@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import {
   Card,
   CardContent,
@@ -7,22 +8,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
-import { SlotData } from "@/lib/prospects/slot-data";
-import { useProspectsStore } from "@/stores/prospects-store";
-import { useCallback, useMemo, useState } from "react";
-import { Button } from "./ui/button";
-import RenderSlotTree from "./prospect-template/render-slot-tree";
 import { Prospect } from "@/lib/prospects/prospect-data-definition";
+import { SlotData } from "@/lib/prospects/slot-data";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-template";
+import { useProspectsStore } from "@/stores/prospects-store";
+import { useTeamStore } from "@/stores/team-store";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import sendApiRequest from "@/api-dsl/send-api-request";
-import { useTeamStore } from "@/stores/team-store";
+import RenderSlotTree from "./prospect-template/render-slot-tree";
+import { Button } from "./ui/button";
 
 export default function NewProspectsPage() {
   const activeTeam = useTeamStore((x) => x.activeTeam);
+  const layout = useProspectLayout();
 
   const navigate = useNavigate();
-  const template = useProspectsStore((x) => x.template);
   const setProspects = useProspectsStore((x) => x.setProspects);
 
   const [subscribedSlots, setSubscribedSlots] = useState<
@@ -70,6 +71,8 @@ export default function NewProspectsPage() {
     setProspects((x) => [...x, newProspect]);
   }
 
+  if (!layout) return null;
+
   return (
     <Card className="border-0 bg-transparent">
       <CardHeader className="pb-6">
@@ -86,7 +89,7 @@ export default function NewProspectsPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={template} />
+          <RenderSlotTree slot={layout} />
         </slotEventSystemContext.Provider>
       </CardContent>
 
