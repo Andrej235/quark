@@ -1,15 +1,14 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Quark.Data;
 
 namespace Quark.Services.Read.KeysetPagination;
 
-public class KeysetPaginationService<TEntity>(DbContext context) : IKeysetPaginationService<TEntity>
+public class KeysetPaginationService<TEntity>(DataContext context)
+    : IKeysetPaginationService<TEntity>
     where TEntity : class
 {
-    public async Task<PaginatedResult<TResult, KeysetCursor<TSortKey>>> GetPageAsync<
-        TResult,
-        TSortKey
-    >(
+    public async Task<PaginatedResult<TResult, KeysetCursor<TSortKey>>> GetPage<TResult, TSortKey>(
         Expression<Func<TEntity, TSortKey>> orderBy,
         Expression<Func<TEntity, TResult>> select,
         Func<TResult, TSortKey> cursorSelector,
@@ -44,9 +43,10 @@ public class KeysetPaginationService<TEntity>(DbContext context) : IKeysetPagina
             .ToListAsync(cancellationToken);
 
         bool hasMore = items.Count > cursor.PageSize;
-        var pageItems = hasMore ? items.Take(cursor.PageSize).ToList() : items;
+        var pageItems = hasMore ? [.. items.Take(cursor.PageSize)] : items;
 
-        TSortKey? nextKey = cursorSelector(pageItems.Last());
+        var lastElement = pageItems.LastOrDefault();
+        TSortKey? nextKey = lastElement is null ? default : cursorSelector(lastElement);
         var nextCursor = hasMore
             ? new KeysetCursor<TSortKey>(nextKey, cursor.PageSize, cursor.IsDescending)
             : null;

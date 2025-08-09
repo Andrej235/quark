@@ -31,6 +31,7 @@ using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
 using Quark.Services.Read;
+using Quark.Services.Read.KeysetPagination;
 using Quark.Services.Update;
 using Quark.Utilities;
 using Resend;
@@ -317,6 +318,7 @@ builder.Services.AddScoped<IExecuteUpdateService<ProspectLayout>, UpdateService<
 #region Prospects
 builder.Services.AddScoped<IProspectService, ProspectService>();
 builder.Services.AddScoped<ICreateSingleService<Prospect>, CreateService<Prospect>>();
+builder.Services.AddScoped<IKeysetPaginationService<Prospect>, KeysetPaginationService<Prospect>>();
 builder.Services.AddScoped<
     IRequestMapper<CreateProspectRequestDto, Prospect>,
     CreateProspectRequestMapper

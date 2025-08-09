@@ -1,8 +1,11 @@
+import useQuery from "@/api-dsl/use-query";
 import toTitleCase from "@/lib/title-case";
 import { useProspectsStore } from "@/stores/prospects-store";
+import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { DataTable } from "./data-table";
 import { Button } from "./ui/button";
 import {
@@ -13,35 +16,41 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Link } from "react-router-dom";
 
 export default function ProspectsTable() {
-  const prospects = useProspectsStore((x) => x.prospects);
-  const setProspects = useProspectsStore((x) => x.setProspects);
   const dataFields = useProspectsStore((x) => x.listView);
+
+  const teamId = useTeamStore().activeTeam?.id ?? "";
+  const prospectsQuery = useQuery("/prospects/partial/{teamId}", {
+    queryKey: ["prospects", teamId],
+    parameters: {
+      teamId,
+      include: dataFields[2]?.id,
+      sortBy: dataFields[2]?.id,
+    },
+    enabled: !!teamId,
+  });
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   const mappedProspects = useMemo(
     () =>
-      prospects.map((x) => ({
+      prospectsQuery.data?.items.map((x) => ({
         id: x.id,
         ...Object.fromEntries(x.fields.map((y) => [y.id, y.value])),
       })),
-    [prospects],
+    [prospectsQuery],
   );
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      setProspects((x) => x.filter((x) => x.id !== id));
-    },
-    [setProspects],
-  );
+  const handleDelete = useCallback((id: string) => {
+    console.log("delete", id);
+  }, []);
 
-  const columns = useMemo<ColumnDef<(typeof mappedProspects)[number]>[]>(() => {
-    const columns: ColumnDef<(typeof mappedProspects)[number]>[] =
-      dataFields.map((x) => ({
-        header: toTitleCase(x.id.replace("-", " ")),
-        accessorKey: x.id,
-      }));
+  const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
+    const columns: ColumnDef<{ id: string }>[] = dataFields.map((x) => ({
+      header: toTitleCase(x.id.replace("-", " ")),
+      accessorKey: x.id,
+    }));
 
     columns.push({
       header: "Actions",
@@ -90,5 +99,16 @@ export default function ProspectsTable() {
     return columns;
   }, [dataFields, handleDelete]);
 
-  return <DataTable columns={columns} data={mappedProspects} />;
+  return (
+    <DataTable
+      columns={columns}
+      data={mappedProspects ?? []}
+      pageIndex={pageIndex}
+      setPageIndex={setPageIndex}
+      pageSize={pageSize}
+      setPageSize={setPageSize}
+      hasMore={prospectsQuery.data?.hasMore ?? false}
+      isLoading={prospectsQuery.isLoading}
+    />
+  );
 }
