@@ -1383,6 +1383,81 @@ export type ApiSpec={
           }
         }
       }
+    },
+    "/prospects": {
+      "post": {
+        "tags": [
+          "Prospect"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1399,6 +1474,36 @@ export type ApiSpec={
           },
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "CreateProspectFieldRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ProspectDataType"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateProspectRequestDto": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateProspectFieldRequestDto"
+            }
           }
         }
       },
@@ -1484,6 +1589,12 @@ export type ApiSpec={
             "nullable": true
           }
         }
+      },
+      "ProspectDataType": {
+        "enum": [
+          "text",
+          "image"
+        ]
       },
       "ProspectLayoutResponseDto": {
         "type": "object",
@@ -1713,6 +1824,9 @@ export type ApiSpec={
     },
     {
       "name": "ProspectLayout"
+    },
+    {
+      "name": "Prospect"
     }
   ]
 }

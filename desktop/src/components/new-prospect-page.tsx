@@ -15,8 +15,12 @@ import RenderSlotTree from "./prospect-template/render-slot-tree";
 import { Prospect } from "@/lib/prospects/prospect-data-definition";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import sendApiRequest from "@/api-dsl/send-api-request";
+import { useTeamStore } from "@/stores/team-store";
 
 export default function NewProspectsPage() {
+  const activeTeam = useTeamStore((x) => x.activeTeam);
+
   const navigate = useNavigate();
   const template = useProspectsStore((x) => x.template);
   const setProspects = useProspectsStore((x) => x.setProspects);
@@ -41,10 +45,23 @@ export default function NewProspectsPage() {
   );
 
   function handleSave() {
+    if (!activeTeam) {
+      toast.error("Please choose a team first");
+      return;
+    }
+
     const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
 
     navigate("/prospects");
     toast.success("Prospect created successfully!");
+
+    sendApiRequest("/prospects", {
+      method: "post",
+      payload: {
+        teamId: activeTeam.id,
+        fields: values,
+      },
+    });
 
     const newProspect: Prospect = {
       id: Date.now().toString(),

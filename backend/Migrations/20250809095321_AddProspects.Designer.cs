@@ -3,6 +3,7 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Quark.Data;
@@ -12,9 +13,11 @@ using Quark.Data;
 namespace Quark.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20250809095321_AddProspects")]
+    partial class AddProspects
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -256,8 +259,8 @@ namespace Quark.Migrations
 
             modelBuilder.Entity("Quark.Models.ProspectDataField", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("ProspectId")
                         .HasColumnType("uuid");
@@ -266,6 +269,7 @@ namespace Quark.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("Value")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id", "ProspectId");

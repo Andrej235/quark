@@ -32,11 +32,12 @@ export default function ProspectsTemplatePage() {
   const teamId = useTeamStore((x) => x.activeTeam)?.id;
 
   const template = useQuery("/prospect-layouts/default/{teamId}", {
-    queryKey: ["prospect-template", teamId],
+    queryKey: ["default-prospect-template", teamId],
     parameters: {
       teamId: teamId!,
     },
     enabled: !!teamId,
+    refetchOnMount: false,
   });
 
   const localTemplate = useProspectsStore((x) => x.template);

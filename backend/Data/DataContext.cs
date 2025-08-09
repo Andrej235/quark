@@ -127,5 +127,33 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
             layout.Property(x => x.JsonStructure).HasColumnType("jsonb");
         });
+
+        builder.Entity<Prospect>(prospect =>
+        {
+            prospect.HasKey(x => x.Id);
+
+            prospect
+                .HasOne(x => x.Layout)
+                .WithMany()
+                .HasForeignKey(x => x.LayoutId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            prospect
+                .HasOne(x => x.Team)
+                .WithMany()
+                .HasForeignKey(x => x.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ProspectDataField>(field =>
+        {
+            field.HasKey(x => new { x.Id, x.ProspectId });
+
+            field
+                .HasOne(x => x.Prospect)
+                .WithMany(x => x.Fields)
+                .HasForeignKey(x => x.ProspectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

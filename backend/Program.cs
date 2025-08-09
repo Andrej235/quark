@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Quark.Data;
+using Quark.Dtos.Request.Prospect;
 using Quark.Dtos.Request.Team;
 using Quark.Dtos.Response.Team;
 using Quark.Dtos.Response.User;
@@ -18,11 +20,13 @@ using Quark.Services.Create;
 using Quark.Services.Delete;
 using Quark.Services.EmailSender;
 using Quark.Services.Mapping.Request;
+using Quark.Services.Mapping.Request.ProspectMappers;
 using Quark.Services.Mapping.Request.TeamMappers;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Mapping.Response.TeamMappers;
 using Quark.Services.Mapping.Response.UserMappers;
 using Quark.Services.ModelServices.ProspectLayoutService;
+using Quark.Services.ModelServices.ProspectService;
 using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
@@ -73,7 +77,9 @@ if (isDevelopment)
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower)
+    );
     options.SerializerOptions.RespectNullableAnnotations = true;
 });
 
@@ -308,13 +314,31 @@ builder.Services.AddScoped<IProspectLayoutService, ProspectLayoutService>();
 builder.Services.AddScoped<IExecuteUpdateService<ProspectLayout>, UpdateService<ProspectLayout>>();
 #endregion
 
+#region Prospects
+builder.Services.AddScoped<IProspectService, ProspectService>();
+builder.Services.AddScoped<ICreateSingleService<Prospect>, CreateService<Prospect>>();
+builder.Services.AddScoped<
+    IRequestMapper<CreateProspectRequestDto, Prospect>,
+    CreateProspectRequestMapper
+>();
+#endregion
+
+#region Prospect Data Fields
+builder.Services.AddScoped<
+    IRequestMapper<CreateProspectFieldRequestDto, ProspectDataField>,
+    CreateProspectFieldRequestMapper
+>();
+#endregion
+
 #endregion
 
 builder
     .Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower)
+        );
         options.JsonSerializerOptions.RespectNullableAnnotations = true;
     });
 ;
