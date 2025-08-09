@@ -38,7 +38,7 @@ public partial class ProspectService
                     }),
             },
             x => x.Fields.First(x => x.Id == sortBy).Value,
-            cursorToken.ToKeysetCursor<string?>() ?? new KeysetCursor<string?>(null, 10),
+            cursorToken.ToKeysetCursor<string?>() ?? new KeysetCursor<string?>(null, 15),
             x => x.TeamId == teamId
         );
 

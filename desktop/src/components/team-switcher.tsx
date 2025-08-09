@@ -211,8 +211,8 @@ export function TeamSwitcher() {
                     <div className="flex size-6 items-center justify-center rounded-md border">
                       <Avatar className="size-3.5 shrink-0 rounded-lg">
                         <AvatarImage
-                          src={activeTeam.logo ?? undefined}
-                          alt={activeTeam.name}
+                          src={team.logo ?? undefined}
+                          alt={team.name}
                         />
                         <AvatarFallback className="rounded-lg">
                           {activeTeam.name[0].toUpperCase()}

@@ -23,7 +23,7 @@ export default function ProspectsTable() {
   const teamId = useTeamStore().activeTeam?.id ?? "";
 
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
 
   const [pageCursors, setPageCursors] = useState<string[]>([]);
   const currentCursor = useMemo(
