@@ -21,9 +21,11 @@ export default function ProspectsTable() {
   const dataFields = useProspectsStore((x) => x.listView);
 
   const teamId = useTeamStore().activeTeam?.id ?? "";
-
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    if (teamId) setPageIndex(0);
+  }, [teamId]);
 
   const [pageCursors, setPageCursors] = useState<string[]>([]);
   const currentCursor = useMemo(
@@ -126,8 +128,6 @@ export default function ProspectsTable() {
       data={mappedProspects ?? []}
       pageIndex={pageIndex}
       setPageIndex={setPageIndex}
-      pageSize={pageSize}
-      setPageSize={setPageSize}
       hasMore={prospectsQuery.data?.hasMore ?? false}
       isLoading={prospectsQuery.isLoading}
     />

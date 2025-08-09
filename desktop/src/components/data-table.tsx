@@ -19,8 +19,6 @@ import { Button } from "./ui/button";
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  pageSize: number;
-  setPageSize: (newPageSize: number) => void;
   pageIndex: number;
   setPageIndex: (newPageIndex: number) => void;
   hasMore: boolean;
@@ -31,9 +29,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   pageIndex,
-  pageSize,
   setPageIndex,
-  setPageSize,
   hasMore,
   isLoading,
 }: DataTableProps<TData, TValue>) {
@@ -47,13 +43,12 @@ export function DataTable<TData, TValue>({
     onPaginationChange: (updater) => {
       const newPagination =
         typeof updater === "function"
-          ? updater({ pageIndex, pageSize })
+          ? updater({ pageIndex, pageSize: 15 })
           : updater;
       setPageIndex(newPagination.pageIndex);
-      setPageSize(newPagination.pageSize);
     },
     state: {
-      pagination: { pageIndex, pageSize },
+      pagination: { pageIndex, pageSize: 15 },
     },
   });
 
