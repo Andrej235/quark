@@ -34,6 +34,9 @@ export default function App() {
 
     if (location !== "/login" && location !== "/signup" && !isLoggedIn.data)
       navigate("/login");
+
+    if ((location === "/login" || location === "/signup") && isLoggedIn.data)
+      navigate("/");
   }, [isLoggedIn.data, isLoggedIn.isLoading, navigate, location]);
 
   useEffect(() => {
