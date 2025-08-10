@@ -8,10 +8,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
-import { Prospect } from "@/lib/prospects/prospect-data-definition";
 import { SlotData } from "@/lib/prospects/slot-data";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
-import { useProspectsStore } from "@/stores/prospects-store";
 import { useTeamStore } from "@/stores/team-store";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +23,7 @@ export default function NewProspectsPage() {
   const [layout] = useProspectLayout();
 
   const navigate = useNavigate();
-  const setProspects = useProspectsStore((x) => x.setProspects);
+  const invalidateProspectTable = useInvalidateProspectTable();
 
   const [subscribedSlots, setSubscribedSlots] = useState<
     (() => SlotData | null)[]
@@ -45,7 +44,7 @@ export default function NewProspectsPage() {
     [subscribedSlots, subscribe],
   );
 
-  function handleSave() {
+  async function handleSave() {
     if (!activeTeam) {
       toast.error("Please choose a team first");
       return;
@@ -53,22 +52,30 @@ export default function NewProspectsPage() {
 
     const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
 
-    navigate("/prospects");
-    toast.success("Prospect created successfully!");
-
-    sendApiRequest("/prospects", {
-      method: "post",
-      payload: {
-        teamId: activeTeam.id,
-        fields: values,
+    const { isOk } = await sendApiRequest(
+      "/prospects",
+      {
+        method: "post",
+        payload: {
+          teamId: activeTeam.id,
+          fields: values,
+        },
       },
-    });
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving prospect, please wait...",
+          success: "Prospect saved successfully!",
+          error: (x) =>
+            x.message || "Failed to save prospect, please try again",
+        },
+      },
+    );
 
-    const newProspect: Prospect = {
-      id: Date.now().toString(),
-      fields: values,
-    };
-    setProspects((x) => [...x, newProspect]);
+    if (!isOk) return;
+
+    await invalidateProspectTable();
+    await navigate("/prospects");
   }
 
   if (!layout) return null;

@@ -122,7 +122,10 @@ export default function EditProspectListViewItemDialog({
 
   return (
     <motion.div
-      className="-translate-1/2 fixed left-1/2 top-1/2"
+      className={cn(
+        "-translate-1/2 fixed left-1/2 top-1/2",
+        !isOpen && "pointer-events-none touch-none",
+      )}
       initial={{
         scale: 0.5,
         opacity: 0,
