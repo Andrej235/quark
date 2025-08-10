@@ -20,4 +20,6 @@ public interface IProspectService
         string? cursorToken,
         ClaimsPrincipal claims
     );
+
+    Task<Result<ProspectResponseDto>> GetFull(Guid teamId, Guid prospectId, ClaimsPrincipal claims);
 }

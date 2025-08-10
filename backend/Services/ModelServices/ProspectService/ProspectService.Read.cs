@@ -44,4 +44,26 @@ public partial class ProspectService
 
         return result;
     }
+
+    public Task<Result<ProspectResponseDto>> GetFull(
+        Guid teamId,
+        Guid prospectId,
+        ClaimsPrincipal claims
+    )
+    {
+        return readService.Get(
+            x => new ProspectResponseDto()
+            {
+                Id = x.Id,
+                LayoutId = x.LayoutId,
+                Fields = x.Fields.Select(x => new ProspectFieldResponseDto
+                {
+                    Id = x.Id,
+                    Value = x.Value,
+                    Type = x.Type,
+                }),
+            },
+            x => x.Id == prospectId && x.TeamId == teamId
+        );
+    }
 }

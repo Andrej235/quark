@@ -28,4 +28,20 @@ public partial class ProspectController
 
         return Ok(result.Value.ToResponseDto());
     }
+
+    [Authorize]
+    [HttpGet("{teamId:guid}/{prospectId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProspectResponseDto>> GetPartial(Guid teamId, Guid prospectId)
+    {
+        var result = await prospectService.GetFull(teamId, prospectId, User);
+
+        if (result.IsFailed)
+            return BadRequest(new { result.Errors[0].Message });
+
+        return Ok(result.Value);
+    }
 }

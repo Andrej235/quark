@@ -1,3 +1,4 @@
+import useQuery from "@/api-dsl/use-query";
 import RenderSlotTree from "@/components/prospect-template/render-slot-tree";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,17 +12,23 @@ import {
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
 import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
-import { useProspectsStore } from "@/stores/prospects-store";
+import { useTeamStore } from "@/stores/team-store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export default function EditProspectPage() {
   const prospectId = useParams().prospectId as string;
-  const prospect = useProspectsStore((x) =>
-    x.prospects.find((x) => x.id === prospectId),
-  );
+  const teamId = useTeamStore((x) => x.activeTeam?.id);
 
-  const setProspects = useProspectsStore((x) => x.setProspects);
+  const prospect = useQuery("/prospects/{teamId}/{prospectId}", {
+    parameters: {
+      teamId: teamId || "",
+      prospectId: prospectId || "",
+    },
+    queryKey: ["prospect", teamId, prospectId],
+    enabled: !!teamId && !!prospectId,
+  });
+
   const [template] = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
@@ -59,27 +66,21 @@ export default function EditProspectPage() {
   );
 
   useEffect(() => {
-    if (!prospect) return;
+    if (!prospect.data) return;
 
     onSetSubscribedSlots.forEach((callback) => {
       const [id, set] = callback();
-      const value = prospect.fields.find((x) => x.id === id)?.value;
+      const value = prospect.data!.fields.find((x) => x.id === id)?.value;
       set(value ?? null);
     });
   }, [onSetSubscribedSlots, prospect]);
 
   function handleSave() {
     const values = onReadSubscribedSlots.map((x) => x()).filter((x) => !!x);
-
-    setProspects((x) => {
-      const idx = x.findIndex((y) => y.id === prospectId);
-      x[idx].fields = values;
-
-      return [...x];
-    });
+    console.log(values);
   }
 
-  if (!template) return null;
+  if (!template || !prospect.data) return null;
 
   return (
     <Card className="border-0 bg-transparent">
