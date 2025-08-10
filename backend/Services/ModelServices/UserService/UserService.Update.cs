@@ -7,19 +7,27 @@ namespace Quark.Services.ModelServices.UserService;
 
 public partial class UserService
 {
-    public Task<Result> UpdateInfo(UpdateUserInfoRequestDto request, ClaimsPrincipal claims)
+    public async Task<Result> UpdateInfo(UpdateUserInfoRequestDto request, ClaimsPrincipal claims)
     {
-        var userId = userManager.GetUserId(claims);
-        if (userId is null)
-            return Task.FromResult(Result.Fail(new Unauthorized()));
+        var user = await userManager.GetUserAsync(claims);
+        if (user is null)
+            return new Unauthorized();
 
-        return userUpdateService.Update(
-            x => x.Id == userId,
+        var usernameUpdate = userManager.SetUserNameAsync(user, request.Username);
+        if (!usernameUpdate.Result.Succeeded)
+            return new BadRequest(usernameUpdate.Result.Errors.First().Description);
+
+        var result = await userUpdateService.Update(
+            x => x.Id == user.Id,
             x =>
-                x.SetProperty(x => x.UserName, request.Username)
-                    .SetProperty(x => x.FirstName, request.FirstName)
+                x.SetProperty(x => x.FirstName, request.FirstName)
                     .SetProperty(x => x.LastName, request.LastName)
         );
+
+        if (result.IsFailed)
+            return result;
+
+        return Result.Ok();
     }
 
     public async Task<Result> UpdatePassword(

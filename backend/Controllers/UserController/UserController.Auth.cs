@@ -33,25 +33,10 @@ public partial class UserController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<TokensResponseDto?>> Login([FromBody] LoginRequestDto request)
     {
-        if (request.UseCookies)
-        {
-            var cookieResult = await signInManager.PasswordSignInAsync(
-                request.UsernameOrEmail,
-                request.Password,
-                true,
-                false
-            );
-
-            if (!cookieResult.Succeeded)
-                return Unauthorized(new { Message = "Invalid username or password." });
-
-            return Ok();
-        }
-
         var result = await userService.Login(request);
 
         if (result.IsFailed)
-            return BadRequest(new { result.Errors[0].Message });
+            return BadRequest(new { Message = "Invalid username or password" });
 
         return Ok(result.Value);
     }

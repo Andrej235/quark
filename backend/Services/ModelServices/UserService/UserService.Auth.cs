@@ -41,12 +41,26 @@ public partial class UserService
             ? await userManager.FindByEmailAsync(request.UsernameOrEmail)
             : await userManager.FindByNameAsync(request.UsernameOrEmail);
 
-        if (user != null && await userManager.CheckPasswordAsync(user, request.Password))
+        if (
+            !request.UseCookies
+            && user != null
+            && await userManager.CheckPasswordAsync(user, request.Password)
+        )
         {
             var accessToken = tokenService.GenerateJwtToken(user);
             var refreshToken = await tokenService.GenerateRefreshToken(user);
 
             return new TokensResponseDto() { Jwt = accessToken, RefreshToken = refreshToken };
+        }
+
+        if (
+            request.UseCookies
+            && user?.UserName is not null
+            && await signInManager.PasswordSignInAsync(user.UserName, request.Password, true, false)
+                is { Succeeded: true }
+        )
+        {
+            return Result.Ok();
         }
 
         return Result.Fail(new Unauthorized());

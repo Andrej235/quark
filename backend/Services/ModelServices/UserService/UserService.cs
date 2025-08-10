@@ -11,6 +11,7 @@ namespace Quark.Services.ModelServices.UserService;
 
 public partial class UserService(
     UserManager<User> userManager,
+    SignInManager<User> signInManager,
     IEmailSender<User> emailSender,
     ITokenService tokenService,
     IReadSingleService<RefreshToken> tokenReadService,
