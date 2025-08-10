@@ -328,6 +328,10 @@ builder.Services.AddScoped<
 
 #region Prospect Data Fields
 builder.Services.AddScoped<
+    IUpdateRangeService<ProspectDataField>,
+    UpdateService<ProspectDataField>
+>();
+builder.Services.AddScoped<
     IRequestMapper<CreateProspectFieldRequestDto, ProspectDataField>,
     CreateProspectFieldRequestMapper
 >();
