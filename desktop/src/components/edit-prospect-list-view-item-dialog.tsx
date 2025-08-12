@@ -12,7 +12,6 @@ import { useShortcut } from "@/hooks/use-shortcut";
 import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
 import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
 import { cn } from "@/lib/utils";
-import { useProspectsStore } from "@/stores/prospects-store";
 import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,
@@ -53,10 +52,39 @@ export default function EditProspectListViewItemDialog({
   isOpen,
   requestClose,
 }: EditProspectListViewItemDialogProps) {
-  const listView = useProspectsStore((x) => x.listView);
-  console.log(listView);
+  const activeTeam = useTeamStore((x) => x.activeTeam);
+  const layoutQuery = useQuery("/prospect-layouts/default/{teamId}", {
+    queryKey: ["default-prospect-template", activeTeam?.id],
+    parameters: {
+      // Actual api request won't run until active team is set
+      teamId: activeTeam?.id ?? "",
+    },
+    enabled: !!activeTeam,
+    refetchOnMount: false,
+  });
 
-  const setListView = useProspectsStore((x) => x.setListView);
+  const allFields = useMemo(
+    () =>
+      layoutQuery.data
+        ? slotToProspectDataType(JSON.parse(layoutQuery.data.jsonStructure))
+        : null,
+    [layoutQuery],
+  );
+
+  const listViewQuery = useQuery("/prospect-views/{teamId}", {
+    queryKey: ["default-prospect-view", activeTeam?.id],
+    parameters: {
+      // Actual api request won't run until active team is set
+      teamId: activeTeam?.id ?? "",
+    },
+    enabled: !!activeTeam,
+    refetchOnMount: false,
+  });
+
+  const listView = useMemo(
+    () => listViewQuery.data?.items ?? [],
+    [listViewQuery],
+  );
 
   const dragControls = useDragControls();
   const sensors = useSensors(
@@ -76,24 +104,6 @@ export default function EditProspectListViewItemDialog({
   useEffect(
     () => setSelectedFields((x) => (isOpen ? listView : x)),
     [listView, isOpen],
-  );
-
-  const activeTeam = useTeamStore((x) => x.activeTeam);
-  const layoutQuery = useQuery("/prospect-layouts/default/{teamId}", {
-    queryKey: ["default-prospect-template", activeTeam?.id],
-    parameters: {
-      // Actual api request won't run until active team is set
-      teamId: activeTeam?.id ?? "",
-    },
-    enabled: !!activeTeam,
-    refetchOnMount: false,
-  });
-  const allFields = useMemo(
-    () =>
-      layoutQuery.data
-        ? slotToProspectDataType(JSON.parse(layoutQuery.data.jsonStructure))
-        : null,
-    [layoutQuery],
   );
 
   const unselectedListItems = useMemo(
@@ -137,7 +147,7 @@ export default function EditProspectListViewItemDialog({
   function handleSave() {
     if (selectedFields.length < 1) return;
 
-    setListView(selectedFields);
+    console.log(selectedFields);
     requestClose();
   }
 

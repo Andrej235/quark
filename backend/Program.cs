@@ -27,6 +27,7 @@ using Quark.Services.Mapping.Response.TeamMappers;
 using Quark.Services.Mapping.Response.UserMappers;
 using Quark.Services.ModelServices.ProspectLayoutService;
 using Quark.Services.ModelServices.ProspectService;
+using Quark.Services.ModelServices.ProspectViewService;
 using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
@@ -334,6 +335,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IRequestMapper<CreateProspectFieldRequestDto, ProspectDataField>,
     CreateProspectFieldRequestMapper
+>();
+#endregion
+
+#region Prospect List View Items
+builder.Services.AddScoped<IProspectViewService, ProspectViewService>();
+builder.Services.AddScoped<
+    IReadRangeSelectedService<ProspectListViewItem>,
+    ReadService<ProspectListViewItem>
 >();
 #endregion
 
