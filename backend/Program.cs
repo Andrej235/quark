@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Quark.Data;
 using Quark.Dtos.Request.Prospect;
+using Quark.Dtos.Request.ProspectListViewItem;
 using Quark.Dtos.Request.Team;
 using Quark.Dtos.Response.Team;
 using Quark.Dtos.Response.User;
@@ -21,6 +22,7 @@ using Quark.Services.Delete;
 using Quark.Services.EmailSender;
 using Quark.Services.Mapping.Request;
 using Quark.Services.Mapping.Request.ProspectMappers;
+using Quark.Services.Mapping.Request.ProspectViewMappers;
 using Quark.Services.Mapping.Request.TeamMappers;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Mapping.Response.TeamMappers;
@@ -341,8 +343,20 @@ builder.Services.AddScoped<
 #region Prospect List View Items
 builder.Services.AddScoped<IProspectViewService, ProspectViewService>();
 builder.Services.AddScoped<
+    ICreateRangeService<ProspectListViewItem>,
+    CreateService<ProspectListViewItem>
+>();
+builder.Services.AddScoped<
     IReadRangeSelectedService<ProspectListViewItem>,
     ReadService<ProspectListViewItem>
+>();
+builder.Services.AddScoped<
+    IDeleteService<ProspectListViewItem>,
+    DeleteService<ProspectListViewItem>
+>();
+builder.Services.AddScoped<
+    IRequestMapper<CreateProspectViewItemRequestDto, ProspectListViewItem>,
+    CreateProspectViewItemRequestMapper
 >();
 #endregion
 

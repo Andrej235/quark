@@ -39,7 +39,7 @@ export default function ProspectsTable() {
     queryKey: ["partial-prospects", teamId, currentCursor ?? "first-page"],
     parameters: {
       teamId,
-      include: dataFields[0]?.id,
+      include: dataFields.map((x) => x.id).join(","),
       sortBy: dataFields[0]?.id,
       ...(currentCursor && { cursor: currentCursor }),
     },
