@@ -1,7 +1,7 @@
 import useQuery from "@/api-dsl/use-query";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 import toTitleCase from "@/lib/title-case";
 import { useProspectTableStore } from "@/stores/prospect-table-store";
-import { useProspectsStore } from "@/stores/prospects-store";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
@@ -17,10 +17,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 
 export default function ProspectsTable() {
-  const dataFields = useProspectsStore((x) => x.listView);
+  const dataFields = useMemo(() => ["company-name"], []);
 
   const teamId = useTeamStore().activeTeam?.id ?? "";
 
@@ -39,8 +38,8 @@ export default function ProspectsTable() {
     queryKey: ["partial-prospects", teamId, currentCursor ?? "first-page"],
     parameters: {
       teamId,
-      include: dataFields[0]?.id,
-      sortBy: dataFields[0]?.id,
+      include: dataFields[0],
+      sortBy: dataFields[0],
       ...(currentCursor && { cursor: currentCursor }),
     },
     enabled: !!teamId,
@@ -49,7 +48,7 @@ export default function ProspectsTable() {
 
   useEffect(() => {
     if (!prospectsQuery.data?.cursorToken) return;
-    
+
     const newToken = prospectsQuery.data.cursorToken;
     addCursor(newToken);
   }, [prospectsQuery.data?.cursorToken, addCursor]);
@@ -69,8 +68,8 @@ export default function ProspectsTable() {
 
   const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
     const columns: ColumnDef<{ id: string }>[] = dataFields.map((x) => ({
-      header: toTitleCase(x.id.replace("-", " ")),
-      accessorKey: x.id,
+      header: toTitleCase(x.replace("-", " ")),
+      accessorKey: x,
     }));
 
     columns.push({

@@ -1,4 +1,3 @@
-import { useProspectsStore } from "@/stores/prospects-store";
 import { Edit, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,9 +15,6 @@ import { Separator } from "./ui/separator";
 
 export default function ProspectsPage() {
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
-
-  const listView = useProspectsStore((x) => x.listView);
-  const setListView = useProspectsStore((x) => x.setListView);
 
   return (
     <Card className="min-h-full">
@@ -58,8 +54,6 @@ export default function ProspectsPage() {
       <EditProspectListViewItemDialog
         isOpen={isEditListViewOpen}
         requestClose={() => setIsEditListViewOpen(false)}
-        listView={listView}
-        setListView={setListView}
       />
     </Card>
   );

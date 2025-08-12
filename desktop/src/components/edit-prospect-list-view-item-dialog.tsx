@@ -12,6 +12,7 @@ import { useShortcut } from "@/hooks/use-shortcut";
 import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
 import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
 import { cn } from "@/lib/utils";
+import { useProspectsStore } from "@/stores/prospects-store";
 import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,
@@ -46,16 +47,15 @@ import {
 type EditProspectListViewItemDialogProps = {
   isOpen: boolean;
   requestClose: () => void;
-  listView: ProspectFieldDefinition[];
-  setListView: (listView: ProspectFieldDefinition[]) => void;
 };
 
 export default function EditProspectListViewItemDialog({
   isOpen,
-  listView,
-  setListView,
   requestClose,
 }: EditProspectListViewItemDialogProps) {
+  const listView = useProspectsStore((x) => x.listView);
+  const setListView = useProspectsStore((x) => x.setListView);
+
   const dragControls = useDragControls();
   const sensors = useSensors(
     useSensor(PointerSensor, {
