@@ -1,3 +1,4 @@
+import useQuery from "@/api-dsl/use-query";
 import {
   Card,
   CardContent,
@@ -7,8 +8,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useShortcut } from "@/hooks/use-shortcut";
 import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
+import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
 import { cn } from "@/lib/utils";
+import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,
   DndContext,
@@ -38,19 +42,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { useShortcut } from "@/hooks/use-shortcut";
 
 type EditProspectListViewItemDialogProps = {
   isOpen: boolean;
   requestClose: () => void;
-  fullPropsectDataDefinition: ProspectFieldDefinition[];
   listView: ProspectFieldDefinition[];
   setListView: (listView: ProspectFieldDefinition[]) => void;
 };
 
 export default function EditProspectListViewItemDialog({
   isOpen,
-  fullPropsectDataDefinition: allFields,
   listView,
   setListView,
   requestClose,
@@ -75,8 +76,26 @@ export default function EditProspectListViewItemDialog({
     [listView, isOpen],
   );
 
+  const activeTeam = useTeamStore((x) => x.activeTeam);
+  const layoutQuery = useQuery("/prospect-layouts/default/{teamId}", {
+    queryKey: ["default-prospect-template", activeTeam?.id],
+    parameters: {
+      // Actual api request won't run until active team is set
+      teamId: activeTeam?.id ?? "",
+    },
+    enabled: !!activeTeam,
+    refetchOnMount: false,
+  });
+  const allFields = useMemo(
+    () =>
+      layoutQuery.data
+        ? slotToProspectDataType(JSON.parse(layoutQuery.data.jsonStructure))
+        : null,
+    [layoutQuery],
+  );
+
   const unselectedListItems = useMemo(
-    () => allFields.filter((field) => !selectedFields.includes(field)),
+    () => allFields?.filter((field) => !selectedFields.includes(field)),
     [allFields, selectedFields],
   );
 
@@ -204,9 +223,11 @@ export default function EditProspectListViewItemDialog({
               </DialogHeader>
 
               <div className="flex flex-col">
-                {unselectedListItems.length === 0 && <p>No fields available</p>}
+                {unselectedListItems?.length === 0 && (
+                  <p>No fields available</p>
+                )}
 
-                {unselectedListItems.map((field) => (
+                {unselectedListItems?.map((field) => (
                   <Button
                     variant="ghost"
                     className="justify-start"

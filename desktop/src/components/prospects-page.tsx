@@ -17,7 +17,6 @@ import { Separator } from "./ui/separator";
 export default function ProspectsPage() {
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
 
-  const dataFields = useProspectsStore((x) => x.dataFields);
   const listView = useProspectsStore((x) => x.listView);
   const setListView = useProspectsStore((x) => x.setListView);
 
@@ -61,7 +60,6 @@ export default function ProspectsPage() {
         requestClose={() => setIsEditListViewOpen(false)}
         listView={listView}
         setListView={setListView}
-        fullPropsectDataDefinition={dataFields}
       />
     </Card>
   );

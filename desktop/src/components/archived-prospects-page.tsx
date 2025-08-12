@@ -16,7 +16,6 @@ import { useState } from "react";
 export default function ArchivedProspectsPage() {
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
 
-  const dataFields = useProspectsStore((x) => x.dataFields);
   const listView = useProspectsStore((x) => x.listView);
   const setListView = useProspectsStore((x) => x.setListView);
 
@@ -53,7 +52,6 @@ export default function ArchivedProspectsPage() {
         requestClose={() => setIsEditListViewOpen(false)}
         listView={listView}
         setListView={setListView}
-        fullPropsectDataDefinition={dataFields}
       />
     </Card>
   );
