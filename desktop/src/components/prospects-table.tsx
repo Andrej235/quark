@@ -1,5 +1,6 @@
 import useQuery from "@/api-dsl/use-query";
 import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
+import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import toTitleCase from "@/lib/title-case";
 import { useProspectTableStore } from "@/stores/prospect-table-store";
 import { useTeamStore } from "@/stores/team-store";
@@ -19,7 +20,7 @@ import {
 } from "./ui/dropdown-menu";
 
 export default function ProspectsTable() {
-  const dataFields = useMemo(() => ["company-name"], []);
+  const [dataFields] = useProspectView();
 
   const teamId = useTeamStore().activeTeam?.id ?? "";
 
@@ -38,11 +39,11 @@ export default function ProspectsTable() {
     queryKey: ["partial-prospects", teamId, currentCursor ?? "first-page"],
     parameters: {
       teamId,
-      include: dataFields[0],
-      sortBy: dataFields[0],
+      include: dataFields[0]?.id,
+      sortBy: dataFields[0]?.id,
       ...(currentCursor && { cursor: currentCursor }),
     },
-    enabled: !!teamId,
+    enabled: !!teamId && dataFields.length > 0,
     staleTime: Infinity,
   });
 
@@ -68,8 +69,8 @@ export default function ProspectsTable() {
 
   const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
     const columns: ColumnDef<{ id: string }>[] = dataFields.map((x) => ({
-      header: toTitleCase(x.replace("-", " ")),
-      accessorKey: x,
+      header: toTitleCase(x.id.replace("-", " ")),
+      accessorKey: x.id,
     }));
 
     columns.push({

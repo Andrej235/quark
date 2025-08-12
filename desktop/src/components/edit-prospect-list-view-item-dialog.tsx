@@ -1,4 +1,3 @@
-import useQuery from "@/api-dsl/use-query";
 import {
   Card,
   CardContent,
@@ -11,8 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { useShortcut } from "@/hooks/use-shortcut";
 import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
 import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import { cn } from "@/lib/utils";
-import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,
   DndContext,
@@ -52,39 +52,13 @@ export default function EditProspectListViewItemDialog({
   isOpen,
   requestClose,
 }: EditProspectListViewItemDialogProps) {
-  const activeTeam = useTeamStore((x) => x.activeTeam);
-  const layoutQuery = useQuery("/prospect-layouts/default/{teamId}", {
-    queryKey: ["default-prospect-template", activeTeam?.id],
-    parameters: {
-      // Actual api request won't run until active team is set
-      teamId: activeTeam?.id ?? "",
-    },
-    enabled: !!activeTeam,
-    refetchOnMount: false,
-  });
-
+  const [layoutQuery] = useProspectLayout();
   const allFields = useMemo(
-    () =>
-      layoutQuery.data
-        ? slotToProspectDataType(JSON.parse(layoutQuery.data.jsonStructure))
-        : null,
+    () => (layoutQuery ? slotToProspectDataType(layoutQuery.root) : null),
     [layoutQuery],
   );
 
-  const listViewQuery = useQuery("/prospect-views/{teamId}", {
-    queryKey: ["default-prospect-view", activeTeam?.id],
-    parameters: {
-      // Actual api request won't run until active team is set
-      teamId: activeTeam?.id ?? "",
-    },
-    enabled: !!activeTeam,
-    refetchOnMount: false,
-  });
-
-  const listView = useMemo(
-    () => listViewQuery.data?.items ?? [],
-    [listViewQuery],
-  );
+  const [listView] = useProspectView();
 
   const dragControls = useDragControls();
   const sensors = useSensors(
