@@ -16,5 +16,6 @@ public class Team
     public Guid DefaultProspectLayoutId { get; set; }
     public ProspectLayout DefaultProspectLayout { get; set; } = null!;
 
+    public ICollection<ProspectListViewItem> DefaultProspectView { get; set; } = [];
     public ICollection<Prospect> Prospects { get; set; } = [];
 }

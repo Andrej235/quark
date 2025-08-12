@@ -54,6 +54,8 @@ export default function EditProspectListViewItemDialog({
   requestClose,
 }: EditProspectListViewItemDialogProps) {
   const listView = useProspectsStore((x) => x.listView);
+  console.log(listView);
+
   const setListView = useProspectsStore((x) => x.setListView);
 
   const dragControls = useDragControls();

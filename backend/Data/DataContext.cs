@@ -128,6 +128,19 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
             layout.Property(x => x.JsonStructure).HasColumnType("jsonb");
         });
 
+        builder.Entity<ProspectListViewItem>(viewItem =>
+        {
+            viewItem.HasKey(x => new { x.Id, x.TeamId });
+
+            viewItem
+                .HasOne(x => x.Team)
+                .WithMany(x => x.DefaultProspectView)
+                .HasForeignKey(x => x.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            viewItem.HasIndex(x => x.TeamId);
+        });
+
         builder.Entity<Prospect>(prospect =>
         {
             prospect.HasKey(x => x.Id);
