@@ -36,7 +36,7 @@ export default function ProspectsTable() {
   }, [teamId, invalidate]);
 
   const prospectsQuery = useQuery("/prospects/partial/{teamId}", {
-    queryKey: ["partial-prospects", teamId, currentCursor ?? "first-page"],
+    queryKey: ["partial-prospects", teamId, `page-${pageIndex}`],
     parameters: {
       teamId,
       include: dataFields.map((x) => x.id).join(","),
@@ -52,7 +52,7 @@ export default function ProspectsTable() {
 
     const newToken = prospectsQuery.data.cursorToken;
     addCursor(newToken);
-  }, [prospectsQuery.data?.cursorToken, addCursor]);
+  }, [prospectsQuery, addCursor]);
 
   const mappedProspects = useMemo(
     () =>

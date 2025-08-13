@@ -17,7 +17,8 @@ export const useProspectTableStore = create<ProspectTableStore>()((set) => ({
   setPageIndex: (newPageIndex: number) =>
     set((x) => ({
       pageIndex: newPageIndex,
-      currentCursor: x.pageCursors[newPageIndex - 1] ?? null,
+      currentCursor:
+        newPageIndex < 1 ? null : (x.pageCursors[newPageIndex - 1] ?? null),
     })),
   addCursor: (cursor: string) =>
     set((state) =>

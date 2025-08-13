@@ -12,11 +12,11 @@ export function useInvalidateProspectTable() {
   return useCallback(async () => {
     if (!activeTeam) return;
 
+    clearCursors();
+    setPageIndex(0);
+
     await queryClient.invalidateQueries({
       queryKey: ["partial-prospects", activeTeam.id],
     });
-
-    clearCursors();
-    setPageIndex(0);
   }, [activeTeam, setPageIndex, clearCursors, queryClient]);
 }
