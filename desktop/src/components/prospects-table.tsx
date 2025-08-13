@@ -48,10 +48,6 @@ export default function ProspectsTable() {
   });
 
   useEffect(() => {
-    console.log(dataFields);
-  }, [dataFields]);
-
-  useEffect(() => {
     if (!prospectsQuery.data?.cursorToken) return;
 
     const newToken = prospectsQuery.data.cursorToken;

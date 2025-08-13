@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useShortcut } from "@/hooks/use-shortcut";
 import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
 import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
 import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import { cn } from "@/lib/utils";
@@ -32,10 +33,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useQueryClient } from "@tanstack/react-query";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -45,8 +46,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
-import { useQueryClient } from "@tanstack/react-query";
 
 type EditProspectListViewItemDialogProps = {
   isOpen: boolean;
@@ -148,9 +147,34 @@ export default function EditProspectListViewItemDialog({
       return listViewIndex !== -1 && listViewIndex !== index;
     });
 
-    const promise = Promise.all([
-      addedFields.length > 0 &&
-        sendApiRequest("/prospect-views", {
+    let success = false;
+
+    if (
+      movedFields.length > 0 ||
+      (removedFields.length > 0 && addedFields.length > 0)
+    ) {
+      const { isOk } = await sendApiRequest(
+        "/prospect-views/{teamId}/replace-all",
+        {
+          method: "put",
+          parameters: {
+            teamId,
+          },
+          payload: {
+            items: selectedFields.map((x) => ({
+              id: x.id,
+              type: x.type,
+              teamId,
+            })),
+          },
+        },
+      );
+
+      success = isOk;
+    } else if (addedFields.length > 0) {
+      const { isOk } = await sendApiRequest(
+        "/prospect-views",
+        {
           method: "post",
           payload: {
             items: addedFields.map((x) => ({
@@ -159,36 +183,44 @@ export default function EditProspectListViewItemDialog({
               teamId,
             })),
           },
-        }),
-      removedFields.length > 0 &&
-        sendApiRequest("/prospect-views/{teamId}", {
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            loading: "Saving changes to list view, please wait...",
+            success: "Successfully saved changes to list view",
+            error: (x: Error) =>
+              x.message || "Failed to save, please try again",
+          },
+        },
+      );
+
+      success = isOk;
+    } else if (removedFields.length > 0) {
+      const { isOk } = await sendApiRequest(
+        "/prospect-views/{teamId}",
+        {
           method: "delete",
           parameters: {
             teamId,
             ids: removedFields.map((x) => x.id).join(","),
           },
-        }),
-    ]);
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            loading: "Saving changes to list view, please wait...",
+            success: "Successfully saved changes to list view",
+            error: (x: Error) =>
+              x.message || "Failed to save, please try again",
+          },
+        },
+      );
 
-    toast.promise(
-      promise.then(([x, y]) => {
-        if (x && !x.isOk) throw new Error(x.error?.message);
-        if (y && !y.isOk) throw new Error(y.error?.message);
-      }),
-      {
-        loading: "Saving changes to list view, please wait...",
-        success: "Successfully saved changes to list view",
-        error: (x: Error) => x.message || "Failed to save, please try again",
-      },
-    );
+      success = isOk;
+    }
 
-    const success = await promise.then(
-      ([x, y]) => (!x || x.isOk) && (!y || y.isOk),
-    );
     if (!success) return;
-
-    // TODO: Figure this out
-    console.log("Moved Fields:", movedFields);
 
     await queryClient.setQueryData(["default-prospect-view", teamId], {
       items: selectedFields,
