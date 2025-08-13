@@ -8,6 +8,9 @@ public class ProspectDataField
     public ProspectDataType Type { get; set; }
     public string? Value { get; set; }
 
-    public Guid ProspectId { get; set; }
+    public int ProspectId { get; set; }
     public Prospect Prospect { get; set; } = null!;
+
+    public Guid TeamId { get; set; }
+    public Team Team { get; set; } = null!;
 }

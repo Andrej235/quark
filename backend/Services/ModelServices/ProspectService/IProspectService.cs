@@ -21,7 +21,7 @@ public interface IProspectService
         ClaimsPrincipal claims
     );
 
-    Task<Result<ProspectResponseDto>> GetFull(Guid teamId, Guid prospectId, ClaimsPrincipal claims);
+    Task<Result<ProspectResponseDto>> GetFull(Guid teamId, int prospectId, ClaimsPrincipal claims);
 
     Task<Result> Update(UpdateProspectRequestDto request, ClaimsPrincipal claims);
 }

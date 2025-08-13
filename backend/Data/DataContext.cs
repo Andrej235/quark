@@ -143,7 +143,7 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
         builder.Entity<Prospect>(prospect =>
         {
-            prospect.HasKey(x => x.Id);
+            prospect.HasKey(x => new { x.TeamId, x.Id });
 
             prospect
                 .HasOne(x => x.Layout)
@@ -156,16 +156,29 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
                 .WithMany()
                 .HasForeignKey(x => x.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            prospect.HasIndex(x => new { x.Archived, x.TeamId });
         });
 
         builder.Entity<ProspectDataField>(field =>
         {
-            field.HasKey(x => new { x.Id, x.ProspectId });
+            field.HasKey(x => new
+            {
+                x.Id,
+                x.ProspectId,
+                x.TeamId,
+            });
 
             field
                 .HasOne(x => x.Prospect)
                 .WithMany(x => x.Fields)
-                .HasForeignKey(x => x.ProspectId)
+                .HasForeignKey(x => new { x.TeamId, x.ProspectId })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            field
+                .HasOne(x => x.Team)
+                .WithMany()
+                .HasForeignKey(x => x.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

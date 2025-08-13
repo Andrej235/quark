@@ -15,6 +15,7 @@ public partial class ProspectService
                 Id = x.Id,
                 Value = x.Value,
                 ProspectId = request.ProspectId,
+                TeamId = request.TeamId,
                 Type = x.Type,
             })
         );

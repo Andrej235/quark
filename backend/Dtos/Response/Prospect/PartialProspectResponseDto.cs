@@ -2,6 +2,7 @@ namespace Quark.Dtos.Response.Prospect;
 
 public class PartialProspectResponseDto
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
+    public Guid TeamId { get; set; }
     public IEnumerable<ProspectFieldResponseDto> Fields { get; set; } = [];
 }

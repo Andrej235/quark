@@ -2,5 +2,5 @@ namespace Quark.Dtos.Response.Prospect;
 
 public class CreateProspectResponseDto
 {
-    public Guid Id { get; set; }
+    public int Id { get; set; }
 }

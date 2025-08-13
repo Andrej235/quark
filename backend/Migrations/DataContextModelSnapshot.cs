@@ -230,26 +230,28 @@ namespace Quark.Migrations
 
             modelBuilder.Entity("Quark.Models.Prospect", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("TeamId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Archived")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("LayoutId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TeamId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("TeamId1")
                         .HasColumnType("uuid");
 
-                    b.HasKey("Id");
+                    b.HasKey("TeamId", "Id");
 
                     b.HasIndex("LayoutId");
 
-                    b.HasIndex("TeamId");
-
                     b.HasIndex("TeamId1");
+
+                    b.HasIndex("Archived", "TeamId");
 
                     b.ToTable("Prospect");
                 });
@@ -259,7 +261,10 @@ namespace Quark.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ProspectId")
+                    b.Property<int>("ProspectId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TeamId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Type")
@@ -268,9 +273,9 @@ namespace Quark.Migrations
                     b.Property<string>("Value")
                         .HasColumnType("text");
 
-                    b.HasKey("Id", "ProspectId");
+                    b.HasKey("Id", "ProspectId", "TeamId");
 
-                    b.HasIndex("ProspectId");
+                    b.HasIndex("TeamId", "ProspectId");
 
                     b.ToTable("ProspectDataField");
                 });
@@ -560,13 +565,21 @@ namespace Quark.Migrations
 
             modelBuilder.Entity("Quark.Models.ProspectDataField", b =>
                 {
+                    b.HasOne("Quark.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Quark.Models.Prospect", "Prospect")
                         .WithMany("Fields")
-                        .HasForeignKey("ProspectId")
+                        .HasForeignKey("TeamId", "ProspectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Prospect");
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("Quark.Models.ProspectListViewItem", b =>

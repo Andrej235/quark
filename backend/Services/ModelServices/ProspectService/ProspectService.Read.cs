@@ -47,7 +47,7 @@ public partial class ProspectService
 
     public Task<Result<ProspectResponseDto>> GetFull(
         Guid teamId,
-        Guid prospectId,
+        int prospectId,
         ClaimsPrincipal claims
     )
     {
