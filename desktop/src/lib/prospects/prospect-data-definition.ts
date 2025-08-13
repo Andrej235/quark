@@ -8,6 +8,6 @@ export type ProspectFieldDefinition = {
 };
 
 export type Prospect = {
-  id: string;
+  id: number;
   fields: SlotData[];
 };

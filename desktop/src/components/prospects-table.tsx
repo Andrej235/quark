@@ -2,7 +2,7 @@ import useQuery from "@/api-dsl/use-query";
 import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import toTitleCase from "@/lib/title-case";
-import { useProspectTableStore } from "@/stores/prospect-table-store";
+import { useProspectTable } from "@/lib/use-prospect-table";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
@@ -19,28 +19,34 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-export default function ProspectsTable() {
+export default function ProspectsTable({
+  archived = false,
+}: {
+  archived?: boolean;
+}) {
   const [dataFields] = useProspectView();
 
   const teamId = useTeamStore().activeTeam?.id ?? "";
 
-  const pageIndex = useProspectTableStore((x) => x.pageIndex);
-  const setPageIndex = useProspectTableStore((x) => x.setPageIndex);
-
-  const currentCursor = useProspectTableStore((x) => x.currentCursor);
-  const addCursor = useProspectTableStore((x) => x.addCursor);
+  const { addCursor, currentCursor, pageIndex, setPageIndex } =
+    useProspectTable();
 
   const invalidate = useInvalidateProspectTable();
   useEffect(() => {
     if (teamId) invalidate();
   }, [teamId, invalidate]);
 
+  const archivedKey = useMemo(
+    () => (archived ? "archived" : "not-archived"),
+    [archived],
+  );
   const prospectsQuery = useQuery("/prospects/partial/{teamId}", {
-    queryKey: ["partial-prospects", teamId, `page-${pageIndex}`],
+    queryKey: ["partial-prospects", teamId, archivedKey, `page-${pageIndex}`],
     parameters: {
       teamId,
       include: dataFields.map((x) => x.id).join(","),
       sortBy: dataFields[0]?.id,
+      archived: archived,
       ...(currentCursor && { cursor: currentCursor }),
     },
     enabled: !!teamId && dataFields.length > 0,
@@ -57,7 +63,7 @@ export default function ProspectsTable() {
   const mappedProspects = useMemo(
     () =>
       prospectsQuery.data?.items.map((x) => ({
-        id: x.id,
+        id: x.id.toString(),
         ...Object.fromEntries(x.fields.map((y) => [y.id, y.value])),
       })),
     [prospectsQuery],

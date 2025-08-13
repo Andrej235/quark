@@ -18,6 +18,7 @@ public interface IProspectService
         string sortBy,
         string include,
         string? cursorToken,
+        bool archived,
         ClaimsPrincipal claims
     );
 

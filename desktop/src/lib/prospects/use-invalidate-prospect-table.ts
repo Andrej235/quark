@@ -16,7 +16,7 @@ export function useInvalidateProspectTable() {
     setPageIndex(0);
 
     await queryClient.invalidateQueries({
-      queryKey: ["partial-prospects", activeTeam.id],
+      queryKey: ["partial-prospects", activeTeam.id, "not-archived"],
     });
   }, [activeTeam, setPageIndex, clearCursors, queryClient]);
 }

@@ -7,4 +7,6 @@ public class ProspectResponseDto
 
     public Guid? LayoutId { get; set; }
     public IEnumerable<ProspectFieldResponseDto> Fields { get; set; } = [];
+
+    public bool Archived { get; set; }
 }

@@ -1882,6 +1882,13 @@ export type ApiSpec={
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -1991,8 +1998,8 @@ export type ApiSpec={
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -2236,8 +2243,15 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "teamId": {
             "type": "string",
             "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
           },
           "fields": {
             "type": "array",
@@ -2310,6 +2324,10 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "teamId": {
             "type": "string",
             "format": "uuid"
           },
@@ -2323,6 +2341,9 @@ export type ApiSpec={
             "items": {
               "$ref": "#/components/schemas/ProspectFieldResponseDto"
             }
+          },
+          "archived": {
+            "type": "boolean"
           }
         }
       },
@@ -2497,8 +2518,8 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "prospectId": {
-            "type": "string",
-            "format": "uuid"
+            "type": "integer",
+            "format": "int32"
           },
           "teamId": {
             "type": "string",
