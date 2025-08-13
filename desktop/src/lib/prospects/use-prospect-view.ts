@@ -3,10 +3,7 @@ import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definitio
 import { useTeamStore } from "@/stores/team-store";
 import { useMemo } from "react";
 
-export function useProspectView(): readonly [
-  layout: ProspectFieldDefinition[],
-  revalidate: () => void,
-] {
+export function useProspectView() {
   const activeTeam = useTeamStore((x) => x.activeTeam);
 
   const viewQuery = useQuery("/prospect-views/{teamId}", {
@@ -29,5 +26,8 @@ export function useProspectView(): readonly [
     [view, viewQuery.refetch],
   );
 
-  return tuple;
+  return tuple as [
+    view: ProspectFieldDefinition[],
+    revalidate: typeof viewQuery.refetch,
+  ];
 }

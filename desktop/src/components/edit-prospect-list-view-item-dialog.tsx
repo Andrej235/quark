@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-ty
 import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
 import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import { cn } from "@/lib/utils";
+import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,
   DndContext,
@@ -32,7 +34,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -42,6 +45,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
+import { useQueryClient } from "@tanstack/react-query";
 
 type EditProspectListViewItemDialogProps = {
   isOpen: boolean;
@@ -52,13 +57,16 @@ export default function EditProspectListViewItemDialog({
   isOpen,
   requestClose,
 }: EditProspectListViewItemDialogProps) {
-  const [layoutQuery] = useProspectLayout();
+  const teamId = useTeamStore((x) => x.activeTeam?.id);
+  const [layout] = useProspectLayout();
   const allFields = useMemo(
-    () => (layoutQuery ? slotToProspectDataType(layoutQuery.root) : null),
-    [layoutQuery],
+    () => (layout ? slotToProspectDataType(layout.root) : null),
+    [layout],
   );
 
+  const queryClient = useQueryClient();
   const [listView] = useProspectView();
+  const invalidateProspectTable = useInvalidateProspectTable();
 
   const dragControls = useDragControls();
   const sensors = useSensors(
@@ -81,7 +89,10 @@ export default function EditProspectListViewItemDialog({
   );
 
   const unselectedListItems = useMemo(
-    () => allFields?.filter((field) => !selectedFields.includes(field)),
+    () =>
+      allFields?.filter(
+        (field) => !selectedFields.some((x) => x.id == field.id),
+      ),
     [allFields, selectedFields],
   );
 
@@ -95,9 +106,12 @@ export default function EditProspectListViewItemDialog({
     setSelectedFields(selectedFields.filter((x) => x.id !== field.id));
   }
 
+  const escapeToCloseEnabled = useRef(false);
   useShortcut({
     key: "Escape",
-    callback: requestClose,
+    callback: () => {
+      if (!escapeToCloseEnabled.current) requestClose();
+    },
     enabled: isOpen,
     preventDefault: true,
     stopPropagation: true,
@@ -118,11 +132,72 @@ export default function EditProspectListViewItemDialog({
     setSelectedFields(newChildren);
   }
 
-  function handleSave() {
-    if (selectedFields.length < 1) return;
+  async function handleSave() {
+    if (selectedFields.length < 1 || !teamId) return;
 
-    console.log(selectedFields);
-    requestClose();
+    const addedFields = selectedFields.filter(
+      (field) => !listView.some((x) => x.id === field.id),
+    );
+
+    const removedFields = listView.filter(
+      (field) => !selectedFields.some((x) => x.id === field.id),
+    );
+
+    const movedFields = selectedFields.filter((field, index) => {
+      const listViewIndex = listView.findIndex((x) => x.id === field.id);
+      return listViewIndex !== -1 && listViewIndex !== index;
+    });
+
+    const promise = Promise.all([
+      addedFields.length > 0 &&
+        sendApiRequest("/prospect-views", {
+          method: "post",
+          payload: {
+            items: addedFields.map((x) => ({
+              id: x.id,
+              type: x.type,
+              teamId,
+            })),
+          },
+        }),
+      removedFields.length > 0 &&
+        sendApiRequest("/prospect-views/{teamId}", {
+          method: "delete",
+          parameters: {
+            teamId,
+            ids: removedFields.map((x) => x.id).join(","),
+          },
+        }),
+    ]);
+
+    toast.promise(
+      promise.then(([x, y]) => {
+        if (x && !x.isOk) throw new Error(x.error?.message);
+        if (y && !y.isOk) throw new Error(y.error?.message);
+      }),
+      {
+        loading: "Saving changes to list view, please wait...",
+        success: "Successfully saved changes to list view",
+        error: (x: Error) => x.message || "Failed to save, please try again",
+      },
+    );
+
+    const success = await promise.then(
+      ([x, y]) => (!x || x.isOk) && (!y || y.isOk),
+    );
+    if (!success) return;
+
+    // TODO: Figure this out
+    console.log("Moved Fields:", movedFields);
+
+    await queryClient.setQueryData(["default-prospect-view", teamId], {
+      items: selectedFields,
+    });
+
+    setTimeout(async () => {
+      await invalidateProspectTable();
+      requestClose();
+    }, 150);
   }
 
   return (
@@ -192,7 +267,18 @@ export default function EditProspectListViewItemDialog({
             </SortableContext>
           </DndContext>
 
-          <Dialog open={isChoosingField} onOpenChange={setIsChoosingField}>
+          <Dialog
+            open={isChoosingField}
+            onOpenChange={(x) => {
+              setIsChoosingField(x);
+
+              if (x) escapeToCloseEnabled.current = true;
+              else
+                setTimeout(() => {
+                  escapeToCloseEnabled.current = x;
+                }, 250);
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" className="mx-auto size-8 rounded-full">
                 <Plus className="size-4" />
