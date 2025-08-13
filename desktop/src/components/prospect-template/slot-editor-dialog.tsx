@@ -24,6 +24,7 @@ import ButtonEditor from "./editors/button-editor";
 import CardHeaderEditor from "./editors/card-header-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
 import TextFieldEditor from "./editors/text-field-editor";
+import { cn } from "@/lib/utils";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);
@@ -143,7 +144,10 @@ export default function SlotEditorDialog() {
 
   return (
     <motion.div
-      className="-translate-1/2 fixed left-1/2 top-1/2"
+      className={cn(
+        "-translate-1/2 fixed left-1/2 top-1/2",
+        !isOpen && "pointer-events-none touch-none",
+      )}
       initial={{
         scale: 0.5,
         opacity: 0,

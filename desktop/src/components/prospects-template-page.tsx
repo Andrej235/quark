@@ -1,7 +1,8 @@
-import { useProspectsStore } from "@/stores/prospects-store";
+import sendApiRequest from "@/api-dsl/send-api-request";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { Save } from "lucide-react";
-import { useMemo } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
 import RenderSlotTree from "./prospect-template/render-slot-tree";
 import {
@@ -25,17 +26,49 @@ import {
 } from "./ui/card";
 
 export default function ProspectsTemplatePage() {
-  const template = useProspectsStore((x) => x.template);
-  const setTemplate = useProspectsStore((x) => x.setTemplate);
-  const templateCopy = useMemo(() => structuredClone(template), [template]);
+  const [template, revalidateTemplate] = useProspectLayout();
 
   const treeRoot = useSlotTreeRootStore((x) => x.slotTreeRoot);
-  function handleSave() {
-    if (!treeRoot) return;
+  const isWaitingForResponse = useRef(false);
+  async function handleSave() {
+    if (!treeRoot || !template) return;
 
-    setTemplate({ ...treeRoot });
-    toast.success("Template saved successfully!");
+    if (isWaitingForResponse.current) {
+      toast.info("Please wait, template is being saved", {
+        duration: 3000,
+      });
+      return;
+    }
+    isWaitingForResponse.current = true;
+
+    const { isOk } = await sendApiRequest(
+      "/prospect-layouts",
+      {
+        method: "put",
+        payload: {
+          id: template.id,
+          newJsonStructure: JSON.stringify(treeRoot),
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving template, please wait...",
+          success: "Template saved successfully!",
+          error: (x) =>
+            x.message || "Failed to save template, please try again",
+        },
+      },
+    );
+
+    if (isOk) revalidateTemplate();
+
+    setTimeout(() => {
+      isWaitingForResponse.current = false;
+    }, 300);
   }
+
+  if (!template) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -52,7 +85,7 @@ export default function ProspectsTemplatePage() {
       </CardHeader>
 
       <CardContent className="bg-transparent">
-        <RenderSlotTree slot={templateCopy} editMode />
+        <RenderSlotTree slot={template.root} editMode />
       </CardContent>
 
       <div className="fixed bottom-16 right-16">

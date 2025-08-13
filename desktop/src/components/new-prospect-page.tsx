@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import {
   Card,
   CardContent,
@@ -8,18 +9,21 @@ import {
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
-import { useProspectsStore } from "@/stores/prospects-store";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { useTeamStore } from "@/stores/team-store";
 import { useCallback, useMemo, useState } from "react";
-import { Button } from "./ui/button";
-import RenderSlotTree from "./prospect-template/render-slot-tree";
-import { Prospect } from "@/lib/prospects/prospect-data-definition";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import RenderSlotTree from "./prospect-template/render-slot-tree";
+import { Button } from "./ui/button";
 
 export default function NewProspectsPage() {
+  const activeTeam = useTeamStore((x) => x.activeTeam);
+  const [layout] = useProspectLayout();
+
   const navigate = useNavigate();
-  const template = useProspectsStore((x) => x.template);
-  const setProspects = useProspectsStore((x) => x.setProspects);
+  const invalidateProspectTable = useInvalidateProspectTable();
 
   const [subscribedSlots, setSubscribedSlots] = useState<
     (() => SlotData | null)[]
@@ -40,18 +44,41 @@ export default function NewProspectsPage() {
     [subscribedSlots, subscribe],
   );
 
-  function handleSave() {
+  async function handleSave() {
+    if (!activeTeam) {
+      toast.error("Please choose a team first");
+      return;
+    }
+
     const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
 
-    navigate("/prospects");
-    toast.success("Prospect created successfully!");
+    const { isOk } = await sendApiRequest(
+      "/prospects",
+      {
+        method: "post",
+        payload: {
+          teamId: activeTeam.id,
+          fields: values,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving prospect, please wait...",
+          success: "Prospect saved successfully!",
+          error: (x) =>
+            x.message || "Failed to save prospect, please try again",
+        },
+      },
+    );
 
-    const newProspect: Prospect = {
-      id: Date.now().toString(),
-      fields: values,
-    };
-    setProspects((x) => [...x, newProspect]);
+    if (!isOk) return;
+
+    await invalidateProspectTable();
+    await navigate("/prospects");
   }
+
+  if (!layout) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -69,7 +96,7 @@ export default function NewProspectsPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={template} />
+          <RenderSlotTree slot={layout.root} />
         </slotEventSystemContext.Provider>
       </CardContent>
 

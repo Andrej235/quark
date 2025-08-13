@@ -1,14 +1,13 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { appType } from "@/lib/app-type";
 import { LocalDataStore } from "@/lib/local-data-store";
-import { localStorageStore } from "@/lib/local-storage-store";
 import { appDataDir } from "@tauri-apps/api/path";
 import { Client, Stronghold } from "@tauri-apps/plugin-stronghold";
 import { create } from "zustand";
 
-const appType = "__TAURI_INTERNALS__" in window ? "desktop" : "web";
-
 const REFRESH_TOKEN_KEY = "refresh_token";
 const JWT_KEY = "jwt";
+const cookieBasedAuth = appType === "web";
 
 type AuthStore = {
   stronghold: Stronghold | null;
@@ -31,6 +30,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   refreshPromise: null,
 
   initStorage: async () => {
+    if (cookieBasedAuth) return;
     get().stronghold?.unload();
 
     if (appType !== "desktop") return;
@@ -56,6 +56,8 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   getJwt: async () => {
+    if (cookieBasedAuth) return null;
+
     try {
       const store = await get().getStore();
 
@@ -104,12 +106,12 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
         // Try to refresh the JWT
         const { error, response, code } = await sendApiRequest(
-          "/user/refresh",
+          "/users/refresh",
           {
             method: "post",
             payload: {
-              jwtToken: jwt,
-              refreshTokenId: refreshToken,
+              jwt: jwt!,
+              refreshToken: refreshToken,
             },
           },
           {
@@ -120,7 +122,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
         // Failed to refresh, either the user has mismatched claims or the refresh token is expired, log them out
         if (error || !response) {
           console.error(
-            `Failed to refresh JWT (${code}):`,
+            `Failed to refresh JWT (${code.toString()}):`,
             error?.message || "No response",
           );
 
@@ -131,10 +133,10 @@ const useAuthStore = create<AuthStore>((set, get) => ({
           return null;
         }
 
-        get().setRefreshToken(response.refreshTokenId);
-        get().setJwt(response.jwtToken);
+        get().setRefreshToken(response.refreshToken);
+        get().setJwt(response.jwt);
         set({ refreshPromise: null });
-        return response.jwtToken;
+        return response.jwt;
       }
 
       const promise = refresh();
@@ -148,6 +150,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   setJwt: async (jwt) => {
+    if (cookieBasedAuth) return;
     set({ localJwt: jwt });
 
     try {
@@ -165,6 +168,8 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   setRefreshToken: async (refreshToken) => {
+    if (cookieBasedAuth) return;
+
     try {
       const store = await get().getStore();
 
@@ -182,6 +187,23 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
   logOut: async () => {
     try {
+      if (cookieBasedAuth) {
+        await sendApiRequest(
+          "/users/logout/cookie",
+          {
+            method: "post",
+          },
+          {
+            showToast: true,
+            toastOptions: {
+              success: "Successfully logged out.",
+            },
+          },
+        );
+
+        return;
+      }
+
       const { client, stronghold } = get();
       if (!client || !stronghold) {
         await get().initStorage();
@@ -197,11 +219,11 @@ const useAuthStore = create<AuthStore>((set, get) => ({
 
       Promise.all([
         sendApiRequest(
-          "/user/logout/{refresh_token_id}",
+          "/users/logout/token",
           {
             method: "post",
-            parameters: {
-              refresh_token_id: refreshToken,
+            payload: {
+              refreshToken,
             },
           },
           {
@@ -220,7 +242,7 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   getStore: async () => {
-    if (appType === "web") return localStorageStore;
+    if (cookieBasedAuth) return null!;
 
     const { client, stronghold } = get();
     if (!client || !stronghold) await get().initStorage();
@@ -240,8 +262,15 @@ const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   getIsLoggedIn: async () => {
-    const jwt = await get().getJwt();
-    return !!jwt;
+    if (!cookieBasedAuth) {
+      const jwt = await get().getJwt();
+      return !!jwt;
+    }
+
+    const { isOk } = await sendApiRequest("/users/check-auth", {
+      method: "get",
+    });
+    return isOk;
   },
 }));
 

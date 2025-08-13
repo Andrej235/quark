@@ -1,8 +1,13 @@
+import useQuery from "@/api-dsl/use-query";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
+import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import toTitleCase from "@/lib/title-case";
-import { useProspectsStore } from "@/stores/prospects-store";
+import { useProspectTableStore } from "@/stores/prospect-table-store";
+import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { DataTable } from "./data-table";
 import { Button } from "./ui/button";
 import {
@@ -13,35 +18,60 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Link } from "react-router-dom";
 
 export default function ProspectsTable() {
-  const prospects = useProspectsStore((x) => x.prospects);
-  const setProspects = useProspectsStore((x) => x.setProspects);
-  const dataFields = useProspectsStore((x) => x.listView);
+  const [dataFields] = useProspectView();
+
+  const teamId = useTeamStore().activeTeam?.id ?? "";
+
+  const pageIndex = useProspectTableStore((x) => x.pageIndex);
+  const setPageIndex = useProspectTableStore((x) => x.setPageIndex);
+
+  const currentCursor = useProspectTableStore((x) => x.currentCursor);
+  const addCursor = useProspectTableStore((x) => x.addCursor);
+
+  const invalidate = useInvalidateProspectTable();
+  useEffect(() => {
+    if (teamId) invalidate();
+  }, [teamId, invalidate]);
+
+  const prospectsQuery = useQuery("/prospects/partial/{teamId}", {
+    queryKey: ["partial-prospects", teamId, `page-${pageIndex}`],
+    parameters: {
+      teamId,
+      include: dataFields.map((x) => x.id).join(","),
+      sortBy: dataFields[0]?.id,
+      ...(currentCursor && { cursor: currentCursor }),
+    },
+    enabled: !!teamId && dataFields.length > 0,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (!prospectsQuery.data?.cursorToken) return;
+
+    const newToken = prospectsQuery.data.cursorToken;
+    addCursor(newToken);
+  }, [prospectsQuery, addCursor]);
 
   const mappedProspects = useMemo(
     () =>
-      prospects.map((x) => ({
+      prospectsQuery.data?.items.map((x) => ({
         id: x.id,
         ...Object.fromEntries(x.fields.map((y) => [y.id, y.value])),
       })),
-    [prospects],
+    [prospectsQuery],
   );
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      setProspects((x) => x.filter((x) => x.id !== id));
-    },
-    [setProspects],
-  );
+  const handleDelete = useCallback((id: string) => {
+    console.log("delete", id);
+  }, []);
 
-  const columns = useMemo<ColumnDef<(typeof mappedProspects)[number]>[]>(() => {
-    const columns: ColumnDef<(typeof mappedProspects)[number]>[] =
-      dataFields.map((x) => ({
-        header: toTitleCase(x.id.replace("-", " ")),
-        accessorKey: x.id,
-      }));
+  const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
+    const columns: ColumnDef<{ id: string }>[] = dataFields.map((x) => ({
+      header: toTitleCase(x.id.replace("-", " ")),
+      accessorKey: x.id,
+    }));
 
     columns.push({
       header: "Actions",
@@ -90,5 +120,14 @@ export default function ProspectsTable() {
     return columns;
   }, [dataFields, handleDelete]);
 
-  return <DataTable columns={columns} data={mappedProspects} />;
+  return (
+    <DataTable
+      columns={columns}
+      data={mappedProspects ?? []}
+      pageIndex={pageIndex}
+      setPageIndex={setPageIndex}
+      hasMore={prospectsQuery.data?.hasMore ?? false}
+      isLoading={prospectsQuery.isLoading}
+    />
+  );
 }

@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import {
   Card,
   CardContent,
@@ -7,8 +8,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useShortcut } from "@/hooks/use-shortcut";
 import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
+import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import { cn } from "@/lib/utils";
+import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,
   DndContext,
@@ -26,9 +33,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useQueryClient } from "@tanstack/react-query";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -38,23 +46,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
-import { useShortcut } from "@/hooks/use-shortcut";
 
 type EditProspectListViewItemDialogProps = {
   isOpen: boolean;
   requestClose: () => void;
-  fullPropsectDataDefinition: ProspectFieldDefinition[];
-  listView: ProspectFieldDefinition[];
-  setListView: (listView: ProspectFieldDefinition[]) => void;
 };
 
 export default function EditProspectListViewItemDialog({
   isOpen,
-  fullPropsectDataDefinition: allFields,
-  listView,
-  setListView,
   requestClose,
 }: EditProspectListViewItemDialogProps) {
+  const teamId = useTeamStore((x) => x.activeTeam?.id);
+  const [layout] = useProspectLayout();
+  const allFields = useMemo(
+    () => (layout ? slotToProspectDataType(layout.root) : null),
+    [layout],
+  );
+
+  const queryClient = useQueryClient();
+  const [listView] = useProspectView();
+  const invalidateProspectTable = useInvalidateProspectTable();
+
   const dragControls = useDragControls();
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -76,7 +88,10 @@ export default function EditProspectListViewItemDialog({
   );
 
   const unselectedListItems = useMemo(
-    () => allFields.filter((field) => !selectedFields.includes(field)),
+    () =>
+      allFields?.filter(
+        (field) => !selectedFields.some((x) => x.id == field.id),
+      ),
     [allFields, selectedFields],
   );
 
@@ -90,9 +105,12 @@ export default function EditProspectListViewItemDialog({
     setSelectedFields(selectedFields.filter((x) => x.id !== field.id));
   }
 
+  const escapeToCloseEnabled = useRef(false);
   useShortcut({
     key: "Escape",
-    callback: requestClose,
+    callback: () => {
+      if (!escapeToCloseEnabled.current) requestClose();
+    },
     enabled: isOpen,
     preventDefault: true,
     stopPropagation: true,
@@ -113,16 +131,113 @@ export default function EditProspectListViewItemDialog({
     setSelectedFields(newChildren);
   }
 
-  function handleSave() {
-    if (selectedFields.length < 1) return;
+  async function handleSave() {
+    if (selectedFields.length < 1 || !teamId) return;
 
-    setListView(selectedFields);
-    requestClose();
+    const addedFields = selectedFields.filter(
+      (field) => !listView.some((x) => x.id === field.id),
+    );
+
+    const removedFields = listView.filter(
+      (field) => !selectedFields.some((x) => x.id === field.id),
+    );
+
+    const movedFields = selectedFields.filter((field, index) => {
+      const listViewIndex = listView.findIndex((x) => x.id === field.id);
+      return listViewIndex !== -1 && listViewIndex !== index;
+    });
+
+    let success = false;
+
+    if (
+      movedFields.length > 0 ||
+      (removedFields.length > 0 && addedFields.length > 0)
+    ) {
+      const { isOk } = await sendApiRequest(
+        "/prospect-views/{teamId}/replace-all",
+        {
+          method: "put",
+          parameters: {
+            teamId,
+          },
+          payload: {
+            items: selectedFields.map((x) => ({
+              id: x.id,
+              type: x.type,
+              teamId,
+            })),
+          },
+        },
+      );
+
+      success = isOk;
+    } else if (addedFields.length > 0) {
+      const { isOk } = await sendApiRequest(
+        "/prospect-views",
+        {
+          method: "post",
+          payload: {
+            items: addedFields.map((x) => ({
+              id: x.id,
+              type: x.type,
+              teamId,
+            })),
+          },
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            loading: "Saving changes to list view, please wait...",
+            success: "Successfully saved changes to list view",
+            error: (x: Error) =>
+              x.message || "Failed to save, please try again",
+          },
+        },
+      );
+
+      success = isOk;
+    } else if (removedFields.length > 0) {
+      const { isOk } = await sendApiRequest(
+        "/prospect-views/{teamId}",
+        {
+          method: "delete",
+          parameters: {
+            teamId,
+            ids: removedFields.map((x) => x.id).join(","),
+          },
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            loading: "Saving changes to list view, please wait...",
+            success: "Successfully saved changes to list view",
+            error: (x: Error) =>
+              x.message || "Failed to save, please try again",
+          },
+        },
+      );
+
+      success = isOk;
+    }
+
+    if (!success) return;
+
+    await queryClient.setQueryData(["default-prospect-view", teamId], {
+      items: selectedFields,
+    });
+
+    setTimeout(async () => {
+      await invalidateProspectTable();
+      requestClose();
+    }, 150);
   }
 
   return (
     <motion.div
-      className="-translate-1/2 fixed left-1/2 top-1/2"
+      className={cn(
+        "-translate-1/2 fixed left-1/2 top-1/2",
+        !isOpen && "pointer-events-none touch-none",
+      )}
       initial={{
         scale: 0.5,
         opacity: 0,
@@ -184,7 +299,18 @@ export default function EditProspectListViewItemDialog({
             </SortableContext>
           </DndContext>
 
-          <Dialog open={isChoosingField} onOpenChange={setIsChoosingField}>
+          <Dialog
+            open={isChoosingField}
+            onOpenChange={(x) => {
+              setIsChoosingField(x);
+
+              if (x) escapeToCloseEnabled.current = true;
+              else
+                setTimeout(() => {
+                  escapeToCloseEnabled.current = x;
+                }, 250);
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" className="mx-auto size-8 rounded-full">
                 <Plus className="size-4" />
@@ -201,9 +327,11 @@ export default function EditProspectListViewItemDialog({
               </DialogHeader>
 
               <div className="flex flex-col">
-                {unselectedListItems.length === 0 && <p>No fields available</p>}
+                {unselectedListItems?.length === 0 && (
+                  <p>No fields available</p>
+                )}
 
-                {unselectedListItems.map((field) => (
+                {unselectedListItems?.map((field) => (
                   <Button
                     variant="ghost"
                     className="justify-start"

@@ -13,17 +13,25 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "./ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "./ui/button";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  pageIndex: number;
+  setPageIndex: (newPageIndex: number) => void;
+  hasMore: boolean;
+  isLoading: boolean;
 };
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  pageIndex,
+  setPageIndex,
+  hasMore,
+  isLoading,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -32,6 +40,16 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
     pageCount: -1,
+    onPaginationChange: (updater) => {
+      const newPagination =
+        typeof updater === "function"
+          ? updater({ pageIndex, pageSize: 15 })
+          : updater;
+      setPageIndex(newPagination.pageIndex);
+    },
+    state: {
+      pagination: { pageIndex, pageSize: 15 },
+    },
   });
 
   return (
@@ -84,7 +102,7 @@ export function DataTable<TData, TValue>({
           variant="outline"
           size="icon"
           onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          disabled={pageIndex === 0}
         >
           <ChevronLeft />
           <span className="sr-only">Previous</span>
@@ -96,7 +114,7 @@ export function DataTable<TData, TValue>({
           variant="outline"
           size="icon"
           onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          disabled={!hasMore || isLoading}
         >
           <ChevronRight />
           <span className="sr-only">Next</span>

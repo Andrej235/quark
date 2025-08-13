@@ -23,7 +23,7 @@ export default function App() {
     retry: false,
   });
 
-  const userQuery = useQuery("/user/me", {
+  const userQuery = useQuery("/users/me", {
     queryKey: ["user"],
     enabled: !!isLoggedIn.data,
     retry: false,
@@ -34,6 +34,9 @@ export default function App() {
 
     if (location !== "/login" && location !== "/signup" && !isLoggedIn.data)
       navigate("/login");
+
+    if ((location === "/login" || location === "/signup") && isLoggedIn.data)
+      navigate("/");
   }, [isLoggedIn.data, isLoggedIn.isLoading, navigate, location]);
 
   useEffect(() => {
@@ -57,8 +60,8 @@ export default function App() {
       cameFromVerifyPage;
 
     const hasTeams =
-      (user && sameUser && user.teamsInfo.length > 0) ||
-      (!sameUser && userQuery.data.teamsInfo.length > 0);
+      (user && sameUser && user.teams.length > 0) ||
+      (!sameUser && userQuery.data.teams.length > 0);
 
     if (cameFromVerifyPage && user && sameUser && !user.isEmailVerified) {
       setUser({ ...user, isEmailVerified: true });

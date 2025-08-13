@@ -39,9 +39,12 @@ export default function ConfirmEmailInstructions() {
     sentVerification.current = true;
 
     const response = await sendApiRequest(
-      "/user/email/send-verification",
+      "/users/resend-confirmation-email",
       {
-        method: "get",
+        method: "post",
+        parameters: {
+          email: user?.email,
+        },
       },
       {
         showToast: true,
@@ -67,12 +70,12 @@ export default function ConfirmEmailInstructions() {
     setOtp("");
 
     const { isOk } = await sendApiRequest(
-      "/user/email/verify/{email}/{code}",
+      "/users/confirm-email",
       {
-        method: "get",
-        parameters: {
+        method: "post",
+        payload: {
           email: user.email,
-          code: otp,
+          token: otp,
         },
       },
       {

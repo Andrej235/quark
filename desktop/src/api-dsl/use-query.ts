@@ -27,8 +27,8 @@ export default function useQuery<Route extends GetRoutes>(
   options?: Options<Route>,
 ): ReturnType<typeof useTanQuery<UnwrappedApiResponse<Route, "get">>> {
   return useTanQuery({
-    queryFn: () =>
-      sendApiRequest(
+    queryFn: async () => {
+      const x = await sendApiRequest(
         route,
         {
           method: "get",
@@ -44,11 +44,11 @@ export default function useQuery<Route extends GetRoutes>(
               ? options.toastOptions
               : undefined,
         },
-      ).then((x) => {
-        if (x?.isOk) return x.response;
+      );
 
-        throw new Error(x?.error?.message ?? "Something went wrong");
-      }),
+      if (x?.isOk) return x.response;
+      throw new Error(x?.error?.message ?? "Something went wrong");
+    },
     refetchOnWindowFocus: false,
     ...options,
     queryKey: options?.queryKey ?? [route],

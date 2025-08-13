@@ -1,5 +1,6 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,6 @@ import {
   ChevronsUpDown,
   LogOut,
   LucideCheckCircle,
-  LucideUsers2,
   Plus,
   Star,
 } from "lucide-react";
@@ -56,7 +56,7 @@ export function TeamSwitcher() {
   const activeTeam = useTeamStore((x) => x.activeTeam);
   const setActiveTeam = useTeamStore((x) => x.setActiveTeam);
 
-  const teams = useMemo(() => user?.teamsInfo ?? [], [user?.teamsInfo]);
+  const teams = useMemo(() => user?.teams ?? [], [user?.teams]);
   const defaultTeam = useMemo(
     () => teams.find((x) => x.id === (user?.defaultTeamId ?? teams[0]?.id)),
     [teams, user?.defaultTeamId],
@@ -72,18 +72,18 @@ export function TeamSwitcher() {
     [defaultTeam, setActiveTeam, activeTeam, teams],
   );
 
-  async function handleSetSetDefault(team: Schema<"TeamInfoDTO">) {
+  async function handleSetSetDefault(team: Schema<"TeamResponseDto">) {
     if (team.id === user?.defaultTeamId) {
       toast.info("Team already set as default");
       return;
     }
 
     const { isOk } = await sendApiRequest(
-      "/user/me/default-team/{team_id}",
+      "/users/set-default-team/{teamId}",
       {
         method: "patch",
         parameters: {
-          team_id: team.id,
+          teamId: team.id,
         },
       },
       {
@@ -100,18 +100,21 @@ export function TeamSwitcher() {
     setUser({ ...user!, defaultTeamId: team.id });
   }
 
-  async function handleLeaveTeam(team: Schema<"TeamInfoDTO">) {
+  async function handleLeaveTeam(team: Schema<"TeamResponseDto">) {
     if (!user) return;
 
     const isDefault = defaultTeam === team;
 
     if (isDefault && teams.length > 1) {
-      const { isOk } = await sendApiRequest("/user/me/default-team/{team_id}", {
-        method: "patch",
-        parameters: {
-          team_id: teams[0]?.id,
+      const { isOk } = await sendApiRequest(
+        "/users/set-default-team/{teamId}",
+        {
+          method: "patch",
+          parameters: {
+            teamId: teams[0]?.id,
+          },
         },
-      });
+      );
 
       if (!isOk) {
         toast.error("Failed to leave team");
@@ -121,16 +124,16 @@ export function TeamSwitcher() {
 
     if (activeTeam === team) {
       setActiveTeam(
-        isDefault ? (user.teamsInfo[0] ?? null) : (defaultTeam ?? null),
+        isDefault ? (user.teams[0] ?? null) : (defaultTeam ?? null),
       );
     }
 
     const { isOk } = await sendApiRequest(
-      "/team/{team_id}",
+      "/users/leave-team/{teamId}",
       {
         method: "delete",
         parameters: {
-          team_id: team.id,
+          teamId: team.id,
         },
       },
       {
@@ -146,9 +149,9 @@ export function TeamSwitcher() {
 
     setUser({
       ...user,
-      teamsInfo: user.teamsInfo.filter((x) => x.id !== team.id),
+      teams: user.teams.filter((x) => x.id !== team.id),
       defaultTeamId: isDefault
-        ? (user.teamsInfo[0]?.id ?? null)
+        ? (user.teams[0]?.id ?? null)
         : (defaultTeam?.id ?? null),
     });
   }
@@ -168,8 +171,16 @@ export function TeamSwitcher() {
             asChild
           >
             <DropdownMenuTrigger>
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <LucideUsers2 className="size-4" />
+              <div className="text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <Avatar className="size-8 rounded-lg">
+                  <AvatarImage
+                    src={activeTeam.logo ?? undefined}
+                    alt={activeTeam.name}
+                  />
+                  <AvatarFallback className="rounded-lg">
+                    {activeTeam.name[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </div>
 
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -198,7 +209,15 @@ export function TeamSwitcher() {
                     className="gap-2 p-2"
                   >
                     <div className="flex size-6 items-center justify-center rounded-md border">
-                      <LucideUsers2 className="size-3.5 shrink-0" />
+                      <Avatar className="size-3.5 shrink-0 rounded-lg">
+                        <AvatarImage
+                          src={team.logo ?? undefined}
+                          alt={team.name}
+                        />
+                        <AvatarFallback className="rounded-lg">
+                          {activeTeam.name[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                     </div>
                     {team.name}
                     <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>

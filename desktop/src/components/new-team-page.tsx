@@ -1,4 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,6 +97,9 @@ function CreateTeam() {
   const queryClient = useQueryClient();
 
   const user = useUserStore((x) => x.user);
+  const setUser = useUserStore((x) => x.setUser);
+  const [createdTeam, setCreatedTeam] =
+    useState<Schema<"TeamResponseDto"> | null>(null);
   const logOut = useAuthStore((x) => x.logOut);
   const navigate = useNavigate();
 
@@ -125,13 +129,16 @@ function CreateTeam() {
   const handlePlanSelection = async () => {
     setStep(3);
 
-    const { isOk } = await sendApiRequest(
-      "/team",
+    if (!user) return;
+
+    const { isOk, response } = await sendApiRequest(
+      "/teams",
       {
         method: "post",
         payload: {
           name: teamData.name,
           description: teamData.description,
+          logo: logoPreview,
         },
       },
       {
@@ -147,15 +154,18 @@ function CreateTeam() {
       },
     );
 
-    if (!isOk) return;
+    if (!isOk || !response) return;
 
-    await queryClient.refetchQueries({
-      queryKey: ["user"],
-      exact: true,
-    });
+    setUser({ ...user, teams: [...user.teams, response] });
+    setCreatedTeam(response);
   };
 
   const handleInvite = async () => {
+    if (!createdTeam) {
+      toast.error("Please choose a payment plan first");
+      return;
+    }
+
     if (!inviteEmail.trim()) {
       toast.error("Please enter an email address");
       return;
@@ -167,12 +177,11 @@ function CreateTeam() {
     }
 
     const { isOk } = await sendApiRequest(
-      "/team-invitations",
+      "/teams/invite",
       {
         method: "post",
         payload: {
-          // TODO: Change this to an actual id returned by the backend
-          teamId: user!.teamsInfo[user!.teamsInfo.length - 1].id,
+          teamId: createdTeam.id,
           email: inviteEmail,
         },
       },
@@ -469,15 +478,15 @@ function CreateTeam() {
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
                   src={user.profilePicture ?? undefined}
-                  alt={user.name}
+                  alt={user.firstName}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {user.name[0].toUpperCase()}
+                  {user.firstName[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{user.firstName}</span>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
 
@@ -496,14 +505,14 @@ function CreateTeam() {
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
                     src={user.profilePicture ?? undefined}
-                    alt={user.name}
+                    alt={user.firstName}
                   />
                   <AvatarFallback className="rounded-lg">
                     {user.username[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{user.firstName}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>

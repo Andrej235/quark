@@ -1,1 +1,2594 @@
-export type ApiSpec={"openapi":"3.1.0","info":{"title":"Quark Backend Open API","description":"This API handles backend/database operations.","license":{"name":"MIT","url":"https://opensource.org/licenses/MIT"},"version":"1.0"},"paths":{"/team":{"post":{"tags":[],"operationId":"team_create","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateTeamDTO"}}},"required":true},"responses":{"200":{"description":"Team created"},"409":{"description":"Team with same name already exists","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/team-invitations":{"post":{"tags":[],"operationId":"team_invitation_send","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/TeamInvitationDTO"}}},"required":true},"responses":{"200":{"description":"Invitation sent"},"403":{"description":"User not verified, Invitation is too young to be resent","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"User not found, Team not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/team-invitations/accept/{code}":{"patch":{"tags":[],"operationId":"team_invitation_accept","parameters":[{"name":"code","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"Invitation accepted"},"400":{"description":"Invalid code","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"Invitation not found, Team role not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"409":{"description":"Invitation already accepted, Invitation already declined","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"410":{"description":"Invitation expired","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/team-invitations/decline/{code}":{"patch":{"tags":[],"operationId":"team_invitation_decline","parameters":[{"name":"code","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"Invitation accepted"},"400":{"description":"Invalid code","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"Invitation not found, Team role not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"409":{"description":"Invitation already accepted, Invitation already declined","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"410":{"description":"Invitation expired","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/team-role/change/{team_id}/{role_id}":{"patch":{"tags":[],"operationId":"team_role_change","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ChangeUserRoleDTO"}}},"required":true},"responses":{"200":{"description":"Role changed"},"403":{"description":"Not member of team, Permission too low","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"Team not found, Team role not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/team-role/create":{"put":{"tags":[],"operationId":"team_role_update","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateTeamRoleDTO"}}},"required":true},"responses":{"200":{"description":"Team role created"},"403":{"description":"Not member of team, Permission too low","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"Team not found, Team role not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}},"post":{"tags":[],"operationId":"team_role_create","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateTeamRoleDTO"}}},"required":true},"responses":{"200":{"description":"Team role created"},"403":{"description":"Not member of team, Permission too low","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"Team not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"409":{"description":"Role already exists","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}},"delete":{"tags":[],"operationId":"team_role_delete","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/DeleteTeamRoleDTO"}}},"required":true},"responses":{"200":{"description":"Team role deleted"},"403":{"description":"Not member of team, Permission too low","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"Team not found, Team role not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/team-role/{team_id}":{"get":{"tags":[],"operationId":"team_roles_get","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Team role created"},"403":{"description":"Not member of team","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/team/leave/{team_id}":{"delete":{"tags":[],"operationId":"team_leave","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Left team"},"403":{"description":"Not member of team","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"409":{"description":"Too many team members to leave","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/team/members/{team_id}":{"get":{"tags":[],"operationId":"team_get_members","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Team members"},"403":{"description":"Not member of team","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/team/{team_id}":{"put":{"tags":[],"operationId":"team_update","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateTeamDTO"}}},"required":true},"responses":{"200":{"description":"Team created"},"404":{"description":"Team not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"409":{"description":"Team with same name already exists","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}},"delete":{"tags":[],"operationId":"team_delete","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Team deleted"},"403":{"description":"Not memeber of team, Not allowed to delete team","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/team_members/kick/{team_id}":{"delete":{"tags":[],"operationId":"team_member_kick","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/KickTeamMemberDTO"}}},"required":true},"responses":{"200":{"description":"Team member kicked"},"403":{"description":"Not member of team, Permission too low, User not found, Cannot kick owner of team","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"409":{"description":"Cannot remove yourself","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/user/check":{"get":{"tags":[],"operationId":"check","responses":{"200":{"description":"User logged in"}}}},"/user/email/send-verification":{"get":{"tags":[],"operationId":"send_email_verification","responses":{"200":{"description":"Email sent"},"409":{"description":"User already verified","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}}}}},"/user/email/verify/{email}/{code}":{"get":{"tags":[],"operationId":"verify_email","parameters":[{"name":"email","in":"path","required":true,"schema":{"type":"string"}},{"name":"code","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"Email verified"},"400":{"description":"Invalid code, User already verified","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"401":{"description":"User not found"}}}},"/user/login":{"post":{"tags":[],"operationId":"user_log_in","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LoginUserDTO"}}},"required":true},"responses":{"200":{"description":"User logged in","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LogInResultDTO"}}}},"400":{"description":"Wrong password","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"User not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/user/logout/{refresh_token_id}":{"post":{"tags":[],"operationId":"user_log_out","parameters":[{"name":"refresh_token_id","in":"path","description":"Refresh token id","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"User logged out"}}}},"/user/me":{"get":{"tags":[],"operationId":"get_user_info","responses":{"200":{"description":"User info","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UserInfoDTO"}}}}}},"put":{"tags":[],"operationId":"user_update","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateUserDTO"}}},"required":true},"responses":{"200":{"description":"User updated"},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/user/me/default-team/{team_id}":{"patch":{"tags":[],"operationId":"user_update_default_team","parameters":[{"name":"team_id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Updated default team"},"404":{"description":"Team not found"}}}},"/user/me/profile-picture":{"patch":{"tags":[],"operationId":"user_update_profile_picture","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateProfilePictureDTO"}}},"required":true},"responses":{"200":{"description":"Profile picture changed"},"400":{"description":"Invalid base64 string, Invalid [] format, Failed to convert image into bytes","content":{"application/json":{"schema":{"$ref":"#/components/schemas/RouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/user/refresh":{"post":{"tags":[],"operationId":"user_refresh","responses":{"200":{"description":"Token pair refreshed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/JWTRefreshTokenPairDTO"}}}},"401":{"description":"Expired Refresh token, Mismatched user and refresh token,\n                                        Mismatched claim and refresh token","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"404":{"description":"User not found, Refresh token not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/user/reset-password":{"post":{"tags":[],"operationId":"user_password_reset","responses":{"200":{"description":"Password reset"},"400":{"description":"Wrong password","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}},"/user/signup":{"post":{"tags":[],"operationId":"user_sign_up","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateUserDTO"}}},"required":true},"responses":{"200":{"description":"User created"},"409":{"description":"User already exists","content":{"application/json":{"schema":{"$ref":"#/components/schemas/SRouteError"}}}},"422":{"description":"Validation failed","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorDTO"}}}}}}}},"components":{"schemas":{"ChangeUserRoleDTO":{"type":"object","required":["team_id","team_name","role_id","user_username"],"properties":{"role_id":{"$ref":"#/components/schemas/i64"},"team_id":{"type":"string","format":"uuid"},"team_name":{"type":"string"},"user_username":{"type":"string"}}},"CreateTeamDTO":{"type":"object","required":["name"],"properties":{"description":{"type":["string","null"]},"name":{"type":"string"}}},"CreateTeamRoleDTO":{"type":"object","required":["name","team_id"],"properties":{"name":{"type":"string"},"team_id":{"type":"string","format":"uuid"}}},"CreateUserDTO":{"type":"object","required":["username","name","last_name","email","password"],"properties":{"email":{"type":"string"},"last_name":{"type":"string"},"name":{"type":"string"},"password":{"type":"string"},"username":{"type":"string"}}},"DeleteTeamRoleDTO":{"type":"object","required":["name","team_id"],"properties":{"name":{"type":"string"},"team_id":{"type":"string","format":"uuid"}}},"ErrorInfo":{"type":"object","required":["code","params"],"properties":{"code":{"type":"string"},"message":{"type":["string","null"]},"params":{"type":"object","additionalProperties":{},"propertyNames":{"type":"string"}}}},"FieldErrorInfo":{"type":"object","required":["field","errors_info"],"properties":{"errors_info":{"type":"array","items":{"$ref":"#/components/schemas/ErrorInfo"}},"field":{"type":"string"}}},"JWTRefreshTokenPairDTO":{"type":"object","required":["jwt_token","refresh_token_id"],"properties":{"jwt_token":{"type":"string"},"refresh_token_id":{"type":"string","format":"uuid"}}},"KickTeamMemberDTO":{"type":"object","required":["username"],"properties":{"username":{"type":"string"}}},"LogInResultDTO":{"type":"object","required":["jwt_token","refresh_token_id"],"properties":{"jwt_token":{"type":"string"},"refresh_token_id":{"type":"string","format":"uuid"}}},"LoginUserDTO":{"type":"object","required":["email","password"],"properties":{"email":{"type":"string"},"password":{"type":"string"}}},"PasswordResetDTO":{"type":"object","required":["old_password","new_password"],"properties":{"new_password":{"type":"string"},"old_password":{"type":"string"}}},"RouteError":{"type":"object","required":["message"],"properties":{"message":{"type":"string"}}},"SRouteError":{"type":"object","description":"This is used when BadRequest or InternalServerError is returned from api endpoint","required":["message"],"properties":{"message":{"type":"string"}}},"TeamInfoDTO":{"type":"object","required":["id","name","role_name","permissions"],"properties":{"description":{"type":["string","null"]},"id":{"type":"string","format":"uuid"},"name":{"type":"string"},"permissions":{"type":"integer","format":"int32"},"role_name":{"type":"string"}}},"TeamInvitationDTO":{"type":"object","required":["team_id","email"],"properties":{"email":{"type":"string"},"team_id":{"type":"string","format":"uuid"}}},"UpdateProfilePictureDTO":{"type":"object","properties":{"profile_picture":{"type":["string","null"]}}},"UpdateTeamDTO":{"type":"object","required":["name"],"properties":{"description":{"type":["string","null"]},"name":{"type":"string"}}},"UpdateTeamRoleDTO":{"type":"object","required":["old_name","name","team_id"],"properties":{"name":{"type":"string"},"old_name":{"type":"string"},"team_id":{"type":"string","format":"uuid"}}},"UpdateUserDTO":{"type":"object","properties":{"last_name":{"type":["string","null"]},"name":{"type":["string","null"]},"username":{"type":["string","null"]}}},"UserInfoDTO":{"type":"object","required":["username","name","last_name","email","is_email_verified","teams_info"],"properties":{"default_team_id":{"type":["string","null"],"format":"uuid"},"email":{"type":"string"},"is_email_verified":{"type":"boolean"},"last_name":{"type":"string"},"name":{"type":"string"},"profile_picture":{"type":["string","null"]},"teams_info":{"type":"array","items":{"$ref":"#/components/schemas/TeamInfoDTO"}},"username":{"type":"string"}}},"ValidationErrorDTO":{"type":"object","required":["errors"],"properties":{"errors":{"type":"array","items":{"$ref":"#/components/schemas/FieldErrorInfo"}}}},"i64":{"type":"integer","format":"int64"}}}}
+export type ApiSpec={
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Quark | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "head": {
+        "tags": [
+          "Quark"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users/check-auth": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/register": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/login": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/refresh": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokensRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokensRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokensRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/logout/cookie": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/logout/token": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/set-default-team/{teamId}": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/confirm-email": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/resend-confirmation-email": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/leave-team/{teamId}": {
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/send-reset-password-email": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendResetPasswordEmailRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendResetPasswordEmailRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendResetPasswordEmailRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/reset-password": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserInfoRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserInfoRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserInfoRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/password": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePasswordRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePasswordRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePasswordRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/profile-picture": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfilePictureRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfilePictureRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfilePictureRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams": {
+      "post": {
+        "tags": [
+          "Team"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/teams/invite": {
+      "post": {
+        "tags": [
+          "Team"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteUserRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteUserRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteUserRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospect-views": {
+      "post": {
+        "tags": [
+          "ProspectView"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProspectViewItemsRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProspectViewItemsRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProspectViewItemsRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospect-views/{teamId}": {
+      "delete": {
+        "tags": [
+          "ProspectView"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "ProspectView"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectViewResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectViewResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectViewResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospect-views/{teamId}/replace-all": {
+      "put": {
+        "tags": [
+          "ProspectView"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProspectViewItemsRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProspectViewItemsRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProspectViewItemsRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospect-layouts/default/{teamId}": {
+      "get": {
+        "tags": [
+          "ProspectLayout"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectLayoutResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectLayoutResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectLayoutResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospect-layouts": {
+      "put": {
+        "tags": [
+          "ProspectLayout"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectLayoutRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectLayoutRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectLayoutRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospects": {
+      "post": {
+        "tags": [
+          "Prospect"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProspectRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Prospect"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProspectRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospects/partial/{teamId}": {
+      "get": {
+        "tags": [
+          "Prospect"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseDtoOfPartialProspectResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseDtoOfPartialProspectResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseDtoOfPartialProspectResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prospects/{teamId}/{prospectId}": {
+      "get": {
+        "tags": [
+          "Prospect"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "prospectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProspectResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddProspectViewItemsRequestDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateProspectViewItemRequestDto"
+            }
+          }
+        }
+      },
+      "ConfirmEmailRequestDto": {
+        "required": [
+          "email",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateProspectFieldRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ProspectDataType"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateProspectRequestDto": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateProspectFieldRequestDto"
+            }
+          }
+        }
+      },
+      "CreateProspectViewItemRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ProspectDataType"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreateTeamRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "InviteUserRequestDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "LoginRequestDto": {
+        "required": [
+          "usernameOrEmail",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "usernameOrEmail": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "password": {
+            "minLength": 8,
+            "type": "string"
+          },
+          "useCookies": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LogoutRequestDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaginatedResponseDtoOfPartialProspectResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartialProspectResponseDto"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "cursorToken": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PartialProspectResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProspectFieldResponseDto"
+            }
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ProspectDataType": {
+        "enum": [
+          "text",
+          "image"
+        ]
+      },
+      "ProspectFieldResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ProspectDataType"
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ProspectLayoutResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jsonStructure": {
+            "type": "string"
+          }
+        }
+      },
+      "ProspectResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "layoutId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProspectFieldResponseDto"
+            }
+          }
+        }
+      },
+      "ProspectViewItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ProspectDataType"
+          }
+        }
+      },
+      "ProspectViewResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProspectViewItemResponseDto"
+            }
+          }
+        }
+      },
+      "RefreshTokensRequestDto": {
+        "type": "object",
+        "properties": {
+          "jwt": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequestDto": {
+        "required": [
+          "username",
+          "firstName",
+          "lastName",
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "firstName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lastName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "minLength": 8,
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordRequestDto": {
+        "required": [
+          "email",
+          "token",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "newPassword": {
+            "minLength": 8,
+            "type": "string"
+          }
+        }
+      },
+      "SendResetPasswordEmailRequestDto": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "permissions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "roleName": {
+            "type": "string"
+          }
+        }
+      },
+      "TokensResponseDto": {
+        "type": "object",
+        "properties": {
+          "jwt": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatePasswordRequestDto": {
+        "type": "object",
+        "properties": {
+          "oldPassword": {
+            "minLength": 8,
+            "type": "string"
+          },
+          "newPassword": {
+            "minLength": 8,
+            "type": "string"
+          }
+        }
+      },
+      "UpdateProfilePictureRequestDto": {
+        "type": "object",
+        "properties": {
+          "profilePicture": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateProspectLayoutRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "newJsonStructure": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateProspectRequestDto": {
+        "type": "object",
+        "properties": {
+          "prospectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateProspectFieldRequestDto"
+            }
+          }
+        }
+      },
+      "UpdateUserInfoRequestDto": {
+        "required": [
+          "username",
+          "firstName",
+          "lastName"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "minLength": 3,
+            "type": "string"
+          },
+          "firstName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lastName": {
+            "minLength": 1,
+            "type": "string"
+          }
+        }
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "profilePicture": {
+            "type": "string",
+            "nullable": true
+          },
+          "isEmailVerified": {
+            "type": "boolean"
+          },
+          "defaultTeamId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamResponseDto"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Quark"
+    },
+    {
+      "name": "User"
+    },
+    {
+      "name": "Team"
+    },
+    {
+      "name": "ProspectView"
+    },
+    {
+      "name": "ProspectLayout"
+    },
+    {
+      "name": "Prospect"
+    }
+  ]
+}

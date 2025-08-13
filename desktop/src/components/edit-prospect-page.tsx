@@ -1,3 +1,5 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
+import useQuery from "@/api-dsl/use-query";
 import RenderSlotTree from "@/components/prospect-template/render-slot-tree";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,18 +12,31 @@ import {
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { SlotData } from "@/lib/prospects/slot-data";
-import { useProspectsStore } from "@/stores/prospects-store";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
+import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { useTeamStore } from "@/stores/team-store";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function EditProspectPage() {
   const prospectId = useParams().prospectId as string;
-  const prospect = useProspectsStore((x) =>
-    x.prospects.find((x) => x.id === prospectId),
-  );
+  const teamId = useTeamStore((x) => x.activeTeam?.id);
 
-  const template = useProspectsStore((x) => x.template);
-  const setProspects = useProspectsStore((x) => x.setProspects);
+  const prospect = useQuery("/prospects/{teamId}/{prospectId}", {
+    parameters: {
+      teamId: teamId || "",
+      prospectId: prospectId || "",
+    },
+    queryKey: ["prospect", teamId, prospectId],
+    enabled: !!teamId && !!prospectId,
+  });
+  const queryClient = useQueryClient();
+  const invalidateProspectTable = useInvalidateProspectTable();
+  const isSaving = useRef(false);
+
+  const [template] = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
     (() => SlotData | null)[]
@@ -58,25 +73,106 @@ export default function EditProspectPage() {
   );
 
   useEffect(() => {
-    if (!prospect) return;
+    if (!prospect.data) return;
 
     onSetSubscribedSlots.forEach((callback) => {
       const [id, set] = callback();
-      const value = prospect.fields.find((x) => x.id === id)?.value;
+      const value = prospect.data!.fields.find((x) => x.id === id)?.value;
       set(value ?? null);
     });
   }, [onSetSubscribedSlots, prospect]);
 
-  function handleSave() {
-    const values = onReadSubscribedSlots.map((x) => x()).filter((x) => !!x);
+  async function handleSave() {
+    if (isSaving.current) {
+      toast.info("Saving prospect, please wait...", {
+        duration: 3000,
+      });
+      return;
+    }
 
-    setProspects((x) => {
-      const idx = x.findIndex((y) => y.id === prospectId);
-      x[idx].fields = values;
+    if (!teamId || !prospect.data) return;
+    isSaving.current = true;
 
-      return [...x];
+    const originalFields = prospect.data.fields;
+    const editedFields = onReadSubscribedSlots
+      .map((x) => x())
+      .filter((x) => !!x);
+
+    const editedFieldIds = editedFields.map((x) => x.id);
+    const originalFieldIds = originalFields.map((x) => x.id);
+
+    const editedFieldIdsToCheck = editedFieldIds.filter((id) =>
+      originalFieldIds.includes(id),
+    );
+    const editedFieldsThatChanged = editedFields.filter((x) =>
+      editedFieldIdsToCheck.includes(x.id),
+    );
+    const originalFieldsThatChanged = originalFields.filter((x) =>
+      editedFieldIdsToCheck.includes(x.id),
+    );
+
+    // const deletedFieldIds = originalFieldIds.filter(
+    //   (id) => !editedFieldIds.includes(id),
+    // );
+    // const addedFieldIds = editedFieldIds.filter(
+    //   (id) => !originalFieldIds.includes(id),
+    // );
+    const changedFields = editedFieldsThatChanged
+      .map((edited) => {
+        const original = originalFieldsThatChanged.find(
+          (x) => x.id === edited.id,
+        );
+
+        if (!original || edited.value === original.value) return null;
+
+        return { ...edited, value: edited.value };
+      })
+      .filter((x) => !!x);
+
+    if (changedFields.length === 0) {
+      toast.info("No changes detected, nothing to save", {
+        duration: 3000,
+      });
+
+      isSaving.current = false;
+      return;
+    }
+
+    const { isOk } = await sendApiRequest(
+      "/prospects",
+      {
+        method: "patch",
+        payload: {
+          teamId,
+          prospectId,
+          fields: changedFields,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving prospect, please wait...",
+          success: "Prospect saved successfully!",
+          error: (x) =>
+            x.message || "Failed to save prospect, please try again",
+        },
+      },
+    );
+
+    if (!isOk) {
+      isSaving.current = false;
+      return;
+    }
+
+    await invalidateProspectTable();
+    await queryClient.setQueryData(["prospect", teamId, prospectId], {
+      ...prospect.data,
+      fields: changedFields,
     });
+    isSaving.current = false;
   }
+
+  if (!template || !prospect.data) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -94,7 +190,7 @@ export default function EditProspectPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={template} />
+          <RenderSlotTree slot={template.root} />
         </slotEventSystemContext.Provider>
       </CardContent>
 

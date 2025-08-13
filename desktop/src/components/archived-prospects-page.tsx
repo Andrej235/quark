@@ -9,16 +9,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useProspectsStore } from "@/stores/prospects-store";
 import { Edit } from "lucide-react";
 import { useState } from "react";
 
 export default function ArchivedProspectsPage() {
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
-
-  const dataFields = useProspectsStore((x) => x.dataFields);
-  const listView = useProspectsStore((x) => x.listView);
-  const setListView = useProspectsStore((x) => x.setListView);
 
   return (
     <Card className="min-h-full">
@@ -51,9 +46,6 @@ export default function ArchivedProspectsPage() {
       <EditProspectListViewItemDialog
         isOpen={isEditListViewOpen}
         requestClose={() => setIsEditListViewOpen(false)}
-        listView={listView}
-        setListView={setListView}
-        fullPropsectDataDefinition={dataFields}
       />
     </Card>
   );
