@@ -126,12 +126,14 @@ export default function ProspectsTable({
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem asChild>
-                <Link to={`${row.original.id}/edit`}>
-                  <span>Edit</span>
-                  <Edit2 className="ml-auto size-4" />
-                </Link>
-              </DropdownMenuItem>
+              {!archived && (
+                <DropdownMenuItem asChild>
+                  <Link to={`${row.original.id}/edit`}>
+                    <span>Edit</span>
+                    <Edit2 className="ml-auto size-4" />
+                  </Link>
+                </DropdownMenuItem>
+              )}
 
               <DropdownMenuSeparator />
 

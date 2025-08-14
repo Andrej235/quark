@@ -21,13 +21,13 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function EditProspectPage() {
-  const prospectId = useParams().prospectId as string;
+  const prospectId = parseInt((useParams().prospectId as string) ?? "0") || 0;
   const teamId = useTeamStore((x) => x.activeTeam?.id);
 
   const prospect = useQuery("/prospects/{teamId}/{prospectId}", {
     parameters: {
       teamId: teamId || "",
-      prospectId: prospectId || "",
+      prospectId: prospectId,
     },
     queryKey: ["prospect", teamId, prospectId],
     enabled: !!teamId && !!prospectId,
@@ -173,6 +173,25 @@ export default function EditProspectPage() {
   }
 
   if (!template || !prospect.data) return null;
+
+  if (prospect.data.archived) {
+    console.log("archived");
+
+    return (
+      <Card className="border-0 bg-transparent">
+        <CardHeader className="pb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">Archived Prospect</CardTitle>
+              <CardDescription>
+                This prospect has been archived and cannot be edited.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-0 bg-transparent">
