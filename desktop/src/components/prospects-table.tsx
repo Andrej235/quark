@@ -1,11 +1,12 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
 import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 import { useProspectView } from "@/lib/prospects/use-prospect-view";
 import toTitleCase from "@/lib/title-case";
-import { useProspectTableStore } from "@/stores/prospect-table-store";
+import { useProspectTable } from "@/lib/use-prospect-table";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, ArchiveX, Edit2, Eye, MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "./data-table";
@@ -19,28 +20,34 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-export default function ProspectsTable() {
+export default function ProspectsTable({
+  archived = false,
+}: {
+  archived?: boolean;
+}) {
   const [dataFields] = useProspectView();
 
   const teamId = useTeamStore().activeTeam?.id ?? "";
 
-  const pageIndex = useProspectTableStore((x) => x.pageIndex);
-  const setPageIndex = useProspectTableStore((x) => x.setPageIndex);
-
-  const currentCursor = useProspectTableStore((x) => x.currentCursor);
-  const addCursor = useProspectTableStore((x) => x.addCursor);
+  const { addCursor, currentCursor, pageIndex, setPageIndex } =
+    useProspectTable();
 
   const invalidate = useInvalidateProspectTable();
   useEffect(() => {
     if (teamId) invalidate();
   }, [teamId, invalidate]);
 
+  const archivedKey = useMemo(
+    () => (archived ? "archived" : "not-archived"),
+    [archived],
+  );
   const prospectsQuery = useQuery("/prospects/partial/{teamId}", {
-    queryKey: ["partial-prospects", teamId, `page-${pageIndex}`],
+    queryKey: ["partial-prospects", teamId, archivedKey, `page-${pageIndex}`],
     parameters: {
       teamId,
       include: dataFields.map((x) => x.id).join(","),
       sortBy: dataFields[0]?.id,
+      archived: archived,
       ...(currentCursor && { cursor: currentCursor }),
     },
     enabled: !!teamId && dataFields.length > 0,
@@ -57,15 +64,39 @@ export default function ProspectsTable() {
   const mappedProspects = useMemo(
     () =>
       prospectsQuery.data?.items.map((x) => ({
-        id: x.id,
+        id: x.id.toString(),
         ...Object.fromEntries(x.fields.map((y) => [y.id, y.value])),
       })),
     [prospectsQuery],
   );
 
-  const handleDelete = useCallback((id: string) => {
-    console.log("delete", id);
-  }, []);
+  const handleArchive = useCallback(
+    async (id: string) => {
+      const { isOk } = await sendApiRequest(
+        `/prospects/{teamId}/{prospectId}/${archived ? "unarchive" : "archive"}`,
+        {
+          method: "patch",
+          parameters: {
+            teamId,
+            prospectId: id,
+          },
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            success: `Prospect ${archived ? "unarchived" : "archived"} successfully!`,
+          },
+        },
+      );
+
+      if (!isOk) return;
+
+      await invalidate({
+        invalidateArchived: true,
+      });
+    },
+    [teamId, archived, invalidate],
+  );
 
   const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
     const columns: ColumnDef<{ id: string }>[] = dataFields.map((x) => ({
@@ -95,21 +126,27 @@ export default function ProspectsTable() {
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem asChild>
-                <Link to={`${row.original.id}/edit`}>
-                  <span>Edit</span>
-                  <Edit2 className="ml-auto size-4" />
-                </Link>
-              </DropdownMenuItem>
+              {!archived && (
+                <DropdownMenuItem asChild>
+                  <Link to={`${row.original.id}/edit`}>
+                    <span>Edit</span>
+                    <Edit2 className="ml-auto size-4" />
+                  </Link>
+                </DropdownMenuItem>
+              )}
 
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
+                onClick={() => handleArchive(row.original.id)}
                 variant="destructive"
-                onClick={() => handleDelete(row.original.id)}
               >
-                <span>Delete</span>
-                <Trash2 className="ml-auto size-4" />
+                <span>{archived ? "Unarchive" : "Archive"}</span>
+                {archived ? (
+                  <ArchiveX className="ml-auto size-4" />
+                ) : (
+                  <Archive className="ml-auto size-4" />
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -118,7 +155,7 @@ export default function ProspectsTable() {
     });
 
     return columns;
-  }, [dataFields, handleDelete]);
+  }, [dataFields, handleArchive, archived]);
 
   return (
     <DataTable

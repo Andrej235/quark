@@ -18,10 +18,13 @@ public interface IProspectService
         string sortBy,
         string include,
         string? cursorToken,
+        bool archived,
         ClaimsPrincipal claims
     );
 
     Task<Result<ProspectResponseDto>> GetFull(Guid teamId, Guid prospectId, ClaimsPrincipal claims);
 
     Task<Result> Update(UpdateProspectRequestDto request, ClaimsPrincipal claims);
+    Task<Result> Archive(Guid teamId, Guid prospectId, ClaimsPrincipal claims);
+    Task<Result> Unarchive(Guid teamId, Guid prospectId, ClaimsPrincipal claims);
 }

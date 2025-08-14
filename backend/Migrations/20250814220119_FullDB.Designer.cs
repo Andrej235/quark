@@ -13,8 +13,8 @@ using Quark.Data;
 namespace Quark.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20250809095321_AddProspects")]
-    partial class AddProspects
+    [Migration("20250814220119_FullDB")]
+    partial class FullDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -237,6 +237,9 @@ namespace Quark.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Archived")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("LayoutId")
                         .HasColumnType("uuid");
 
@@ -254,13 +257,15 @@ namespace Quark.Migrations
 
                     b.HasIndex("TeamId1");
 
+                    b.HasIndex("Archived", "TeamId");
+
                     b.ToTable("Prospect");
                 });
 
             modelBuilder.Entity("Quark.Models.ProspectDataField", b =>
                 {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ProspectId")
                         .HasColumnType("uuid");
@@ -269,7 +274,6 @@ namespace Quark.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("Value")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id", "ProspectId");
@@ -292,6 +296,24 @@ namespace Quark.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ProspectLayout");
+                });
+
+            modelBuilder.Entity("Quark.Models.ProspectListViewItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("ProspectListViewItem");
                 });
 
             modelBuilder.Entity("Quark.Models.RefreshToken", b =>
@@ -555,6 +577,17 @@ namespace Quark.Migrations
                     b.Navigation("Prospect");
                 });
 
+            modelBuilder.Entity("Quark.Models.ProspectListViewItem", b =>
+                {
+                    b.HasOne("Quark.Models.Team", "Team")
+                        .WithMany("DefaultProspectView")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+                });
+
             modelBuilder.Entity("Quark.Models.RefreshToken", b =>
                 {
                     b.HasOne("Quark.Models.User", "User")
@@ -671,6 +704,8 @@ namespace Quark.Migrations
 
             modelBuilder.Entity("Quark.Models.Team", b =>
                 {
+                    b.Navigation("DefaultProspectView");
+
                     b.Navigation("Members");
 
                     b.Navigation("Prospects");

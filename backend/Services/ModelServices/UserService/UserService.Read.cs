@@ -23,6 +23,14 @@ public partial class UserService
                     .ThenInclude(x => x.Role)
         );
 
+        if (userResult.IsFailed)
+        {
+            if (userResult.HasError<NotFound>())
+                await signInManager.SignOutAsync();
+
+            return Result.Fail(userResult.Errors);
+        }
+
         return responseMapper.Map(userResult.Value);
     }
 }

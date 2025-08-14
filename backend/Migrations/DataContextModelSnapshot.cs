@@ -234,6 +234,9 @@ namespace Quark.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Archived")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("LayoutId")
                         .HasColumnType("uuid");
 
@@ -250,6 +253,8 @@ namespace Quark.Migrations
                     b.HasIndex("TeamId");
 
                     b.HasIndex("TeamId1");
+
+                    b.HasIndex("Archived", "TeamId");
 
                     b.ToTable("Prospect");
                 });

@@ -18,10 +18,18 @@ public partial class ProspectController
         Guid teamId,
         [FromQuery] string sortBy,
         [FromQuery] string include,
-        [FromQuery] string? cursor
+        [FromQuery] string? cursor,
+        [FromQuery] bool archived
     )
     {
-        var result = await prospectService.GetPartial(teamId, sortBy, include, cursor, User);
+        var result = await prospectService.GetPartial(
+            teamId,
+            sortBy,
+            include,
+            cursor,
+            archived,
+            User
+        );
 
         if (result.IsFailed)
             return BadRequest(new { result.Errors[0].Message });

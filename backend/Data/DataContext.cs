@@ -156,6 +156,8 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
                 .WithMany()
                 .HasForeignKey(x => x.TeamId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            prospect.HasIndex(x => new { x.Archived, x.TeamId });
         });
 
         builder.Entity<ProspectDataField>(field =>

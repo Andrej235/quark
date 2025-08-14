@@ -16,6 +16,7 @@ public partial class ProspectService
         string sortBy,
         string include,
         string? cursorToken,
+        bool archived,
         ClaimsPrincipal claims
     )
     {
@@ -28,6 +29,8 @@ public partial class ProspectService
             x => new PartialProspectResponseDto
             {
                 Id = x.Id,
+                Archived = x.Archived,
+                TeamId = x.TeamId,
                 Fields = x
                     .Fields.Where(x => fieldsToInclude.Contains(x.Id))
                     .Select(x => new ProspectFieldResponseDto
@@ -39,7 +42,7 @@ public partial class ProspectService
             },
             x => x.Fields.First(x => x.Id == sortBy).Value,
             cursorToken.ToKeysetCursor<string?>() ?? new KeysetCursor<string?>(null, 15),
-            x => x.TeamId == teamId
+            x => x.TeamId == teamId && x.Archived == archived
         );
 
         return result;
@@ -56,6 +59,8 @@ public partial class ProspectService
             {
                 Id = x.Id,
                 LayoutId = x.LayoutId,
+                TeamId = x.TeamId,
+                Archived = x.Archived,
                 Fields = x.Fields.Select(x => new ProspectFieldResponseDto
                 {
                     Id = x.Id,

@@ -40,7 +40,7 @@ export default function ArchivedProspectsPage() {
       <Separator />
 
       <CardContent>
-        <ProspectsTable />
+        <ProspectsTable archived />
       </CardContent>
 
       <EditProspectListViewItemDialog

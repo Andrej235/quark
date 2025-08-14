@@ -14,6 +14,7 @@ public partial class ProspectService(
     IKeysetPaginationService<Prospect> paginationService,
     IReadSingleSelectedService<Prospect> readService,
     IUpdateRangeService<ProspectDataField> fieldUpdateService,
+    IExecuteUpdateService<Prospect> updateService,
     IRequestMapper<CreateProspectRequestDto, Prospect> createRequestMapper,
     UserManager<User> userManager
 ) : IProspectService;
