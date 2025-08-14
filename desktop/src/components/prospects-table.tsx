@@ -72,7 +72,7 @@ export default function ProspectsTable({
 
   const handleArchive = useCallback(
     async (id: string) => {
-      await sendApiRequest(
+      const { isOk } = await sendApiRequest(
         `/prospects/{teamId}/{prospectId}/${archived ? "unarchive" : "archive"}`,
         {
           method: "patch",
@@ -88,8 +88,14 @@ export default function ProspectsTable({
           },
         },
       );
+
+      if (!isOk) return;
+
+      await invalidate({
+        invalidateArchived: true,
+      });
     },
-    [teamId, archived],
+    [teamId, archived, invalidate],
   );
 
   const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
