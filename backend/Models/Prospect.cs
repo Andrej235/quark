@@ -2,7 +2,7 @@ namespace Quark.Models;
 
 public class Prospect
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     public Guid TeamId { get; set; }
     public Team Team { get; set; } = null!;

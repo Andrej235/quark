@@ -1998,8 +1998,8 @@ export type ApiSpec={
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2110,8 +2110,8 @@ export type ApiSpec={
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2185,8 +2185,8 @@ export type ApiSpec={
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2393,8 +2393,8 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "teamId": {
             "type": "string",
@@ -2474,8 +2474,8 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "teamId": {
             "type": "string",
@@ -2668,8 +2668,8 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "prospectId": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "uuid"
           },
           "teamId": {
             "type": "string",

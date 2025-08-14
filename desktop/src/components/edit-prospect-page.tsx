@@ -21,13 +21,13 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function EditProspectPage() {
-  const prospectId = parseInt((useParams().prospectId as string) ?? "0") || 0;
+  const prospectId = useParams().prospectId ?? "";
   const teamId = useTeamStore((x) => x.activeTeam?.id);
 
   const prospect = useQuery("/prospects/{teamId}/{prospectId}", {
     parameters: {
       teamId: teamId || "",
-      prospectId: prospectId,
+      prospectId,
     },
     queryKey: ["prospect", teamId, prospectId],
     enabled: !!teamId && !!prospectId,

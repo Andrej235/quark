@@ -38,12 +38,12 @@ public partial class ProspectController
     }
 
     [Authorize]
-    [HttpGet("{teamId:guid}/{prospectId:int}")]
+    [HttpGet("{teamId:guid}/{prospectId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProspectResponseDto>> GetPartial(Guid teamId, int prospectId)
+    public async Task<ActionResult<ProspectResponseDto>> GetPartial(Guid teamId, Guid prospectId)
     {
         var result = await prospectService.GetFull(teamId, prospectId, User);
 

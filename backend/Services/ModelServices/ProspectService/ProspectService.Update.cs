@@ -15,13 +15,12 @@ public partial class ProspectService
                 Id = x.Id,
                 Value = x.Value,
                 ProspectId = request.ProspectId,
-                TeamId = request.TeamId,
                 Type = x.Type,
             })
         );
     }
 
-    public async Task<Result> Archive(Guid teamId, int prospectId, ClaimsPrincipal claims)
+    public async Task<Result> Archive(Guid teamId, Guid prospectId, ClaimsPrincipal claims)
     {
         var result = await updateService.Update(
             x => x.TeamId == teamId && x.Id == prospectId,
@@ -31,7 +30,7 @@ public partial class ProspectService
         return result;
     }
 
-    public async Task<Result> Unarchive(Guid teamId, int prospectId, ClaimsPrincipal claims)
+    public async Task<Result> Unarchive(Guid teamId, Guid prospectId, ClaimsPrincipal claims)
     {
         var result = await updateService.Update(
             x => x.TeamId == teamId && x.Id == prospectId,

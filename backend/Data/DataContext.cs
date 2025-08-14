@@ -143,7 +143,7 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
         builder.Entity<Prospect>(prospect =>
         {
-            prospect.HasKey(x => new { x.TeamId, x.Id });
+            prospect.HasKey(x => x.Id);
 
             prospect
                 .HasOne(x => x.Layout)
@@ -162,23 +162,12 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
         builder.Entity<ProspectDataField>(field =>
         {
-            field.HasKey(x => new
-            {
-                x.Id,
-                x.ProspectId,
-                x.TeamId,
-            });
+            field.HasKey(x => new { x.Id, x.ProspectId });
 
             field
                 .HasOne(x => x.Prospect)
                 .WithMany(x => x.Fields)
-                .HasForeignKey(x => new { x.TeamId, x.ProspectId })
-                .OnDelete(DeleteBehavior.Cascade);
-
-            field
-                .HasOne(x => x.Team)
-                .WithMany()
-                .HasForeignKey(x => x.TeamId)
+                .HasForeignKey(x => x.ProspectId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

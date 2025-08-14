@@ -78,7 +78,7 @@ export default function ProspectsTable({
           method: "patch",
           parameters: {
             teamId,
-            prospectId: +id,
+            prospectId: id,
           },
         },
         {
