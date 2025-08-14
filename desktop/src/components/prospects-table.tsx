@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
 import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
 import { useProspectView } from "@/lib/prospects/use-prospect-view";
@@ -5,7 +6,7 @@ import toTitleCase from "@/lib/title-case";
 import { useProspectTable } from "@/lib/use-prospect-table";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
+import { Archive, ArchiveX, Edit2, Eye, MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { DataTable } from "./data-table";
@@ -69,9 +70,27 @@ export default function ProspectsTable({
     [prospectsQuery],
   );
 
-  const handleDelete = useCallback((id: string) => {
-    console.log("delete", id);
-  }, []);
+  const handleArchive = useCallback(
+    async (id: string) => {
+      await sendApiRequest(
+        `/prospects/{teamId}/{prospectId}/${archived ? "unarchive" : "archive"}`,
+        {
+          method: "patch",
+          parameters: {
+            teamId,
+            prospectId: +id,
+          },
+        },
+        {
+          showToast: true,
+          toastOptions: {
+            success: `Prospect ${archived ? "unarchived" : "archived"} successfully!`,
+          },
+        },
+      );
+    },
+    [teamId, archived],
+  );
 
   const columns = useMemo<ColumnDef<{ id: string }>[]>(() => {
     const columns: ColumnDef<{ id: string }>[] = dataFields.map((x) => ({
@@ -111,11 +130,15 @@ export default function ProspectsTable({
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
+                onClick={() => handleArchive(row.original.id)}
                 variant="destructive"
-                onClick={() => handleDelete(row.original.id)}
               >
-                <span>Delete</span>
-                <Trash2 className="ml-auto size-4" />
+                <span>{archived ? "Unarchive" : "Archive"}</span>
+                {archived ? (
+                  <ArchiveX className="ml-auto size-4" />
+                ) : (
+                  <Archive className="ml-auto size-4" />
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -124,7 +147,7 @@ export default function ProspectsTable({
     });
 
     return columns;
-  }, [dataFields, handleDelete]);
+  }, [dataFields, handleArchive, archived]);
 
   return (
     <DataTable

@@ -25,4 +25,6 @@ public interface IProspectService
     Task<Result<ProspectResponseDto>> GetFull(Guid teamId, int prospectId, ClaimsPrincipal claims);
 
     Task<Result> Update(UpdateProspectRequestDto request, ClaimsPrincipal claims);
+    Task<Result> Archive(Guid teamId, int prospectId, ClaimsPrincipal claims);
+    Task<Result> Unarchive(Guid teamId, int prospectId, ClaimsPrincipal claims);
 }

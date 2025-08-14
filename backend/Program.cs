@@ -323,6 +323,7 @@ builder.Services.AddScoped<IProspectService, ProspectService>();
 builder.Services.AddScoped<ICreateSingleService<Prospect>, CreateService<Prospect>>();
 builder.Services.AddScoped<IKeysetPaginationService<Prospect>, KeysetPaginationService<Prospect>>();
 builder.Services.AddScoped<IReadSingleSelectedService<Prospect>, ReadService<Prospect>>();
+builder.Services.AddScoped<IExecuteUpdateService<Prospect>, UpdateService<Prospect>>();
 builder.Services.AddScoped<
     IRequestMapper<CreateProspectRequestDto, Prospect>,
     CreateProspectRequestMapper

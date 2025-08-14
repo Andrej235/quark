@@ -20,4 +20,24 @@ public partial class ProspectService
             })
         );
     }
+
+    public async Task<Result> Archive(Guid teamId, int prospectId, ClaimsPrincipal claims)
+    {
+        var result = await updateService.Update(
+            x => x.TeamId == teamId && x.Id == prospectId,
+            x => x.SetProperty(x => x.Archived, true)
+        );
+
+        return result;
+    }
+
+    public async Task<Result> Unarchive(Guid teamId, int prospectId, ClaimsPrincipal claims)
+    {
+        var result = await updateService.Update(
+            x => x.TeamId == teamId && x.Id == prospectId,
+            x => x.SetProperty(x => x.Archived, false)
+        );
+
+        return result;
+    }
 }
