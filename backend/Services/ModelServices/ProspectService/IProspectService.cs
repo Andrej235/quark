@@ -19,10 +19,15 @@ public interface IProspectService
         string include,
         string? cursorToken,
         bool archived,
-        ClaimsPrincipal claims
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
     );
-
-    Task<Result<ProspectResponseDto>> GetFull(Guid teamId, Guid prospectId, ClaimsPrincipal claims);
+    Task<Result<ProspectResponseDto>> GetFull(
+        Guid teamId,
+        Guid prospectId,
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
+    );
 
     Task<Result> Update(UpdateProspectRequestDto request, ClaimsPrincipal claims);
     Task<Result> Archive(Guid teamId, Guid prospectId, ClaimsPrincipal claims);

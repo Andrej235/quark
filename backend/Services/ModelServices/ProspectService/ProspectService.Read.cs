@@ -18,7 +18,8 @@ public partial class ProspectService
         string include,
         string? cursorToken,
         bool archived,
-        ClaimsPrincipal claims
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
     )
     {
         var fieldsToInclude = include.Split(',');
@@ -55,7 +56,8 @@ public partial class ProspectService
             },
             x => x.Fields.First(x => x.Id == sortBy).Value,
             cursorToken.ToKeysetCursor<string?>() ?? new KeysetCursor<string?>(null, 15),
-            x => x.TeamId == teamId && x.Archived == archived
+            x => x.TeamId == teamId && x.Archived == archived,
+            cancellationToken
         );
 
         return result;
@@ -64,7 +66,8 @@ public partial class ProspectService
     public async Task<Result<ProspectResponseDto>> GetFull(
         Guid teamId,
         Guid prospectId,
-        ClaimsPrincipal claims
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
     )
     {
         var userId = userManager.GetUserId(claims);
@@ -93,7 +96,8 @@ public partial class ProspectService
                     Type = x.Type,
                 }),
             },
-            x => x.Id == prospectId && x.TeamId == teamId
+            x => x.Id == prospectId && x.TeamId == teamId,
+            cancellationToken: cancellationToken
         );
     }
 }

@@ -18,5 +18,5 @@ public partial class TeamService(
     IRequestMapper<CreateTeamRequestDto, Team> createRequestMapper,
     IResponseMapper<Team, TeamResponseDto> responseMapper,
     UserManager<User> userManager,
-    TeamPermissionsService permissionsService
+    ITeamPermissionsService permissionsService
 ) : ITeamService;

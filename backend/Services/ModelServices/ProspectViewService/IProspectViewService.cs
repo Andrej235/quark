@@ -12,7 +12,11 @@ public partial interface IProspectViewService
         AddProspectViewItemsRequestDto request,
         ClaimsPrincipal claims
     );
-    Task<Result<ProspectViewResponseDto>> Get(Guid teamId, ClaimsPrincipal claims);
+    Task<Result<ProspectViewResponseDto>> Get(
+        Guid teamId,
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
+    );
     Task<Result> Replace(
         Guid teamId,
         AddProspectViewItemsRequestDto request,

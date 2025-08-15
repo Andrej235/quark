@@ -10,9 +10,12 @@ public partial class ProspectLayoutController
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProspectLayoutResponseDto>> GetDefaultTemplate(Guid teamId)
+    public async Task<ActionResult<ProspectLayoutResponseDto>> GetDefaultTemplate(
+        Guid teamId,
+        CancellationToken cancellationToken
+    )
     {
-        var result = await layoutService.GetDefaultTemplateForTeam(teamId, User);
+        var result = await layoutService.GetDefaultTemplateForTeam(teamId, User, cancellationToken);
 
         if (result.IsFailed)
             return NotFound(new { result.Errors[0].Message });

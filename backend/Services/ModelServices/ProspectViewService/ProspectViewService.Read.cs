@@ -8,7 +8,11 @@ namespace Quark.Services.ModelServices.ProspectViewService;
 
 public partial class ProspectViewService
 {
-    public async Task<Result<ProspectViewResponseDto>> Get(Guid teamId, ClaimsPrincipal claims)
+    public async Task<Result<ProspectViewResponseDto>> Get(
+        Guid teamId,
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
+    )
     {
         var userId = userManager.GetUserId(claims);
         if (userId is null)

@@ -9,7 +9,8 @@ public interface IProspectLayoutService
 {
     Task<Result<ProspectLayoutResponseDto>> GetDefaultTemplateForTeam(
         Guid teamId,
-        ClaimsPrincipal claims
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
     );
 
     Task<Result> UpdateTemplate(UpdateProspectLayoutRequestDto request, ClaimsPrincipal claims);
