@@ -1186,10 +1186,21 @@ export type ApiSpec={
         }
       }
     },
-    "/prospect-views": {
+    "/prospect-views/{teamId}": {
       "post": {
         "tags": [
           "ProspectView"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -1259,9 +1270,7 @@ export type ApiSpec={
             }
           }
         }
-      }
-    },
-    "/prospect-views/{teamId}": {
+      },
       "delete": {
         "tags": [
           "ProspectView"
@@ -2656,6 +2665,10 @@ export type ApiSpec={
         "type": "object",
         "properties": {
           "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teamId": {
             "type": "string",
             "format": "uuid"
           },

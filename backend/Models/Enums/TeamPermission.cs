@@ -10,7 +10,7 @@ public enum TeamPermission
     CanViewProspects = 1 << 4,
     CanCreateProspects = 1 << 5,
     CanEditProspects = 1 << 6,
-    CanDeleteProspects = 1 << 7,
+    CanArchiveProspects = 1 << 7,
     CanViewEmails = 1 << 8,
     CanCreateEmails = 1 << 9,
     CanEditEmails = 1 << 10,
@@ -21,10 +21,12 @@ public enum TeamPermission
     CanEditRoles = 1 << 15,
     CanViewBilling = 1 << 16,
     CanDeleteTeam = 1 << 17,
-    All = (1 << 18) - 1,
+    CanEditProspectLayout = 1 << 18,
+    All = (1 << 19) - 1,
     ViewAll = CanViewUsers | CanViewProspects | CanViewEmails,
     ManageUsers = CanViewUsers | CanInviteUsers | CanEditUsers | CanRemoveUsers,
-    ManageProspects = CanViewProspects | CanCreateProspects | CanEditProspects | CanDeleteProspects,
+    ManageProspects =
+        CanViewProspects | CanCreateProspects | CanEditProspects | CanArchiveProspects,
     ManageEmails =
         CanViewEmails
         | CanCreateEmails

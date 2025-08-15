@@ -7,13 +7,16 @@ namespace Quark.Controllers.ProspectViewController;
 public partial class ProspectViewController
 {
     [Authorize]
-    [HttpPost]
+    [HttpPost("{teamId:guid}")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> Create([FromBody] AddProspectViewItemsRequestDto dto)
+    public async Task<ActionResult> Create(
+        Guid teamId,
+        [FromBody] AddProspectViewItemsRequestDto dto
+    )
     {
-        var result = await viewService.Create(dto, User);
+        var result = await viewService.Create(teamId, dto, User);
 
         if (result.IsFailed)
             return NotFound(new { result.Errors[0].Message });

@@ -35,6 +35,7 @@ using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
 using Quark.Services.Read;
 using Quark.Services.Read.KeysetPagination;
+using Quark.Services.TeamPermissions;
 using Quark.Services.Update;
 using Quark.Utilities;
 using Resend;
@@ -279,6 +280,11 @@ builder.Services.AddCors(options =>
 });
 #endregion
 
+#region Cache
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ITeamPermissionsService, TeamPermissionsService>();
+#endregion
+
 #region Model Services
 
 #region Users
@@ -306,6 +312,7 @@ builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseM
 
 #region Team Members
 builder.Services.AddScoped<ICreateSingleService<TeamMember>, CreateService<TeamMember>>();
+builder.Services.AddScoped<IReadSingleSelectedService<TeamMember>, ReadService<TeamMember>>();
 builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>>();
 #endregion
 

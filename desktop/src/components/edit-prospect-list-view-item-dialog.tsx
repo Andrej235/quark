@@ -173,9 +173,12 @@ export default function EditProspectListViewItemDialog({
       success = isOk;
     } else if (addedFields.length > 0) {
       const { isOk } = await sendApiRequest(
-        "/prospect-views",
+        "/prospect-views/{teamId}",
         {
           method: "post",
+          parameters: {
+            teamId,
+          },
           payload: {
             items: addedFields.map((x) => ({
               id: x.id,

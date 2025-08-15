@@ -19,7 +19,8 @@ public partial class ProspectController
         [FromQuery] string sortBy,
         [FromQuery] string include,
         [FromQuery] string? cursor,
-        [FromQuery] bool archived
+        [FromQuery] bool archived,
+        CancellationToken cancellationToken
     )
     {
         var result = await prospectService.GetPartial(
@@ -28,7 +29,8 @@ public partial class ProspectController
             include,
             cursor,
             archived,
-            User
+            User,
+            cancellationToken
         );
 
         if (result.IsFailed)
@@ -43,9 +45,13 @@ public partial class ProspectController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProspectResponseDto>> GetPartial(Guid teamId, Guid prospectId)
+    public async Task<ActionResult<ProspectResponseDto>> GetPartial(
+        Guid teamId,
+        Guid prospectId,
+        CancellationToken cancellationToken
+    )
     {
-        var result = await prospectService.GetFull(teamId, prospectId, User);
+        var result = await prospectService.GetFull(teamId, prospectId, User, cancellationToken);
 
         if (result.IsFailed)
             return BadRequest(new { result.Errors[0].Message });
