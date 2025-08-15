@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentResults;
 using Quark.Dtos.Response.Prospect;
 using Quark.Errors;
+using Quark.Models.Enums;
 using Quark.Services.Read.KeysetPagination;
 using Quark.Utilities;
 
@@ -23,6 +24,18 @@ public partial class ProspectService
         var fieldsToInclude = include.Split(',');
         if (!fieldsToInclude.Contains(sortBy))
             return new BadRequest("Trying to sort by a non-included field");
+
+        var userId = userManager.GetUserId(claims);
+        if (userId is null)
+            return new Unauthorized();
+
+        var hasPermission = await teamPermissionsService.HasPermission(
+            userId,
+            teamId,
+            TeamPermission.CanViewProspects
+        );
+        if (!hasPermission)
+            return new Forbidden("You do not have permission to view prospects");
 
         var result = await paginationService.GetPage(
             x => x.Fields.First(x => x.Id == sortBy).Value,
@@ -48,13 +61,25 @@ public partial class ProspectService
         return result;
     }
 
-    public Task<Result<ProspectResponseDto>> GetFull(
+    public async Task<Result<ProspectResponseDto>> GetFull(
         Guid teamId,
         Guid prospectId,
         ClaimsPrincipal claims
     )
     {
-        return readService.Get(
+        var userId = userManager.GetUserId(claims);
+        if (userId is null)
+            return new Unauthorized();
+
+        var hasPermission = await teamPermissionsService.HasPermission(
+            userId,
+            teamId,
+            TeamPermission.CanViewProspects
+        );
+        if (!hasPermission)
+            return new Forbidden("You do not have permission to view prospects");
+
+        return await readService.Get(
             x => new ProspectResponseDto()
             {
                 Id = x.Id,
