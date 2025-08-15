@@ -3,6 +3,7 @@ using FluentResults;
 using Quark.Dtos.Request.Team;
 using Quark.Errors;
 using Quark.Models;
+using Quark.Models.Enums;
 
 namespace Quark.Services.ModelServices.TeamService;
 
@@ -10,11 +11,17 @@ public partial class TeamService
 {
     public async Task<Result> InviteUser(InviteUserRequestDto request, ClaimsPrincipal claims)
     {
-        //TODO: Check for permissions
-
         var userId = userManager.GetUserId(claims);
         if (userId is null)
             return new Unauthorized();
+
+        var hasPermission = await permissionsService.HasPermission(
+            userId,
+            request.TeamId,
+            TeamPermission.CanInviteUsers
+        );
+        if (!hasPermission)
+            return new Forbidden("You do not have permission to invite users");
 
         var invitedIdResult = await userReadSelectedService.Get(
             x => x.Id,
