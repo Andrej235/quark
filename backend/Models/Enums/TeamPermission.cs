@@ -21,7 +21,8 @@ public enum TeamPermission
     CanEditRoles = 1 << 15,
     CanViewBilling = 1 << 16,
     CanDeleteTeam = 1 << 17,
-    All = (1 << 18) - 1,
+    CanEditProspectLayout = 1 << 18,
+    All = (1 << 19) - 1,
     ViewAll = CanViewUsers | CanViewProspects | CanViewEmails,
     ManageUsers = CanViewUsers | CanInviteUsers | CanEditUsers | CanRemoveUsers,
     ManageProspects =
