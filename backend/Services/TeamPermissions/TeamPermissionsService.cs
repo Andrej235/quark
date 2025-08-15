@@ -24,7 +24,19 @@ public class TeamPermissionsService(
         );
 
         if (permissionsResult.IsFailed)
+        {
+            cache.Set(
+                cacheKey,
+                0,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(2),
+                }
+            );
+
             return false;
+        }
 
         permissions = permissionsResult.Value;
         cache.Set(

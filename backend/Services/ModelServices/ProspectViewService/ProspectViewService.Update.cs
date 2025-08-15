@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FluentResults;
 using Quark.Dtos.Request.ProspectListViewItem;
+using Quark.Errors;
+using Quark.Models.Enums;
 
 namespace Quark.Services.ModelServices.ProspectViewService;
 
@@ -12,6 +14,18 @@ public partial class ProspectViewService
         ClaimsPrincipal claims
     )
     {
+        var userId = userManager.GetUserId(claims);
+        if (userId is null)
+            return new Unauthorized();
+
+        var hasPermission = await permissionsService.HasPermission(
+            userId,
+            teamId,
+            TeamPermission.CanEditProspectLayout
+        );
+        if (!hasPermission)
+            return new Forbidden("You do not have permission to edit prospect layout");
+
         var deleteResult = await deleteService.Delete(x => x.TeamId == teamId);
         if (deleteResult.IsFailed)
             return Result.Fail(deleteResult.Errors);

@@ -7,7 +7,11 @@ namespace Quark.Services.ModelServices.ProspectViewService;
 
 public partial interface IProspectViewService
 {
-    Task<Result> Create(AddProspectViewItemsRequestDto request, ClaimsPrincipal claims);
+    Task<Result> Create(
+        Guid teamId,
+        AddProspectViewItemsRequestDto request,
+        ClaimsPrincipal claims
+    );
     Task<Result<ProspectViewResponseDto>> Get(Guid teamId, ClaimsPrincipal claims);
     Task<Result> Replace(
         Guid teamId,
