@@ -1,6 +1,6 @@
-import { defaultSlots } from "@/lib/default-slots";
-import { Slot } from "@/lib/prospects/slot-types/slot";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { defaultSlots } from "@/lib/prospects/slots/defaults/default-slots";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { useSlotSelectorStore } from "@/stores/slot-selector-store";
 import {
   Columns3,

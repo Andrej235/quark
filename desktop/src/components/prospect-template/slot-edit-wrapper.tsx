@@ -1,20 +1,21 @@
-import { deleteSlot } from "@/lib/delete-slot";
-import { getDefaultSlot } from "@/lib/get-default-slot";
-import { canDuplicateSlot } from "@/lib/prospects/can-duplicate-slot";
-import { cloneSlot } from "@/lib/prospects/clone-slot";
-import { duplicateSlot } from "@/lib/prospects/duplicate-slot";
-import { CardFooterSlot } from "@/lib/prospects/slot-types/card-footer-slot";
-import { CardHeaderSlot } from "@/lib/prospects/slot-types/card-header-slot";
-import { CardSlot } from "@/lib/prospects/slot-types/card-slot";
-import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
-import { LayoutSlot } from "@/lib/prospects/slot-types/layout-slot";
-import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
-import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
-import { Slot } from "@/lib/prospects/slot-types/slot";
-import { SlotFlexWrapper } from "@/lib/prospects/slot-types/slot-flex-wrapper";
-import { promptUserToSelectSlot } from "@/lib/select-slot";
-import toTitleCase from "@/lib/title-case";
-import { cn } from "@/lib/utils";
+import { getDefaultSlot } from "@/lib/prospects/slots/defaults/get-default-slot";
+import { canDuplicateSlot } from "@/lib/prospects/slots/operations/can-duplicate-slot";
+import { cloneSlot } from "@/lib/prospects/slots/operations/clone-slot";
+import { deleteSlot } from "@/lib/prospects/slots/operations/delete-slot";
+import { duplicateSlot } from "@/lib/prospects/slots/operations/duplicate-slot";
+import { promptUserToSelectSlot } from "@/lib/prospects/slots/operations/select-slot";
+import { isLayoutSlot } from "@/lib/prospects/slots/type-checks/is-layout-slot";
+import { LayoutSlot } from "@/lib/prospects/types/generalized-slots/layout-slot";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
+import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
+import { SlotFlexWrapper } from "@/lib/prospects/types/slots-utility/slot-flex-wrapper";
+import { CardFooterSlot } from "@/lib/prospects/types/slots/card-footer-slot";
+import { CardHeaderSlot } from "@/lib/prospects/types/slots/card-header-slot";
+import { CardSlot } from "@/lib/prospects/types/slots/card-slot";
+import { ColumnSlot } from "@/lib/prospects/types/slots/column-slot";
+import { RowSlot } from "@/lib/prospects/types/slots/row-slot";
+import toTitleCase from "@/lib/format/title-case";
+import { cn } from "@/lib/cn";
 import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";
@@ -90,7 +91,7 @@ export default function SlotEditWrapper({
   const [draggingSlot, setDraggingSlot] = useState<Slot | null>(null);
   const updateSlot = useSlotTreeRootStore((x) => x.updateSlot);
 
-  if (slot.type === "row" || slot.type === "column") {
+  if (isLayoutSlot(slot)) {
     const layoutChildren = slot.content ?? [];
 
     function handleDragOver(event: DragEndEvent) {

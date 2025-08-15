@@ -1,9 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
-import { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/slot-types/image-field-slot";
-import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
-import { useSubscribeSlotToEventSystem } from "@/lib/prospects/use-subscribe-slot-to-event-system";
+import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
+import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
+import { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/types/slots/image-field-slot";
 import { Upload } from "lucide-react";
 import { ChangeEvent, useState } from "react";
 

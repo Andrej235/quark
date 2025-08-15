@@ -1,7 +1,7 @@
-import { findSlotInTree } from "@/lib/prospects/find-slot-in-tree";
-import { getAllSlotIdsInTree } from "@/lib/prospects/get-all-slot-ids-in-tree";
-import { Slot } from "@/lib/prospects/slot-types/slot";
-import { updateSlotInTree } from "@/lib/prospects/update-slot-in-tree";
+import { findSlotInTree } from "@/lib/prospects/slots/operations/find-slot-in-tree";
+import { getAllSlotIdsInTree } from "@/lib/prospects/slots/operations/get-all-slot-ids-in-tree";
+import { updateSlotInTree } from "@/lib/prospects/slots/operations/update-slot-in-tree";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { create } from "zustand";
 
 type SlotTreeRootStore = {

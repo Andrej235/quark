@@ -1,7 +1,7 @@
 import { slotEditContext } from "@/contexts/slot-edit-context";
 import { useShortcut } from "@/hooks/use-shortcut";
-import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";

@@ -8,8 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ButtonSlot } from "@/lib/prospects/slot-types/button-slot";
-import { SlotEditorProps } from "@/lib/prospects/slot-types/slot-editor-prop";
+import { ButtonSlot } from "@/lib/prospects/types/slots/button-slot";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent } from "react";
 

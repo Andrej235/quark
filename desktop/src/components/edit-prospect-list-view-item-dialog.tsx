@@ -9,12 +9,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useShortcut } from "@/hooks/use-shortcut";
-import { ProspectFieldDefinition } from "@/lib/prospects/prospect-data-definition";
-import { slotToProspectDataType } from "@/lib/prospects/slot-to-prospect-data-type";
-import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
-import { useProspectView } from "@/lib/prospects/use-prospect-view";
-import { cn } from "@/lib/utils";
+import { ProspectFieldDefinition } from "@/lib/prospects/types/data/prospect-data-definition";
+import { slotToProspectDataType } from "@/lib/prospects/transformations/slot-to-prospect-data-type";
+import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
+import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
+import { useProspectView } from "@/lib/prospects/hooks/use-prospect-view";
+import { cn } from "@/lib/cn";
 import { useTeamStore } from "@/stores/team-store";
 import {
   closestCorners,

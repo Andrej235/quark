@@ -1,15 +1,15 @@
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
-import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
+import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
 import { useMemo } from "react";
 import ButtonSlot from "./button-slot";
+import CardFooterSlot from "./card-footer-slot";
+import CardHeaderSlot from "./card-header-slot";
 import CardSlot from "./card-slot";
 import ColumnSlot from "./column-slot";
 import ImageFieldSlot from "./image-field-slot";
 import RowSlot from "./row-slot";
 import SlotEditWrapper from "./slot-edit-wrapper";
 import TextFieldSlot from "./text-field-slot";
-import CardFooterSlot from "./card-footer-slot";
-import CardHeaderSlot from "./card-header-slot";
 
 export default function RenderSlot({
   slot,

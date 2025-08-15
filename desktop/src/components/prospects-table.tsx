@@ -1,9 +1,9 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
-import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
-import { useProspectView } from "@/lib/prospects/use-prospect-view";
-import toTitleCase from "@/lib/title-case";
-import { useProspectTable } from "@/lib/use-prospect-table";
+import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
+import { useProspectView } from "@/lib/prospects/hooks/use-prospect-view";
+import toTitleCase from "@/lib/format/title-case";
+import { useProspectTable } from "@/lib/prospects/hooks/use-prospect-table";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Archive, ArchiveX, Edit2, Eye, MoreHorizontal } from "lucide-react";

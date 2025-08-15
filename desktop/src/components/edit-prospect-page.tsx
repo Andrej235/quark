@@ -11,9 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
-import { SlotData } from "@/lib/prospects/slot-data";
-import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { SlotData } from "@/lib/prospects/types/data/slot-data";
+import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
+import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
 import { useTeamStore } from "@/stores/team-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

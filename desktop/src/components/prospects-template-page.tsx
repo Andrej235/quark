@@ -1,6 +1,7 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
+import { useTeamStore } from "@/stores/team-store";
 import { Save } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -28,10 +29,11 @@ import {
 export default function ProspectsTemplatePage() {
   const [template, revalidateTemplate] = useProspectLayout();
 
+  const teamId = useTeamStore((x) => x.activeTeam?.id);
   const treeRoot = useSlotTreeRootStore((x) => x.slotTreeRoot);
   const isWaitingForResponse = useRef(false);
   async function handleSave() {
-    if (!treeRoot || !template) return;
+    if (!treeRoot || !template || !teamId) return;
 
     if (isWaitingForResponse.current) {
       toast.info("Please wait, template is being saved", {
@@ -47,6 +49,7 @@ export default function ProspectsTemplatePage() {
         method: "put",
         payload: {
           id: template.id,
+          teamId,
           newJsonStructure: JSON.stringify(treeRoot),
         },
       },

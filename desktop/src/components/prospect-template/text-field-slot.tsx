@@ -1,7 +1,7 @@
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
-import { RenderSlotProps } from "@/lib/prospects/slot-types/render-slot-props";
-import { TextFieldSlot as TextFieldSlotType } from "@/lib/prospects/slot-types/text-field-slot";
-import { useSubscribeSlotToEventSystem } from "@/lib/prospects/use-subscribe-slot-to-event-system";
+import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
+import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
+import { TextFieldSlot as TextFieldSlotType } from "@/lib/prospects/types/slots/text-field-slot";
 import { useState } from "react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";

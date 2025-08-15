@@ -1,4 +1,4 @@
-import { SlotData } from "@/lib/prospects/slot-data";
+import { SlotData } from "@/lib/prospects/types/data/slot-data";
 import { createContext } from "react";
 
 type SlotEventSystemContext = {

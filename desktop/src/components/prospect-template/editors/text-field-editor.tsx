@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SlotEditorProps } from "@/lib/prospects/slot-types/slot-editor-prop";
-import { TextFieldSlot } from "@/lib/prospects/slot-types/text-field-slot";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { TextFieldSlot } from "@/lib/prospects/types/slots/text-field-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent } from "react";
 

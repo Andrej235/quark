@@ -1,6 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import { appType } from "@/lib/app-type";
-import { LocalDataStore } from "@/lib/local-data-store";
 import { appDataDir } from "@tauri-apps/api/path";
 import { Client, Stronghold } from "@tauri-apps/plugin-stronghold";
 import { create } from "zustand";
@@ -8,6 +7,12 @@ import { create } from "zustand";
 const REFRESH_TOKEN_KEY = "refresh_token";
 const JWT_KEY = "jwt";
 const cookieBasedAuth = appType === "web";
+
+type LocalDataStore = {
+  get: (key: string) => Promise<Uint8Array | null>;
+  insert: (key: string, value: number[]) => Promise<void>;
+  remove: (key: string) => Promise<void>;
+};
 
 type AuthStore = {
   stronghold: Stronghold | null;
