@@ -19,6 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+} from "./ui/context-menu";
 
 export default function ProspectsTable({
   archived = false,
@@ -157,10 +163,58 @@ export default function ProspectsTable({
     return columns;
   }, [dataFields, handleArchive, archived]);
 
+  const RowContextMenuContent = useCallback(
+    ({
+      original,
+    }: {
+      original: {
+        id: string;
+      };
+    }) => {
+      return (
+        <ContextMenuContent>
+          <ContextMenuLabel>Actions</ContextMenuLabel>
+
+          <ContextMenuItem asChild>
+            <Link to={original.id}>
+              <span>View</span>
+              <Eye className="ml-auto size-4" />
+            </Link>
+          </ContextMenuItem>
+
+          {!archived && (
+            <ContextMenuItem asChild>
+              <Link to={`${original.id}/edit`}>
+                <span>Edit</span>
+                <Edit2 className="ml-auto size-4" />
+              </Link>
+            </ContextMenuItem>
+          )}
+
+          <ContextMenuSeparator />
+
+          <ContextMenuItem
+            onClick={() => handleArchive(original.id)}
+            variant="destructive"
+          >
+            <span>{archived ? "Unarchive" : "Archive"}</span>
+            {archived ? (
+              <ArchiveX className="ml-auto size-4" />
+            ) : (
+              <Archive className="ml-auto size-4" />
+            )}
+          </ContextMenuItem>
+        </ContextMenuContent>
+      );
+    },
+    [archived, handleArchive],
+  );
+
   return (
     <DataTable
       columns={columns}
       data={mappedProspects ?? []}
+      contextMenuContent={RowContextMenuContent}
       pageIndex={pageIndex}
       setPageIndex={setPageIndex}
       hasMore={prospectsQuery.data?.hasMore ?? false}
