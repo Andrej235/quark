@@ -13,6 +13,7 @@ import {
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
+import { validateSlotData } from "@/lib/prospects/slots/defaults/validate-slot-data";
 import { SlotData } from "@/lib/prospects/types/data/slot-data";
 import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { useTeamStore } from "@/stores/team-store";
@@ -128,6 +129,14 @@ export default function EditProspectPage() {
       });
 
       isSaving.current = false;
+      return;
+    }
+
+    const valid = validateSlotData(changedFields as []);
+    if (!valid) {
+      toast.error(
+        "Please fill in all required fields and make sure your data is valid",
+      );
       return;
     }
 
