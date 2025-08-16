@@ -1,9 +1,11 @@
+import { cn } from "@/lib/cn";
 import { isSlotParent } from "@/lib/prospects/slots/operations/is-slot-parent";
-import { ColumnSlot } from "@/lib/prospects/types/slots/column-slot";
-import { RowSlot } from "@/lib/prospects/types/slots/row-slot";
+import { isLayoutSlot } from "@/lib/prospects/slots/type-checks/is-layout-slot";
 import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
 import { SlotFlexWrapper } from "@/lib/prospects/types/slots-utility/slot-flex-wrapper";
+import { ColumnSlot } from "@/lib/prospects/types/slots/column-slot";
+import { RowSlot } from "@/lib/prospects/types/slots/row-slot";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { GripVertical } from "lucide-react";
@@ -24,8 +26,6 @@ import ButtonEditor from "./editors/button-editor";
 import CardHeaderEditor from "./editors/card-header-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
 import TextFieldEditor from "./editors/text-field-editor";
-import { cn } from "@/lib/cn";
-import { isLayoutSlot } from "@/lib/prospects/slots/type-checks/is-layout-slot";
 
 export default function SlotEditorDialog() {
   const editingSlot = useSlotEditorStore((x) => x.editingSlot);

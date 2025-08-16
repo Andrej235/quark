@@ -22,7 +22,10 @@ public static class DefaultProspectLayout
                                 "id": "company-name",
                                 "type": "text-field",
                                 "name": "Company Name",
-                                "placeholder": "Enter company name"
+                                "placeholder": "Enter company name",
+                                "validateFormat": "letters",
+                                "formatRegex": "{\"source\":\"^[a-zA-Z]*$\",\"flags\":\"\"}",
+                                "validateFormatError": "Must only contain letters"
                             }
                         },
                         {
@@ -48,7 +51,10 @@ public static class DefaultProspectLayout
                     "id": "description",
                     "type": "text-field",
                     "name": "Description",
-                    "placeholder": "Enter a brief description"
+                    "placeholder": "Enter a brief description",
+                    "validateFormat": "none",
+                    "formatRegex": "{\"source\":\"^\",\"flags\":\"\"}",
+                    "validateFormatError": ""
                 },
                 {
                     "id": "contact-info",
@@ -70,19 +76,28 @@ public static class DefaultProspectLayout
                                 "id": "contact-name",
                                 "type": "text-field",
                                 "name": "Contact Name",
-                                "placeholder": "Enter contact name"
+                                "placeholder": "Enter contact name",
+                                "validateFormat": "letters",
+                                "formatRegex": "{\"source\":\"^[a-zA-Z]*$\",\"flags\":\"\"}",
+                                "validateFormatError": "Must only contain letters"
                             },
                             {
                                 "id": "email",
                                 "type": "text-field",
                                 "name": "Email",
-                                "placeholder": "Enter email address"
+                                "placeholder": "Enter email address",
+                                "validateFormat": "email",
+                                "formatRegex": "{\"source\":\"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$\",\"flags\":\"\"}",
+                                "validateFormatError": "Invalid email address"
                             },
                             {
                                 "id": "phone",
                                 "type": "text-field",
                                 "name": "Phone",
-                                "placeholder": "Enter phone number"
+                                "placeholder": "Enter phone number",
+                                "validateFormat": "phone",
+                                "formatRegex": "{\"source\":\"^(?:\\\\+?\\\\d{1,3}[-.\\\\s]?)?\\\\(?\\\\d{3}\\\\)?[-.\\\\s]?\\\\d{3}[-.\\\\s]?\\\\d{4}$\",\"flags\":\"\"}",
+                                "validateFormatError": "Invalid phone number"
                             }
                         ]
                     },

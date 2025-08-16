@@ -47,6 +47,9 @@ export const defaultSlots: {
     type: "text-field",
     name: "Text Field",
     placeholder: "Enter text",
+    validateFormat: "none",
+    formatRegex: '{"source":"^","flags":""}',
+    validateFormatError: "",
   },
   button: {
     id: "button",
