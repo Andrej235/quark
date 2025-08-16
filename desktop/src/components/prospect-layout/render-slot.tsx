@@ -1,4 +1,4 @@
-import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
+import { useIsSlotInEditMode } from "@/contexts/slot-tree-context";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
 import { useMemo } from "react";
 import SlotEditWrapper from "./slot-edit-wrapper";

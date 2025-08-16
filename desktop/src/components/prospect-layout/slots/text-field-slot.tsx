@@ -1,4 +1,7 @@
-import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
+import {
+  useIsSlotInEditMode,
+  useIsSlotReadonly,
+} from "@/contexts/slot-tree-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
 import type { TextFieldSlot as TextFieldSlotType } from "@/lib/prospects/types/slots/text-field-slot";
@@ -11,19 +14,25 @@ export default function TextFieldSlot({
 }: RenderSlotProps<TextFieldSlotType>) {
   const { name, placeholder } = slot;
   const isEditing = useIsSlotInEditMode();
+  const readonly = useIsSlotReadonly();
   const [text, setText] = useState("");
 
   useSubscribeSlotToEventSystem(slot, text, setText);
 
   return (
     <div>
-      <Label htmlFor={name}>{name}</Label>
+      <Label htmlFor={name} className="gap-1">
+        <span>{name}</span>
+        {slot.required && !readonly && <span>*</span>}
+      </Label>
+
       <Input
         className="mt-2"
         type="text"
         id={name}
         placeholder={placeholder}
         disabled={isEditing}
+        readOnly={readonly}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />

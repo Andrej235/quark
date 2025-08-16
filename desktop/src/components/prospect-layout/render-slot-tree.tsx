@@ -1,4 +1,4 @@
-import { slotEditContext } from "@/contexts/slot-edit-context";
+import { slotTreeContext } from "@/contexts/slot-tree-context";
 import { useShortcut } from "@/hooks/use-shortcut";
 import { cn } from "@/lib/cn";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
@@ -12,8 +12,12 @@ import SlotSelectorDialog from "./slot-selector-dialog";
 
 export default function RenderSlotTree({
   slot,
-  editMode,
-}: RenderSlotProps & { editMode?: boolean }) {
+  editMode = false,
+  readonly = false,
+}: RenderSlotProps & {
+  editMode?: boolean;
+  readonly?: boolean;
+}) {
   const root = useSlotTreeRootStore((x) => x.slotTreeRoot);
   const setRoot = useSlotTreeRootStore((x) => x.setSlotTreeRoot);
   useEffect(() => {
@@ -41,16 +45,17 @@ export default function RenderSlotTree({
 
   return (
     <div className={cn((isInLayoutMode || isInEditMode) && "select-none")}>
-      <slotEditContext.Provider
+      <slotTreeContext.Provider
         value={{
-          isEditModeActive: editMode ?? false,
+          isEditModeActive: editMode,
+          isReadonly: readonly,
         }}
       >
         <RenderSlot slot={root} />
 
         <SlotEditorDialog />
         <SlotSelectorDialog />
-      </slotEditContext.Provider>
+      </slotTreeContext.Provider>
     </div>
   );
 }
