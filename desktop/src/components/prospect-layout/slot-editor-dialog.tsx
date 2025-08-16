@@ -9,7 +9,7 @@ import { RowSlot } from "@/lib/prospects/types/slots/row-slot";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { GripVertical } from "lucide-react";
-import { motion, useDragControls } from "motion/react";
+import { AnimatePresence, motion, useDragControls } from "motion/react";
 import { ChangeEvent, useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import {
@@ -133,105 +133,118 @@ export default function SlotEditorDialog() {
   }
 
   return (
-    <motion.div
-      className={cn(
-        "-translate-1/2 fixed left-1/2 top-1/2",
-        !isOpen && "pointer-events-none touch-none",
-      )}
-      initial={{
-        scale: 0.5,
-        opacity: 0,
-      }}
-      animate={{
-        scale: isOpen ? 1 : 0.5,
-        opacity: isOpen ? 1 : 0,
-      }}
-      drag
-      dragListener={false}
-      dragControls={dragControls}
-      whileDrag={{
-        scale: 0.95,
-      }}
-      transition={{
-        duration: 0.1,
-      }}
-      dragTransition={{
-        velocity: 0,
-      }}
-    >
-      <Card className="w-xl">
-        <CardHeader
-          onPointerDown={(e) => dragControls.start(e)}
-          className="select-none"
-        >
-          <CardTitle className="flex justify-between">
-            <span>Editing {editingSlot?.id}</span>
-
-            <GripVertical className="text-muted-foreground size-5" />
-          </CardTitle>
-
-          <CardDescription>
-            Control basic information about this slot
-          </CardDescription>
-        </CardHeader>
-
-        <Separator />
-
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-sm" htmlFor="id">
-              Slot&apos;s unique identifier
-            </Label>
-            <Input
-              id="id"
-              value={slot?.id ?? ""}
-              onChange={handleLocalChangeId}
-              onBlur={handleChangeId}
-            />
-          </div>
-
-          {isInsideFlexLayout && (
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-sm" htmlFor="flex">
-                Flex
-              </Label>
-
-              <div className="flex items-center gap-4">
-                <Input
-                  id="flex"
-                  value={flex < 0 ? "Automatic" : flex}
-                  disabled={flex < 0}
-                  readOnly={flex < 0}
-                  onChange={(e) => handleLocalChangeFlex(e.target.value)}
-                  onBlur={(e) => handleChangeFlex(e.target.value)}
-                />
-
-                {flex < 0 && (
-                  <Button
-                    variant="outline"
-                    className="w-48"
-                    onClick={() => handleChangeFlex(1)}
-                  >
-                    Set Manually
-                  </Button>
-                )}
-                {flex >= 0 && (
-                  <Button
-                    variant="outline"
-                    className="w-48"
-                    onClick={() => handleChangeFlex(-1)}
-                  >
-                    Set Automatically
-                  </Button>
-                )}
-              </div>
-            </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className={cn(
+            "-translate-1/2 fixed left-1/2 top-1/2",
+            !isOpen && "pointer-events-none touch-none",
           )}
+          initial={{
+            scale: 0.5,
+            opacity: 0,
+          }}
+          animate={{
+            scale: 1,
+            opacity: 1,
+          }}
+          exit={{
+            scale: 0.5,
+            opacity: 0,
+          }}
+          drag
+          dragListener={false}
+          dragControls={dragControls}
+          whileDrag={{
+            scale: 0.95,
+          }}
+          transition={{
+            duration: 0.1,
+          }}
+          dragTransition={{
+            velocity: 0,
+          }}
+        >
+          <Card className="w-xl">
+            <CardHeader
+              onPointerDown={(e) => dragControls.start(e)}
+              className="select-none"
+            >
+              <CardTitle className="flex justify-between">
+                <span>Editing {editingSlot?.id}</span>
 
-          {slot && <SpecificTypeEditor slot={slot} setLocalSlot={setSlot} />}
-        </CardContent>
-      </Card>
-    </motion.div>
+                <GripVertical className="text-muted-foreground size-5" />
+              </CardTitle>
+
+              <CardDescription>
+                Control basic information about this slot
+              </CardDescription>
+            </CardHeader>
+
+            <Separator />
+
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-sm" htmlFor="id">
+                  Slot&apos;s unique identifier
+                </Label>
+                <Input
+                  id="id"
+                  value={slot?.id ?? ""}
+                  onChange={handleLocalChangeId}
+                  onBlur={handleChangeId}
+                />
+              </div>
+
+              {isInsideFlexLayout && (
+                <div className="space-y-2">
+                  <Label
+                    className="text-muted-foreground text-sm"
+                    htmlFor="flex"
+                  >
+                    Flex
+                  </Label>
+
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="flex"
+                      value={flex < 0 ? "Automatic" : flex}
+                      disabled={flex < 0}
+                      readOnly={flex < 0}
+                      onChange={(e) => handleLocalChangeFlex(e.target.value)}
+                      onBlur={(e) => handleChangeFlex(e.target.value)}
+                    />
+
+                    {flex < 0 && (
+                      <Button
+                        variant="outline"
+                        className="w-48"
+                        onClick={() => handleChangeFlex(1)}
+                      >
+                        Set Manually
+                      </Button>
+                    )}
+                    {flex >= 0 && (
+                      <Button
+                        variant="outline"
+                        className="w-48"
+                        onClick={() => handleChangeFlex(-1)}
+                      >
+                        Set Automatically
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {slot && (
+                <SpecificTypeEditor slot={slot} setLocalSlot={setSlot} />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

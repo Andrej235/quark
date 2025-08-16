@@ -22,7 +22,9 @@ import toTitleCase from "@/lib/format/title-case";
 import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
 import { TextFieldSlot } from "@/lib/prospects/types/slots/text-field-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
+import { isSafe } from "redos-detector";
+import { toast } from "sonner";
 
 export default function TextFieldEditor({
   slot,
@@ -31,6 +33,16 @@ export default function TextFieldEditor({
   const update = useSlotTreeRootStore((x) => x.updateSlot<TextFieldSlot>);
   const [formatTestValue, setFormatTestValue] = useState("");
   const [customFormat, setCustomFormat] = useState("");
+  const [isCustomFormatSafe, setIsCustomFormatSafe] = useState(true);
+
+  useEffect(() => {
+    setIsCustomFormatSafe(true);
+    setCustomFormat(
+      slot.validateFormat === "custom"
+        ? DeserializeRegex(slot.formatRegex).source
+        : "^",
+    );
+  }, [slot]);
 
   function handleLocalChange(
     property: Exclude<keyof TextFieldSlot, "type">,
@@ -79,8 +91,6 @@ export default function TextFieldEditor({
     format: TextFieldSlot["validateFormat"],
   ): [string, string] {
     switch (format) {
-      case "custom":
-        return [SerializeRegex(new RegExp(customFormat, "")), ""];
       case "email":
         return [
           SerializeRegex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/),
@@ -117,7 +127,20 @@ export default function TextFieldEditor({
 
   function handleCustomFormatChange(e: ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
-    const newFormat = SerializeRegex(new RegExp(value, ""));
+    const regex = new RegExp(value, "");
+    const newFormat = SerializeRegex(regex);
+
+    const safe = isSafe(regex).safe;
+    setIsCustomFormatSafe(safe);
+    if (!safe) {
+      toast.error("Entered regex is subject to a ReDoS attack", {
+        description: "It will be discarded upon closing this dialog",
+        duration: 7_500,
+        className: "min-w-max",
+      });
+
+      return;
+    }
 
     setLocalSlot({
       ...slot,
@@ -237,6 +260,12 @@ export default function TextFieldEditor({
             onChange={(e) => setCustomFormat(e.target.value)}
             onBlur={handleCustomFormatChange}
           />
+
+          {!isCustomFormatSafe && (
+            <p className="text-destructive text-sm">
+              This regex is subject to a ReDoS attack, please change it.
+            </p>
+          )}
         </div>
       )}
 
