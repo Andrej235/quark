@@ -1,3 +1,5 @@
+import { cn } from "@/lib/cn";
+import toTitleCase from "@/lib/format/title-case";
 import { getDefaultSlot } from "@/lib/prospects/slots/defaults/get-default-slot";
 import { canDuplicateSlot } from "@/lib/prospects/slots/operations/can-duplicate-slot";
 import { cloneSlot } from "@/lib/prospects/slots/operations/clone-slot";
@@ -14,8 +16,6 @@ import { CardHeaderSlot } from "@/lib/prospects/types/slots/card-header-slot";
 import { CardSlot } from "@/lib/prospects/types/slots/card-slot";
 import { ColumnSlot } from "@/lib/prospects/types/slots/column-slot";
 import { RowSlot } from "@/lib/prospects/types/slots/row-slot";
-import toTitleCase from "@/lib/format/title-case";
-import { cn } from "@/lib/cn";
 import { useSlotClipboardStore } from "@/stores/slot-clipboard-store";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";
 import { useSlotHoverStackStore } from "@/stores/slot-hover-stack-store";

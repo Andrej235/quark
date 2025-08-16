@@ -26,14 +26,14 @@ import {
   CardTitle,
 } from "./ui/card";
 
-export default function ProspectsTemplatePage() {
-  const [template, revalidateTemplate] = useProspectLayout();
+export default function ProspectsLayoutPage() {
+  const [layout, revalidateLayout] = useProspectLayout();
 
   const teamId = useTeamStore((x) => x.activeTeam?.id);
   const treeRoot = useSlotTreeRootStore((x) => x.slotTreeRoot);
   const isWaitingForResponse = useRef(false);
   async function handleSave() {
-    if (!treeRoot || !template || !teamId) return;
+    if (!treeRoot || !layout || !teamId) return;
 
     if (isWaitingForResponse.current) {
       toast.info("Please wait, template is being saved", {
@@ -48,7 +48,7 @@ export default function ProspectsTemplatePage() {
       {
         method: "put",
         payload: {
-          id: template.id,
+          id: layout.id,
           teamId,
           newJsonStructure: JSON.stringify(treeRoot),
         },
@@ -64,14 +64,14 @@ export default function ProspectsTemplatePage() {
       },
     );
 
-    if (isOk) revalidateTemplate();
+    if (isOk) revalidateLayout();
 
     setTimeout(() => {
       isWaitingForResponse.current = false;
     }, 300);
   }
 
-  if (!template) return null;
+  if (!layout) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -88,7 +88,7 @@ export default function ProspectsTemplatePage() {
       </CardHeader>
 
       <CardContent className="bg-transparent">
-        <RenderSlotTree slot={template.root} editMode />
+        <RenderSlotTree slot={layout.root} editMode />
       </CardContent>
 
       <div className="fixed bottom-16 right-16">

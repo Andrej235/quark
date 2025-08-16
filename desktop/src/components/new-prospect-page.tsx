@@ -88,7 +88,7 @@ export default function NewProspectsPage() {
             <CardTitle className="text-xl">New Prospect</CardTitle>
             <CardDescription>
               Create a new prospect by filling out all fields defined in the
-              template
+              layout
             </CardDescription>
           </div>
         </div>

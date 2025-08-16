@@ -15,7 +15,7 @@ export function useProspectLayout(): readonly [
   const activeTeam = useTeamStore((x) => x.activeTeam);
 
   const layoutQuery = useQuery("/prospect-layouts/default/{teamId}", {
-    queryKey: ["default-prospect-template", activeTeam?.id],
+    queryKey: ["default-prospect-layout", activeTeam?.id],
     parameters: {
       // Actual api request won't run until active team is set
       teamId: activeTeam?.id ?? "",

@@ -15,9 +15,10 @@ import FirstTeamPage from "./components/first-team-page";
 import NewProspectsPage from "./components/new-prospect-page";
 import NewRolePage from "./components/new-role-page";
 import NewTeamPage from "./components/new-team-page";
+import NotificationPage from "./components/notification-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
+import ProspectsLayoutPage from "./components/prospects-layout-page";
 import ProspectsPage from "./components/prospects-page";
-import ProspectsTemplatePage from "./components/prospects-template-page";
 import TeamMemberSettingsTab from "./components/team-member-settings-page";
 import TeamRolesSettings from "./components/team-roles-settings-page";
 import TeamSettingsPage from "./components/team-settings-page";
@@ -25,7 +26,6 @@ import UserSettingsPage from "./components/user-settings-page";
 import VerifyEmailPage from "./components/verify-email-page";
 import ViewProspectPage from "./components/view-prospect-page";
 import "./globals.css";
-import NotificationPage from "./components/notification-page";
 
 const queryClient = new QueryClient();
 
@@ -91,8 +91,8 @@ const router = createBrowserRouter([
             element: <NewProspectsPage />,
           },
           {
-            path: "/prospects/template",
-            element: <ProspectsTemplatePage />,
+            path: "/prospects/layout",
+            element: <ProspectsLayoutPage />,
           },
           {
             path: "*",
@@ -101,7 +101,7 @@ const router = createBrowserRouter([
           {
             path: "/notifications",
             element: <NotificationPage />,
-          }
+          },
         ],
       },
       {

@@ -28,8 +28,8 @@ const navigation: NavigationItem[] = [
         url: "/prospects/archived",
       },
       {
-        title: "Template",
-        url: "/prospects/template",
+        title: "Layout",
+        url: "/prospects/layout",
       },
     ],
   },

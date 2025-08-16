@@ -535,3 +535,5 @@ backend/api-docs
 
 secrets.*
 keys/
+
+*.tsbuildinfo

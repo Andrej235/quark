@@ -9,10 +9,7 @@ namespace Quark.Services.ModelServices.ProspectLayoutService;
 
 public partial class ProspectLayoutService
 {
-    public async Task<Result> UpdateTemplate(
-        UpdateProspectLayoutRequestDto template,
-        ClaimsPrincipal claims
-    )
+    public async Task<Result> Update(UpdateProspectLayoutRequestDto request, ClaimsPrincipal claims)
     {
         var userId = userManager.GetUserId(claims);
         if (userId is null)
@@ -20,16 +17,16 @@ public partial class ProspectLayoutService
 
         var hasPermission = await permissionsService.HasPermission(
             userId,
-            template.TeamId,
+            request.TeamId,
             TeamPermission.CanEditProspectLayout
         );
         if (!hasPermission)
             return new Forbidden("You do not have permission to edit prospect layout");
 
-        var json = JsonDocument.Parse(template.NewJsonStructure);
+        var json = JsonDocument.Parse(request.NewJsonStructure);
 
         return await updateService.Update(
-            x => x.Id == template.Id,
+            x => x.Id == request.Id,
             x => x.SetProperty(x => x.JsonStructure, json)
         );
     }

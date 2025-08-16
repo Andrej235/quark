@@ -12,7 +12,7 @@ public partial class ProspectLayoutController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Update(UpdateProspectLayoutRequestDto request)
     {
-        var result = await layoutService.UpdateTemplate(request, User);
+        var result = await layoutService.Update(request, User);
 
         if (result.IsFailed)
             return NotFound(new { result.Errors[0].Message });

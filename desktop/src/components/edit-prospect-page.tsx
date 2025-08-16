@@ -36,7 +36,7 @@ export default function EditProspectPage() {
   const invalidateProspectTable = useInvalidateProspectTable();
   const isSaving = useRef(false);
 
-  const [template] = useProspectLayout();
+  const [layout] = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
     (() => SlotData | null)[]
@@ -172,7 +172,7 @@ export default function EditProspectPage() {
     isSaving.current = false;
   }
 
-  if (!template || !prospect.data) return null;
+  if (!layout || !prospect.data) return null;
 
   if (prospect.data.archived) {
     console.log("archived");
@@ -198,10 +198,9 @@ export default function EditProspectPage() {
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl">New Prospect</CardTitle>
+            <CardTitle className="text-xl">Edit Prospect</CardTitle>
             <CardDescription>
-              Create a new prospect by filling out all fields defined in the
-              template
+              Edit an existing prospect by changing the fields below
             </CardDescription>
           </div>
         </div>
@@ -209,7 +208,7 @@ export default function EditProspectPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={template.root} />
+          <RenderSlotTree slot={layout.root} />
         </slotEventSystemContext.Provider>
       </CardContent>
 
