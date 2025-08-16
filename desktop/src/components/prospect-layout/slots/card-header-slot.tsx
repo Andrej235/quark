@@ -1,6 +1,6 @@
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import { CardHeaderSlot as CardHeaderSlotType } from "@/lib/prospects/types/slots/card-header-slot";
-import { CardDescription, CardHeader, CardTitle } from "../ui/card";
+import type { CardHeaderSlot as CardHeaderSlotType } from "@/lib/prospects/types/slots/card-header-slot";
+import { CardDescription, CardHeader, CardTitle } from "../../ui/card";
 
 export default function CardHeaderSlot({
   slot,

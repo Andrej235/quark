@@ -14,8 +14,8 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ImageFieldSlot } from "@/lib/prospects/types/slots/image-field-slot";
 import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { ImageFieldSlot } from "@/lib/prospects/types/slots/image-field-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent } from "react";
 

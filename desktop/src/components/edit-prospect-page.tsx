@@ -1,6 +1,6 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
-import RenderSlotTree from "@/components/prospect-template/render-slot-tree";
+import RenderSlotTree from "@/components/prospect-layout/render-slot-tree";
 import { Button } from "@/components/ui/button";
 import {
   Card,

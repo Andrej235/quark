@@ -1,8 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CardHeaderSlot } from "@/lib/prospects/types/slots/card-header-slot";
 import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { CardHeaderSlot } from "@/lib/prospects/types/slots/card-header-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent } from "react";
 

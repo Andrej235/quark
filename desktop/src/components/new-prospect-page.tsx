@@ -15,7 +15,7 @@ import { useTeamStore } from "@/stores/team-store";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import RenderSlotTree from "./prospect-template/render-slot-tree";
+import RenderSlotTree from "./prospect-layout/render-slot-tree";
 import { Button } from "./ui/button";
 
 export default function NewProspectsPage() {

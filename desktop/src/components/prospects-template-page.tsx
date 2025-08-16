@@ -5,7 +5,7 @@ import { useTeamStore } from "@/stores/team-store";
 import { Save } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
-import RenderSlotTree from "./prospect-template/render-slot-tree";
+import RenderSlotTree from "./prospect-layout/render-slot-tree";
 import {
   AlertDialog,
   AlertDialogAction,

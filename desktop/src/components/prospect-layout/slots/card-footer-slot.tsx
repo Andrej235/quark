@@ -1,7 +1,7 @@
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import { CardFooterSlot as CardFooterSlotType } from "@/lib/prospects/types/slots/card-footer-slot";
-import { CardFooter } from "../ui/card";
-import RenderSlot from "./render-slot";
+import type { CardFooterSlot as CardFooterSlotType } from "@/lib/prospects/types/slots/card-footer-slot";
+import { CardFooter } from "../../ui/card";
+import RenderSlot from "../render-slot";
 
 export default function CardFooterSlot({
   slot,

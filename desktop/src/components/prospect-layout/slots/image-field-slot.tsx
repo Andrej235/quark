@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { useIsSlotInEditMode } from "@/contexts/slot-edit-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/types/slots/image-field-slot";
+import type { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/types/slots/image-field-slot";
 import { Upload } from "lucide-react";
 import { ChangeEvent, useState } from "react";
 
