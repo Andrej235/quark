@@ -25,7 +25,8 @@ public static class DefaultProspectLayout
                                 "placeholder": "Enter company name",
                                 "validateFormat": "letters",
                                 "formatRegex": "{\"source\":\"^[a-zA-Z]*$\",\"flags\":\"\"}",
-                                "validateFormatError": "Must only contain letters"
+                                "validateFormatError": "Must only contain letters",
+                                "required": true
                             }
                         },
                         {
@@ -54,7 +55,8 @@ public static class DefaultProspectLayout
                     "placeholder": "Enter a brief description",
                     "validateFormat": "none",
                     "formatRegex": "{\"source\":\"^\",\"flags\":\"\"}",
-                    "validateFormatError": ""
+                    "validateFormatError": "",
+                    "required": false
                 },
                 {
                     "id": "contact-info",
@@ -79,7 +81,8 @@ public static class DefaultProspectLayout
                                 "placeholder": "Enter contact name",
                                 "validateFormat": "letters",
                                 "formatRegex": "{\"source\":\"^[a-zA-Z]*$\",\"flags\":\"\"}",
-                                "validateFormatError": "Must only contain letters"
+                                "validateFormatError": "Must only contain letters",
+                                "required": true
                             },
                             {
                                 "id": "email",
@@ -88,7 +91,8 @@ public static class DefaultProspectLayout
                                 "placeholder": "Enter email address",
                                 "validateFormat": "email",
                                 "formatRegex": "{\"source\":\"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$\",\"flags\":\"\"}",
-                                "validateFormatError": "Invalid email address"
+                                "validateFormatError": "Invalid email address",
+                                "required": true
                             },
                             {
                                 "id": "phone",
@@ -97,7 +101,8 @@ public static class DefaultProspectLayout
                                 "placeholder": "Enter phone number",
                                 "validateFormat": "phone",
                                 "formatRegex": "{\"source\":\"^(?:\\\\+?\\\\d{1,3}[-.\\\\s]?)?\\\\(?\\\\d{3}\\\\)?[-.\\\\s]?\\\\d{3}[-.\\\\s]?\\\\d{4}$\",\"flags\":\"\"}",
-                                "validateFormatError": "Invalid phone number"
+                                "validateFormatError": "Invalid phone number",
+                                "required": false
                             }
                         ]
                     },
@@ -112,7 +117,7 @@ public static class DefaultProspectLayout
                                 "type": "button",
                                 "label": "Save",
                                 "variant": "default",
-                                "size": "default"
+                                "size": "default",
                             }
                         ]
                     }

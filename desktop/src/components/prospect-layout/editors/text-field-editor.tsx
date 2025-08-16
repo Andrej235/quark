@@ -1,4 +1,5 @@
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +58,10 @@ export default function TextFieldEditor({
   }
 
   function handleChange(
-    property: Exclude<keyof TextFieldSlot, "type" | "validateFormat">,
+    property: Exclude<
+      keyof TextFieldSlot,
+      "type" | "validateFormat" | "required"
+    >,
     e: ChangeEvent<HTMLInputElement>,
   ) {
     const value =
@@ -67,6 +71,17 @@ export default function TextFieldEditor({
 
     update(slot.id, (x) => {
       x[property] = value;
+    });
+  }
+
+  function handleRequiredChange(required: boolean) {
+    setLocalSlot({
+      ...slot,
+      required,
+    });
+
+    update(slot.id, (x) => {
+      x.required = required;
     });
   }
 
@@ -184,7 +199,7 @@ export default function TextFieldEditor({
 
       <div className="space-y-2">
         <Label className="text-muted-foreground text-sm" htmlFor="validation">
-          Validation
+          Validation Pattern
         </Label>
 
         <div className="grid grid-cols-[2fr_1fr] gap-4">
@@ -279,6 +294,18 @@ export default function TextFieldEditor({
           value={slot.validateFormatError}
           onChange={(e) => handleLocalChange("validateFormatError", e)}
           onBlur={(e) => handleChange("validateFormatError", e)}
+        />
+      </div>
+
+      <div className="flex items-center justify-end gap-2">
+        <Label htmlFor="required" className="text-muted-foreground text-sm">
+          Required
+        </Label>
+
+        <Checkbox
+          id="required"
+          checked={slot.required}
+          onCheckedChange={handleRequiredChange}
         />
       </div>
     </>

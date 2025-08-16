@@ -50,6 +50,7 @@ export const defaultSlots: {
     validateFormat: "none",
     formatRegex: '{"source":"^","flags":""}',
     validateFormatError: "",
+    required: false,
   },
   button: {
     id: "button",

@@ -14,4 +14,5 @@ export type TextFieldSlot = {
     | "alphanumeric";
   formatRegex: string;
   validateFormatError: string;
+  required: boolean;
 };
