@@ -8,9 +8,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
-import { SlotData } from "@/lib/prospects/types/data/slot-data";
 import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
+import { validateSlotData } from "@/lib/prospects/slots/defaults/validate-slot-data";
+import { SlotData } from "@/lib/prospects/types/data/slot-data";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { useTeamStore } from "@/stores/team-store";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -26,22 +28,20 @@ export default function NewProspectsPage() {
   const invalidateProspectTable = useInvalidateProspectTable();
 
   const [subscribedSlots, setSubscribedSlots] = useState<
-    (() => SlotData | null)[]
+    (() => [Slot, SlotData] | null)[]
   >([]);
 
   const subscribe = useCallback(
-    (x: () => SlotData | null) => setSubscribedSlots((prev) => [...prev, x]),
+    (x: () => [Slot, SlotData] | null) =>
+      setSubscribedSlots((prev) => [...prev, x]),
     [],
   );
   const contextValue = useMemo(
     () => ({
-      onReadSubscribers: subscribedSlots,
       onReadSubscribe: subscribe,
-
-      onSetSubscribers: [],
       onSetSubscribe: () => {},
     }),
-    [subscribedSlots, subscribe],
+    [subscribe],
   );
 
   async function handleSave() {
@@ -51,6 +51,13 @@ export default function NewProspectsPage() {
     }
 
     const values = subscribedSlots.map((x) => x()).filter((x) => !!x);
+    const valid = validateSlotData(values);
+    if (!valid) {
+      toast.error(
+        "Please fill in all required fields and make sure your data is valid",
+      );
+      return;
+    }
 
     const { isOk } = await sendApiRequest(
       "/prospects",
@@ -58,7 +65,7 @@ export default function NewProspectsPage() {
         method: "post",
         payload: {
           teamId: activeTeam.id,
-          fields: values,
+          fields: values.map(([, value]) => value),
         },
       },
       {

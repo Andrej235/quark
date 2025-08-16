@@ -28,14 +28,16 @@ export function useSubscribeSlotToEventSystem(
     if (subscribedToOnRead.current) return;
     subscribedToOnRead.current = true;
 
-    onReadSubscribe(() => valueRef.current);
-  }, [onReadSubscribe]);
+    onReadSubscribe(() =>
+      valueRef.current && slot ? [slot, valueRef.current] : null,
+    );
+  }, [onReadSubscribe, slot]);
 
   useEffect(() => {
     if (subscribedToOnSet.current === slot.id) return;
     subscribedToOnSet.current = slot.id;
 
-    // The cast into a function with a nullable param will probably cause problems later down the line. For example, text-field-slot doesn't expect null as a value.
+    // The cast into a function with a nullable param will probably cause problems later down the line. For example, text-field-slot doesn't expect null as a value, but image-field-slot does.
     onSetSubscribe(() => [slot.id, setState as (value: string | null) => void]);
   }, [onSetSubscribe, slot.id, setState]);
 }

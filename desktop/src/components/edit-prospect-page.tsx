@@ -11,9 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
-import { SlotData } from "@/lib/prospects/types/data/slot-data";
 import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
+import { SlotData } from "@/lib/prospects/types/data/slot-data";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { useTeamStore } from "@/stores/team-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -39,10 +40,10 @@ export default function EditProspectPage() {
   const [layout] = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
-    (() => SlotData | null)[]
+    (() => [Slot, SlotData] | null)[]
   >([]);
   const onReadSubscribe = useCallback(
-    (x: () => SlotData | null) =>
+    (x: () => [Slot, SlotData] | null) =>
       setOnReadSubscribedSlots((prev) => [...prev, x]),
     [],
   );
@@ -58,18 +59,10 @@ export default function EditProspectPage() {
 
   const contextValue = useMemo(
     () => ({
-      onReadSubscribers: onReadSubscribedSlots,
       onReadSubscribe: onReadSubscribe,
-
-      onSetSubscribers: onSetSubscribedSlots,
       onSetSubscribe: onSetSubscribe,
     }),
-    [
-      onReadSubscribedSlots,
-      onReadSubscribe,
-      onSetSubscribedSlots,
-      onSetSubscribe,
-    ],
+    [onReadSubscribe, onSetSubscribe],
   );
 
   useEffect(() => {
@@ -98,13 +91,13 @@ export default function EditProspectPage() {
       .map((x) => x())
       .filter((x) => !!x);
 
-    const editedFieldIds = editedFields.map((x) => x.id);
+    const editedFieldIds = editedFields.map(([, x]) => x.id);
     const originalFieldIds = originalFields.map((x) => x.id);
 
     const editedFieldIdsToCheck = editedFieldIds.filter((id) =>
       originalFieldIds.includes(id),
     );
-    const editedFieldsThatChanged = editedFields.filter((x) =>
+    const editedFieldsThatChanged = editedFields.filter(([, x]) =>
       editedFieldIdsToCheck.includes(x.id),
     );
     const originalFieldsThatChanged = originalFields.filter((x) =>
@@ -118,14 +111,14 @@ export default function EditProspectPage() {
     //   (id) => !originalFieldIds.includes(id),
     // );
     const changedFields = editedFieldsThatChanged
-      .map((edited) => {
+      .map(([slot, edited]) => {
         const original = originalFieldsThatChanged.find(
           (x) => x.id === edited.id,
         );
 
         if (!original || edited.value === original.value) return null;
 
-        return { ...edited, value: edited.value };
+        return [slot, edited] as const;
       })
       .filter((x) => !!x);
 
@@ -145,7 +138,7 @@ export default function EditProspectPage() {
         payload: {
           teamId,
           prospectId,
-          fields: changedFields,
+          fields: changedFields.map(([, value]) => value),
         },
       },
       {
