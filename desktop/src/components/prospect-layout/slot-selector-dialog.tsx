@@ -3,6 +3,7 @@ import { defaultSlots } from "@/lib/prospects/slots/defaults/default-slots";
 import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { useSlotSelectorStore } from "@/stores/slot-selector-store";
 import {
+  ChevronDown,
   Columns3,
   CreditCard,
   Image,
@@ -32,6 +33,11 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Image Field",
     icon: Image,
     slot: defaultSlots["image-field"],
+  },
+  {
+    name: "Dropdown",
+    icon: ChevronDown,
+    slot: defaultSlots["dropdown"],
   },
   {
     name: "Row",

@@ -12,7 +12,7 @@ import { Label } from "../../ui/label";
 export default function TextFieldSlot({
   slot,
 }: RenderSlotProps<TextFieldSlotType>) {
-  const { name, placeholder } = slot;
+  const { id, name, placeholder } = slot;
   const isEditing = useIsSlotInEditMode();
   const readonly = useIsSlotReadonly();
   const [text, setText] = useState("");
@@ -21,7 +21,7 @@ export default function TextFieldSlot({
 
   return (
     <div>
-      <Label htmlFor={name} className="gap-1">
+      <Label htmlFor={id} className="gap-1">
         <span>{name}</span>
         {slot.required && !readonly && <span>*</span>}
       </Label>
@@ -29,7 +29,7 @@ export default function TextFieldSlot({
       <Input
         className="mt-2"
         type="text"
-        id={name}
+        id={id}
         placeholder={placeholder}
         disabled={isEditing}
         readOnly={readonly}

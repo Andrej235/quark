@@ -52,6 +52,24 @@ export const defaultSlots: {
     validateFormatError: "",
     required: false,
   },
+  dropdown: {
+    id: "dropdown",
+    type: "dropdown",
+    name: "Dropdown",
+    placeholder: "Select an option",
+    defaultValue: null,
+    options: [
+      {
+        value: "Option 1",
+        color: "#0000ff",
+      },
+      {
+        value: "Option 2",
+        color: "#00ff00",
+      },
+    ],
+    required: false,
+  },
   button: {
     id: "button",
     type: "button",

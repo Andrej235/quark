@@ -3,6 +3,7 @@ import { CardFooterSlot } from "../slots/card-footer-slot";
 import { CardHeaderSlot } from "../slots/card-header-slot";
 import { CardSlot } from "../slots/card-slot";
 import { ColumnSlot } from "../slots/column-slot";
+import { DropdownSlot } from "../slots/dropdown-slot";
 import { ImageFieldSlot } from "../slots/image-field-slot";
 import { RowSlot } from "../slots/row-slot";
 import { TextFieldSlot } from "../slots/text-field-slot";
@@ -15,7 +16,8 @@ export type SlotType =
   | "column"
   | "button"
   | "text-field"
-  | "image-field";
+  | "image-field"
+  | "dropdown";
 
 type BaseSlot = {
   id: string;
@@ -30,7 +32,8 @@ type UnsafeSlot =
   | CardFooterSlot
   | ButtonSlot
   | TextFieldSlot
-  | ImageFieldSlot;
+  | ImageFieldSlot
+  | DropdownSlot;
 
 type SafeSlot = Extract<
   UnsafeSlot,

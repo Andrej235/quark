@@ -7,6 +7,7 @@ import CardFooterSlot from "./slots/card-footer-slot";
 import CardHeaderSlot from "./slots/card-header-slot";
 import CardSlot from "./slots/card-slot";
 import ColumnSlot from "./slots/column-slot";
+import DropdownSlot from "./slots/dropdown-slot";
 import ImageFieldSlot from "./slots/image-field-slot";
 import RowSlot from "./slots/row-slot";
 import TextFieldSlot from "./slots/text-field-slot";
@@ -35,6 +36,8 @@ export default function RenderSlot({
         return <TextFieldSlot slot={slot} />;
       case "image-field":
         return <ImageFieldSlot slot={slot} />;
+      case "dropdown":
+        return <DropdownSlot slot={slot} />;
       default:
         return null;
     }

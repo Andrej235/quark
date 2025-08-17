@@ -24,6 +24,7 @@ import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import ButtonEditor from "./editors/button-editor";
 import CardHeaderEditor from "./editors/card-header-editor";
+import DropdownEditor from "./editors/dropdown-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
 import TextFieldEditor from "./editors/text-field-editor";
 
@@ -261,6 +262,9 @@ function SpecificTypeEditor({ slot, setLocalSlot }: SlotEditorProps) {
 
     case "button":
       return <ButtonEditor slot={slot} setLocalSlot={setLocalSlot} />;
+
+    case "dropdown":
+      return <DropdownEditor slot={slot} setLocalSlot={setLocalSlot} />;
 
     default:
       return null;
