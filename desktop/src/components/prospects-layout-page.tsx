@@ -36,7 +36,7 @@ export default function ProspectsLayoutPage() {
     if (!treeRoot || !layout || !teamId) return;
 
     if (isWaitingForResponse.current) {
-      toast.info("Please wait, template is being saved", {
+      toast.info("Please wait, layout is being saved", {
         duration: 3000,
       });
       return;
@@ -56,10 +56,9 @@ export default function ProspectsLayoutPage() {
       {
         showToast: true,
         toastOptions: {
-          loading: "Saving template, please wait...",
-          success: "Template saved successfully!",
-          error: (x) =>
-            x.message || "Failed to save template, please try again",
+          loading: "Saving layout, please wait...",
+          success: "Layout saved successfully!",
+          error: (x) => x.message || "Failed to save layout, please try again",
         },
       },
     );
@@ -78,9 +77,9 @@ export default function ProspectsLayoutPage() {
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl">Prospect Template</CardTitle>
+            <CardTitle className="text-xl">Prospect Layout</CardTitle>
             <CardDescription>
-              Modify the template for prospects to control what information is
+              Modify the layout for prospects to control what information is
               collected
             </CardDescription>
           </div>
@@ -95,7 +94,7 @@ export default function ProspectsLayoutPage() {
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="secondary">
-              <span>Save Template</span>
+              <span>Save Layout</span>
               <Save />
             </Button>
           </AlertDialogTrigger>
@@ -103,7 +102,7 @@ export default function ProspectsLayoutPage() {
           <AlertDialogContent className="min-w-max">
             <AlertDialogHeader>
               <AlertDialogTitle>
-                Are you sure you want to save all changes to the template?
+                Are you sure you want to save all changes to the layout?
               </AlertDialogTitle>
 
               <AlertDialogDescription>

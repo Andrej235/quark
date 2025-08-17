@@ -138,7 +138,7 @@ export default function SlotEditorDialog() {
       {isOpen && (
         <motion.div
           className={cn(
-            "-translate-1/2 fixed left-1/2 top-1/2",
+            "-translate-1/2 fixed left-1/2 top-1/2 z-10",
             !isOpen && "pointer-events-none touch-none",
           )}
           initial={{

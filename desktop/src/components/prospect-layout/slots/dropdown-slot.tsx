@@ -20,10 +20,10 @@ export default function DropdownSlot({
   const { id, name, placeholder, defaultValue } = slot;
   const isEditing = useIsSlotInEditMode();
   const readonly = useIsSlotReadonly();
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    setSelected(defaultValue || "");
+    setSelected(defaultValue);
   }, [defaultValue]);
 
   useSubscribeSlotToEventSystem(slot, selected, setSelected);
@@ -37,7 +37,11 @@ export default function DropdownSlot({
 
       <Select
         value={selected || ""}
-        onValueChange={!readonly ? setSelected : undefined}
+        onValueChange={
+          !readonly
+            ? (x) => (x === "null" ? setSelected(null) : setSelected(x))
+            : undefined
+        }
         disabled={isEditing}
       >
         <SelectTrigger className="cursor-auto! mt-2">
@@ -45,6 +49,8 @@ export default function DropdownSlot({
         </SelectTrigger>
 
         <SelectContent>
+          {!slot.required && <SelectItem value="null">None</SelectItem>}
+
           {slot.options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.value}

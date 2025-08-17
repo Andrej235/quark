@@ -12,8 +12,15 @@ export function validateSlotData(
   slot: Slot | [slot: Slot, data: SlotData][],
   data?: SlotData,
 ) {
-  if (Array.isArray(slot))
-    return !slot.reduce((acc, cur) => !acc || validateSingle(...cur), false);
+  if (Array.isArray(slot)) {
+    for (const [$slot, $data] of slot) {
+      if (!validateSingle($slot, $data)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
 
   if (data) return validateSingle(slot, data);
 
@@ -30,13 +37,24 @@ function validateSingle(slot: Slot, data: SlotData): boolean {
   if (slot.type === "image-field") return true;
 
   if (slot.type === "text-field") {
-    if (slot.required && !data.value) return false;
+    // If the data is missing and slot is not required return true to skip over regex validation
+    if (!data.value) return !slot.required;
 
     if (
       slot.validateFormat !== "none" &&
       !DeserializeRegex(slot.formatRegex).test(data.value ?? "")
     )
       return false;
+
+    return true;
+  }
+
+  if (slot.type === "dropdown") {
+    // If the data is missing and slot is not required return true to skip over options validation
+    if (!data.value) return !slot.required;
+
+    // Validate that the value is one of the options
+    if (!slot.options.some((x) => x.value === data.value)) return false;
 
     return true;
   }
