@@ -26,6 +26,7 @@ import ButtonEditor from "./editors/button-editor";
 import CardHeaderEditor from "./editors/card-header-editor";
 import DropdownEditor from "./editors/dropdown-editor";
 import ImageFieldEditor from "./editors/image-field-editor";
+import RichTextFieldEditor from "./editors/rich-text-field-editor";
 import TextFieldEditor from "./editors/text-field-editor";
 
 export default function SlotEditorDialog() {
@@ -253,6 +254,9 @@ function SpecificTypeEditor({ slot, setLocalSlot }: SlotEditorProps) {
   switch (slot.type) {
     case "text-field":
       return <TextFieldEditor slot={slot} setLocalSlot={setLocalSlot} />;
+
+    case "rich-text-field":
+      return <RichTextFieldEditor slot={slot} setLocalSlot={setLocalSlot} />;
 
     case "image-field":
       return <ImageFieldEditor slot={slot} setLocalSlot={setLocalSlot} />;

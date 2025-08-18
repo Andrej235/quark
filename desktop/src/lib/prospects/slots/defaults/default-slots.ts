@@ -53,6 +53,12 @@ export const defaultSlots: {
     validateFormatError: "",
     required: false,
   },
+  "rich-text-field": {
+    id: "rich-text-field",
+    type: "rich-text-field",
+    name: "Rich Text Field",
+    placeholder: "Enter text",
+  },
   dropdown: {
     id: "dropdown",
     type: "dropdown",

@@ -10,6 +10,7 @@ import {
   LucideIcon,
   Rows3,
   Text,
+  Type,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
@@ -28,6 +29,11 @@ const slotOptions: Omit<SlotItemProps, "onSelect" | "selected">[] = [
     name: "Text Field",
     icon: Text,
     slot: defaultSlots["text-field"],
+  },
+  {
+    name: "Rich Text Field",
+    icon: Type,
+    slot: defaultSlots["rich-text-field"],
   },
   {
     name: "Image Field",

@@ -9,6 +9,7 @@ import CardSlot from "./slots/card-slot";
 import ColumnSlot from "./slots/column-slot";
 import DropdownSlot from "./slots/dropdown-slot";
 import ImageFieldSlot from "./slots/image-field-slot";
+import RichTextFieldSlot from "./slots/rich-text-field-slot";
 import RowSlot from "./slots/row-slot";
 import TextFieldSlot from "./slots/text-field-slot";
 
@@ -34,6 +35,8 @@ export default function RenderSlot({
         return <ButtonSlot slot={slot} />;
       case "text-field":
         return <TextFieldSlot slot={slot} />;
+      case "rich-text-field":
+        return <RichTextFieldSlot slot={slot} />;
       case "image-field":
         return <ImageFieldSlot slot={slot} />;
       case "dropdown":
