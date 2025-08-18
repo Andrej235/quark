@@ -1,7 +1,7 @@
 import { getSlotChildren } from "../slots/operations/get-slot-children";
 import {
-  ProspectFieldDefinition,
   ProspectDataType,
+  ProspectFieldDefinition,
 } from "../types/data/prospect-data-definition";
 import { Slot } from "../types/generalized-slots/slot";
 
@@ -18,9 +18,9 @@ function slotToDataTypeShallow(slot: Slot): ProspectFieldDefinition | null {
   function getType(): ProspectDataType | null {
     switch (slot.type) {
       case "text-field":
-        return "text";
-      case "image-field":
-        return "image";
+        return "dropdown";
+      case "dropdown":
+        return "dropdown";
       default:
         return null;
     }
