@@ -7,7 +7,7 @@ import {
 } from "@/contexts/slot-tree-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -19,6 +19,10 @@ export default function RichTextFieldSlot({
   const readonly = useIsSlotReadonly();
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"edit" | "view">("edit");
+
+  useEffect(() => {
+    setMode(readonly ? "view" : "edit");
+  }, [readonly]);
 
   useSubscribeSlotToEventSystem({
     slot,
@@ -49,7 +53,7 @@ export default function RichTextFieldSlot({
           placeholder={placeholder}
           disabled={isEditing}
           readOnly={readonly}
-          value={text}
+          value={text ?? ""}
           onChange={(e) => setText(e.target.value)}
         />
       ) : (

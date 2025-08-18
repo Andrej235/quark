@@ -61,6 +61,7 @@ export default function DropdownSlot({ slot }: RenderSlotProps<"dropdown">) {
         onOpenChange={(x) => {
           if (!x) setTouched(true);
         }}
+        open={readonly ? false : undefined}
         disabled={isEditing}
       >
         <SelectTrigger className="cursor-auto! mt-2">
