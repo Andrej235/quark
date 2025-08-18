@@ -7,11 +7,11 @@ namespace Quark.Services.ModelServices.ProspectLayoutService;
 
 public interface IProspectLayoutService
 {
-    Task<Result<ProspectLayoutResponseDto>> GetDefaultTemplateForTeam(
+    Task<Result<ProspectLayoutResponseDto>> GetDefaultForTeam(
         Guid teamId,
         ClaimsPrincipal claims,
         CancellationToken cancellationToken
     );
 
-    Task<Result> UpdateTemplate(UpdateProspectLayoutRequestDto request, ClaimsPrincipal claims);
+    Task<Result> Update(UpdateProspectLayoutRequestDto request, ClaimsPrincipal claims);
 }

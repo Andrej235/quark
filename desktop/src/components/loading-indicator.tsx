@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import "./css/loading-indicator.css";
 
 type LoadingIndicatorProps = {

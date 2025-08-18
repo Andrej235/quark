@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { useTeamStore } from "@/stores/team-store";
 import { useUserStore } from "@/stores/user-store";
 import { AlertDialog } from "@radix-ui/react-alert-dialog";

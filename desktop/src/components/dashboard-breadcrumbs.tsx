@@ -7,7 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import toTitleCase from "@/lib/title-case";
+import toTitleCase from "@/lib/format/title-case";
 import { Link, useLocation } from "react-router-dom";
 import {
   DropdownMenu,

@@ -1,4 +1,4 @@
-import { Slot } from "@/lib/prospects/slot-types/slot";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { toast } from "sonner";
 import { create } from "zustand";
 

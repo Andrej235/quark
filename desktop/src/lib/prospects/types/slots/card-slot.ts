@@ -1,0 +1,11 @@
+import { CardFooterSlot } from "./card-footer-slot";
+import { CardHeaderSlot } from "./card-header-slot";
+import { Slot } from "../generalized-slots/slot";
+
+export type CardSlot = {
+  id: string;
+  type: "card";
+  header: CardHeaderSlot | null;
+  content: Slot | null;
+  footer: CardFooterSlot | null;
+};

@@ -8,7 +8,7 @@ namespace Quark.Services.ModelServices.ProspectLayoutService;
 
 public partial class ProspectLayoutService
 {
-    public async Task<Result<ProspectLayoutResponseDto>> GetDefaultTemplateForTeam(
+    public async Task<Result<ProspectLayoutResponseDto>> GetDefaultForTeam(
         Guid teamId,
         ClaimsPrincipal claims,
         CancellationToken cancellationToken

@@ -1,4 +1,4 @@
-import { Slot } from "@/lib/prospects/slot-types/slot";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { create } from "zustand";
 
 type SlotSelectorStore = {

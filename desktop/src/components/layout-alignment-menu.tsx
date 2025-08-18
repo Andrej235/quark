@@ -1,13 +1,13 @@
-import { ColumnSlot } from "@/lib/prospects/slot-types/column-slot";
-import { RowSlot } from "@/lib/prospects/slot-types/row-slot";
-import { cn } from "@/lib/utils";
+import { ColumnSlot } from "@/lib/prospects/types/slots/column-slot";
+import { RowSlot } from "@/lib/prospects/types/slots/row-slot";
+import { cn } from "@/lib/cn";
 import { useSlotLayoutModeStore } from "@/stores/slot-layout-edit-store";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChevronsLeftRight, GripVertical } from "lucide-react";
 import { motion, useDragControls } from "motion/react";
 import { useEffect, useState } from "react";
 import { Separator } from "./ui/separator";
-import { Align } from "@/lib/prospects/slot-types/align";
+import { Align } from "@/lib/prospects/types/slots-utility/align";
 
 const horizontalModes = ["flex-start", "center", "flex-end"] as const;
 const verticalModes = ["flex-start", "center", "flex-end"] as const;

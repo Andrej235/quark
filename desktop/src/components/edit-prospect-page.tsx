@@ -1,6 +1,6 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
-import RenderSlotTree from "@/components/prospect-template/render-slot-tree";
+import RenderSlotTree from "@/components/prospect-layout/render-slot-tree";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,9 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
-import { SlotData } from "@/lib/prospects/slot-data";
-import { useInvalidateProspectTable } from "@/lib/prospects/use-invalidate-prospect-table";
-import { useProspectLayout } from "@/lib/prospects/use-prospect-layout";
+import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
+import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
+import { validateSlotData } from "@/lib/prospects/slots/defaults/validate-slot-data";
+import { SlotData } from "@/lib/prospects/types/data/slot-data";
+import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
 import { useTeamStore } from "@/stores/team-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -36,13 +38,13 @@ export default function EditProspectPage() {
   const invalidateProspectTable = useInvalidateProspectTable();
   const isSaving = useRef(false);
 
-  const [template] = useProspectLayout();
+  const [layout] = useProspectLayout();
 
   const [onReadSubscribedSlots, setOnReadSubscribedSlots] = useState<
-    (() => SlotData | null)[]
+    (() => [Slot, SlotData] | null)[]
   >([]);
   const onReadSubscribe = useCallback(
-    (x: () => SlotData | null) =>
+    (x: () => [Slot, SlotData] | null) =>
       setOnReadSubscribedSlots((prev) => [...prev, x]),
     [],
   );
@@ -58,18 +60,10 @@ export default function EditProspectPage() {
 
   const contextValue = useMemo(
     () => ({
-      onReadSubscribers: onReadSubscribedSlots,
       onReadSubscribe: onReadSubscribe,
-
-      onSetSubscribers: onSetSubscribedSlots,
       onSetSubscribe: onSetSubscribe,
     }),
-    [
-      onReadSubscribedSlots,
-      onReadSubscribe,
-      onSetSubscribedSlots,
-      onSetSubscribe,
-    ],
+    [onReadSubscribe, onSetSubscribe],
   );
 
   useEffect(() => {
@@ -98,13 +92,13 @@ export default function EditProspectPage() {
       .map((x) => x())
       .filter((x) => !!x);
 
-    const editedFieldIds = editedFields.map((x) => x.id);
+    const editedFieldIds = editedFields.map(([, x]) => x.id);
     const originalFieldIds = originalFields.map((x) => x.id);
 
     const editedFieldIdsToCheck = editedFieldIds.filter((id) =>
       originalFieldIds.includes(id),
     );
-    const editedFieldsThatChanged = editedFields.filter((x) =>
+    const editedFieldsThatChanged = editedFields.filter(([, x]) =>
       editedFieldIdsToCheck.includes(x.id),
     );
     const originalFieldsThatChanged = originalFields.filter((x) =>
@@ -118,14 +112,14 @@ export default function EditProspectPage() {
     //   (id) => !originalFieldIds.includes(id),
     // );
     const changedFields = editedFieldsThatChanged
-      .map((edited) => {
+      .map(([slot, edited]) => {
         const original = originalFieldsThatChanged.find(
           (x) => x.id === edited.id,
         );
 
         if (!original || edited.value === original.value) return null;
 
-        return { ...edited, value: edited.value };
+        return [slot, edited] as const;
       })
       .filter((x) => !!x);
 
@@ -138,6 +132,14 @@ export default function EditProspectPage() {
       return;
     }
 
+    const valid = validateSlotData(changedFields as []);
+    if (!valid) {
+      toast.error(
+        "Please fill in all required fields and make sure your data is valid",
+      );
+      return;
+    }
+
     const { isOk } = await sendApiRequest(
       "/prospects",
       {
@@ -145,7 +147,7 @@ export default function EditProspectPage() {
         payload: {
           teamId,
           prospectId,
-          fields: changedFields,
+          fields: changedFields.map(([, value]) => value),
         },
       },
       {
@@ -172,7 +174,7 @@ export default function EditProspectPage() {
     isSaving.current = false;
   }
 
-  if (!template || !prospect.data) return null;
+  if (!layout || !prospect.data) return null;
 
   if (prospect.data.archived) {
     console.log("archived");
@@ -198,10 +200,9 @@ export default function EditProspectPage() {
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl">New Prospect</CardTitle>
+            <CardTitle className="text-xl">Edit Prospect</CardTitle>
             <CardDescription>
-              Create a new prospect by filling out all fields defined in the
-              template
+              Edit an existing prospect by changing the fields below
             </CardDescription>
           </div>
         </div>
@@ -209,7 +210,7 @@ export default function EditProspectPage() {
 
       <CardContent className="bg-transparent">
         <slotEventSystemContext.Provider value={contextValue}>
-          <RenderSlotTree slot={template.root} />
+          <RenderSlotTree slot={layout.root} />
         </slotEventSystemContext.Provider>
       </CardContent>
 

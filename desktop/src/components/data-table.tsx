@@ -15,10 +15,13 @@ import {
 } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
+import { ContextMenu, ContextMenuTrigger } from "./ui/context-menu";
+import { ElementType } from "react";
 
 type DataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  contextMenuContent?: ElementType<{ original: TData }>;
   pageIndex: number;
   setPageIndex: (newPageIndex: number) => void;
   hasMore: boolean;
@@ -32,6 +35,7 @@ export function DataTable<TData, TValue>({
   setPageIndex,
   hasMore,
   isLoading,
+  contextMenuContent: ContextMenuContent,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -73,20 +77,45 @@ export function DataTable<TData, TValue>({
             </TableRow>
           ))}
         </TableHeader>
+
         <TableBody>
           {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            ContextMenuContent ? (
+              table.getRowModel().rows.map((row) => (
+                <ContextMenu key={row.id}>
+                  <ContextMenuTrigger asChild>
+                    <TableRow data-state={row.getIsSelected() && "selected"}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </ContextMenuTrigger>
+
+                  <ContextMenuContent original={row.original} />
+                </ContextMenu>
+              ))
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  data-state={row.getIsSelected() && "selected"}
+                  key={row.id}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length} className="h-24 text-center">
