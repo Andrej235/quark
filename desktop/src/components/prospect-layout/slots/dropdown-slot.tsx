@@ -22,6 +22,22 @@ export default function DropdownSlot({
   const readonly = useIsSlotReadonly();
   const [selected, setSelected] = useState<string | null>(null);
 
+  const [touched, setTouched] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!selected) {
+      if (slot.required) setError("This field is required");
+      return;
+    }
+
+    setError(
+      slot.options.some((x) => x.value === selected)
+        ? ""
+        : "Please select a valid option",
+    );
+  }, [selected, touched, slot]);
+
   useEffect(() => {
     setSelected(defaultValue);
   }, [defaultValue]);
@@ -38,10 +54,11 @@ export default function DropdownSlot({
       <Select
         value={selected || ""}
         onValueChange={
-          !readonly
-            ? (x) => (x === "null" ? setSelected(null) : setSelected(x))
-            : undefined
+          !readonly ? (x) => setSelected(x === "null" ? null : x) : undefined
         }
+        onOpenChange={(x) => {
+          if (!x) setTouched(true);
+        }}
         disabled={isEditing}
       >
         <SelectTrigger className="cursor-auto! mt-2">
@@ -58,6 +75,8 @@ export default function DropdownSlot({
           ))}
         </SelectContent>
       </Select>
+
+      {touched && <p className="text-destructive text-sm">{error}</p>}
     </div>
   );
 }
