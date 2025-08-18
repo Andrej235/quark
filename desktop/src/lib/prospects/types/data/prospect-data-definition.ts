@@ -1,6 +1,6 @@
 import { SlotData } from "./slot-data";
 
-export type ProspectDataType = "text" | "dropdown";
+export type ProspectDataType = "text" | "rich-text" | "image" | "dropdown";
 
 export type ProspectFieldDefinition = {
   type: ProspectDataType;

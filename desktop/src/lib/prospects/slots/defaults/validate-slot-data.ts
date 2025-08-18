@@ -53,6 +53,10 @@ function validateSingle(slot: Slot, data: SlotData): boolean {
     return true;
   }
 
+  if (slot.type === "rich-text-field") {
+    return true;
+  }
+
   if (slot.type === "dropdown") {
     // If the data is missing and slot is not required return true to skip over options validation
     if (!data.value) return !slot.required;

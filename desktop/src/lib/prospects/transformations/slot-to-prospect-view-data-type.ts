@@ -5,11 +5,15 @@ import {
 } from "../types/data/prospect-data-definition";
 import { Slot } from "../types/generalized-slots/slot";
 
-export function slotToProspectDataType(slot: Slot): ProspectFieldDefinition[] {
+export function slotToProspectViewDataType(
+  slot: Slot,
+): ProspectFieldDefinition[] {
   return [
     slotToDataTypeShallow(slot),
     ...getSlotChildren(slot).flatMap((x) =>
-      "slot" in x ? slotToProspectDataType(x.slot) : slotToProspectDataType(x),
+      "slot" in x
+        ? slotToProspectViewDataType(x.slot)
+        : slotToProspectViewDataType(x),
     ),
   ].filter((x) => !!x);
 }

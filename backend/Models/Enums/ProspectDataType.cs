@@ -3,5 +3,7 @@ namespace Quark.Models.Enums;
 public enum ProspectDataType
 {
     Text = 0,
-    Dropdown = 1,
+    RichText = 1,
+    Dropdown = 2,
+    Image = 4,
 }

@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";
 import { useProspectView } from "@/lib/prospects/hooks/use-prospect-view";
-import { slotToProspectDataType } from "@/lib/prospects/transformations/slot-to-prospect-data-type";
+import { slotToProspectViewDataType } from "@/lib/prospects/transformations/slot-to-prospect-view-data-type";
 import { ProspectFieldDefinition } from "@/lib/prospects/types/data/prospect-data-definition";
 import { useTeamStore } from "@/stores/team-store";
 import {
@@ -59,7 +59,7 @@ export default function EditProspectListViewItemDialog({
   const teamId = useTeamStore((x) => x.activeTeam?.id);
   const [layout] = useProspectLayout();
   const allFields = useMemo(
-    () => (layout ? slotToProspectDataType(layout.root) : null),
+    () => (layout ? slotToProspectViewDataType(layout.root) : null),
     [layout],
   );
 

@@ -2449,7 +2449,9 @@ export type ApiSpec={
       "ProspectDataType": {
         "enum": [
           "text",
-          "dropdown"
+          "rich_text",
+          "dropdown",
+          "image"
         ]
       },
       "ProspectFieldResponseDto": {

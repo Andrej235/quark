@@ -1,10 +1,11 @@
 import { slotEventSystemContext } from "@/contexts/slot-event-system-context";
 import { useContext, useEffect, useRef } from "react";
+import { slotToDataType } from "../../transformations/slot-to-data-type";
 import { SlotData } from "../../types/data/slot-data";
-import { Slot } from "../../types/generalized-slots/slot";
+import { InputSlot } from "../../types/generalized-slots/input-slot";
 
 type Options = {
-  slot: Slot;
+  slot: InputSlot;
   valueState: string | null;
   setState: ((value: string | null) => void) | ((value: string) => void);
   onReadValue?: () => void;
@@ -25,12 +26,15 @@ export function useSubscribeSlotToEventSystem({
   const subscribedToOnSet = useRef<string | null>(null);
 
   useEffect(() => {
+    const type = slotToDataType(slot);
+    if (!type) return;
+
     valueRef.current = {
       id: slot.id,
-      type: slot.type === "image-field" ? "image" : "text",
+      type,
       value: valueState,
     };
-  }, [slot.id, slot.type, valueState]);
+  }, [slot, valueState]);
 
   useEffect(() => {
     if (subscribedToOnRead.current) return;
