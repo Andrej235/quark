@@ -34,7 +34,11 @@ function validateSingle(slot: Slot, data: SlotData): boolean {
   // Slot is not even supposed to have data
   if (!isInputSlot(slot)) return false;
 
-  if (slot.type === "image-field") return true;
+  if (slot.type === "image-field") {
+    if (!data.value) return !slot.required;
+
+    return true;
+  }
 
   if (slot.type === "text-field") {
     // If the data is missing and slot is not required return true to skip over regex validation

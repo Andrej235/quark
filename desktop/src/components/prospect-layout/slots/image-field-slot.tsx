@@ -1,23 +1,40 @@
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useIsSlotInEditMode } from "@/contexts/slot-tree-context";
+import {
+  useIsSlotInEditMode,
+  useIsSlotReadonly,
+} from "@/contexts/slot-tree-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
 import type { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/types/slots/image-field-slot";
 import { Upload } from "lucide-react";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 
 export default function ImageFieldSlot({
   slot,
 }: RenderSlotProps<ImageFieldSlotType>) {
-  const { name } = slot;
   const isEditing = useIsSlotInEditMode();
+  const readonly = useIsSlotReadonly();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const [touched, setTouched] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!imagePreview) {
+      setError(slot.required ? "This field is required" : "");
+      return;
+    }
+
+    setError("");
+  }, [imagePreview, touched, slot]);
 
   useSubscribeSlotToEventSystem({
     slot,
     valueState: imagePreview,
     setState: setImagePreview,
+    onReadValue: () => setTouched(true),
   });
 
   const handleImageInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -33,13 +50,17 @@ export default function ImageFieldSlot({
 
   return (
     <div>
-      <Label htmlFor={name}>{name}</Label>
+      <Label htmlFor={slot.id}>
+        <span>{slot.name}</span>
+        {slot.required && !readonly && <span>*</span>}
+      </Label>
+
       <div className="mt-2 flex items-center gap-4">
         {imagePreview ? (
           <div className="border-border bg-muted h-16 w-16 overflow-hidden rounded-lg border-2">
             <img
               src={imagePreview}
-              alt={`Preview of ${name}`}
+              alt={`Preview of ${slot.name}`}
               className="h-full w-full object-cover"
             />
           </div>
@@ -50,17 +71,31 @@ export default function ImageFieldSlot({
         )}
 
         <div className="flex-1">
-          <Input
-            id={name}
-            type="file"
-            accept="image/*"
-            onChange={handleImageInput}
-            className="cursor-pointer"
-            disabled={isEditing}
-          />
+          <div className="flex">
+            <Input
+              id={slot.id}
+              type="file"
+              accept="image/*"
+              onChange={handleImageInput}
+              className="cursor-pointer"
+              disabled={isEditing}
+            />
+
+            <Button
+              variant="secondary"
+              className="ml-2"
+              onClick={() => setImagePreview(null)}
+              disabled={!imagePreview || isEditing}
+            >
+              Clear
+            </Button>
+          </div>
+
           <p className="text-muted-foreground mt-1 text-sm">
-            Upload a square image (PNG, JPG, or SVG)
+            Upload an image of type: {slot.inputTypes.join(", ")}
           </p>
+
+          {touched && <p className="text-destructive text-sm">{error}</p>}
         </div>
       </div>
     </div>

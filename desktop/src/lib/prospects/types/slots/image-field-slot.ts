@@ -5,4 +5,5 @@ export type ImageFieldSlot = {
   inputTypes: ("png" | "jpg" | "webp" | "gif" | "svg")[];
   savedAs: "png" | "jpg" | "webp" | "gif" | "svg" | null;
   compressionQuality: number;
+  required: boolean;
 };

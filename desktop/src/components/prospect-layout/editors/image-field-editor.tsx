@@ -1,4 +1,5 @@
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -71,7 +72,18 @@ export default function ImageFieldEditor({
     });
 
     update(slot.id, (x) => {
-      x.inputTypes = [...slot.inputTypes, inputType];
+      x.inputTypes = [...newInputTypes];
+    });
+  }
+
+  function handleRequiredChange(required: boolean) {
+    setLocalSlot({
+      ...slot,
+      required,
+    });
+
+    update(slot.id, (x) => {
+      x.required = required;
     });
   }
 
@@ -209,6 +221,18 @@ export default function ImageFieldEditor({
             {Math.floor(slot.compressionQuality * 100)}%
           </p>
         </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-2">
+        <Label htmlFor="required" className="text-muted-foreground text-sm">
+          Required
+        </Label>
+
+        <Checkbox
+          id="required"
+          checked={slot.required}
+          onCheckedChange={handleRequiredChange}
+        />
       </div>
     </>
   );

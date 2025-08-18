@@ -41,6 +41,7 @@ export const defaultSlots: {
     compressionQuality: 0.5,
     inputTypes: ["png", "jpg", "webp", "gif", "svg"],
     savedAs: "webp",
+    required: false,
   },
   "text-field": {
     id: "text-field",
