@@ -13,7 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-props";
 import { DropdownSlot } from "@/lib/prospects/types/slots/dropdown-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import ColorPicker, { Color } from "@rc-component/color-picker";
@@ -24,7 +24,7 @@ import { ChangeEvent } from "react";
 export default function DropdownEditor({
   slot,
   setLocalSlot,
-}: SlotEditorProps<DropdownSlot>) {
+}: SlotEditorProps<"dropdown">) {
   const update = useSlotTreeRootStore((x) => x.updateSlot<DropdownSlot>);
 
   function handleLocalChange(

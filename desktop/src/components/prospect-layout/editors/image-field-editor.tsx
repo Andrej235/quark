@@ -15,7 +15,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-props";
 import { ImageFieldSlot } from "@/lib/prospects/types/slots/image-field-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent } from "react";
@@ -23,7 +23,7 @@ import { ChangeEvent } from "react";
 export default function ImageFieldEditor({
   slot,
   setLocalSlot,
-}: SlotEditorProps<ImageFieldSlot>) {
+}: SlotEditorProps<"image-field">) {
   const update = useSlotTreeRootStore((x) => x.updateSlot<ImageFieldSlot>);
 
   function handleLocalChange(

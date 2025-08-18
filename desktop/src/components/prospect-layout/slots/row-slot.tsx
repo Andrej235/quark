@@ -1,8 +1,7 @@
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import type { RowSlot as RowSlotType } from "@/lib/prospects/types/slots/row-slot";
 import RenderSlot from "../render-slot";
 
-export default function RowSlot({ slot }: RenderSlotProps<RowSlotType>) {
+export default function RowSlot({ slot }: RenderSlotProps<"row">) {
   return (
     <div
       className="flex gap-8 p-2"

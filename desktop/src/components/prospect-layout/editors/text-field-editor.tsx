@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/cn";
 import { DeserializeRegex, SerializeRegex } from "@/lib/format/serialize-regex";
 import toTitleCase from "@/lib/format/title-case";
-import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-props";
 import { TextFieldSlot } from "@/lib/prospects/types/slots/text-field-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -30,7 +30,7 @@ import { toast } from "sonner";
 export default function TextFieldEditor({
   slot,
   setLocalSlot,
-}: SlotEditorProps<TextFieldSlot>) {
+}: SlotEditorProps<"text-field">) {
   const update = useSlotTreeRootStore((x) => x.updateSlot<TextFieldSlot>);
   const [formatTestValue, setFormatTestValue] = useState("");
   const [customFormat, setCustomFormat] = useState("");

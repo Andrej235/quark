@@ -5,14 +5,11 @@ import {
 import { DeserializeRegex } from "@/lib/format/serialize-regex";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import type { TextFieldSlot as TextFieldSlotType } from "@/lib/prospects/types/slots/text-field-slot";
 import { useEffect, useState } from "react";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 
-export default function TextFieldSlot({
-  slot,
-}: RenderSlotProps<TextFieldSlotType>) {
+export default function TextFieldSlot({ slot }: RenderSlotProps<"text-field">) {
   const { id, name, placeholder } = slot;
   const isEditing = useIsSlotInEditMode();
   const readonly = useIsSlotReadonly();

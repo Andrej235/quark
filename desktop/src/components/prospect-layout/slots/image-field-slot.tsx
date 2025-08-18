@@ -20,13 +20,12 @@ import {
 } from "@/contexts/slot-tree-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import type { ImageFieldSlot as ImageFieldSlotType } from "@/lib/prospects/types/slots/image-field-slot";
 import { Download, Image, Maximize2, Upload } from "lucide-react";
 import { ChangeEvent, useEffect, useState } from "react";
 
 export default function ImageFieldSlot({
   slot,
-}: RenderSlotProps<ImageFieldSlotType>) {
+}: RenderSlotProps<"image-field">) {
   const isEditing = useIsSlotInEditMode();
   const readonly = useIsSlotReadonly();
   const [imagePreview, setImagePreview] = useState<string | null>(null);

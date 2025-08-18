@@ -11,12 +11,9 @@ import {
 } from "@/contexts/slot-tree-context";
 import { useSubscribeSlotToEventSystem } from "@/lib/prospects/slots/hooks/use-subscribe-slot-to-event-system";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import type { DropdownSlot as DropdownSlotType } from "@/lib/prospects/types/slots/dropdown-slot";
 import { useEffect, useState } from "react";
 
-export default function DropdownSlot({
-  slot,
-}: RenderSlotProps<DropdownSlotType>) {
+export default function DropdownSlot({ slot }: RenderSlotProps<"dropdown">) {
   const { id, name, placeholder, defaultValue } = slot;
   const isEditing = useIsSlotInEditMode();
   const readonly = useIsSlotReadonly();

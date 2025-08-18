@@ -1,5 +1,5 @@
-import { Slot } from "../generalized-slots/slot";
+import { Slot, SlotType } from "../generalized-slots/slot";
 
-export type RenderSlotProps<SlotType extends Slot = Slot> = {
-  slot: SlotType;
+export type RenderSlotProps<TSlotType extends SlotType = SlotType> = {
+  slot: Slot<TSlotType>;
 };

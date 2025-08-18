@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-props";
 import { CardHeaderSlot } from "@/lib/prospects/types/slots/card-header-slot";
 import { useSlotTreeRootStore } from "@/stores/slot-tree-root-store";
 import { ChangeEvent } from "react";
@@ -9,7 +9,7 @@ import { ChangeEvent } from "react";
 export default function CardHeaderEditor({
   slot,
   setLocalSlot,
-}: SlotEditorProps<CardHeaderSlot>) {
+}: SlotEditorProps<"card-header">) {
   const update = useSlotTreeRootStore((x) => x.updateSlot<CardHeaderSlot>);
 
   function handleLocalChange(

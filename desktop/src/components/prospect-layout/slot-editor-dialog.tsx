@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import { isSlotParent } from "@/lib/prospects/slots/operations/is-slot-parent";
 import { isLayoutSlot } from "@/lib/prospects/slots/type-checks/is-layout-slot";
 import { Slot } from "@/lib/prospects/types/generalized-slots/slot";
-import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-prop";
+import { SlotEditorProps } from "@/lib/prospects/types/slots-utility/slot-editor-props";
 import { SlotFlexWrapper } from "@/lib/prospects/types/slots-utility/slot-flex-wrapper";
 import { ColumnSlot } from "@/lib/prospects/types/slots/column-slot";
 import { RowSlot } from "@/lib/prospects/types/slots/row-slot";

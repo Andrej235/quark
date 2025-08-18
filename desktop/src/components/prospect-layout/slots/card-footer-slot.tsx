@@ -1,11 +1,10 @@
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
-import type { CardFooterSlot as CardFooterSlotType } from "@/lib/prospects/types/slots/card-footer-slot";
 import { CardFooter } from "../../ui/card";
 import RenderSlot from "../render-slot";
 
 export default function CardFooterSlot({
   slot,
-}: RenderSlotProps<CardFooterSlotType>) {
+}: RenderSlotProps<"card-footer">) {
   return (
     <CardFooter className="gap-4 px-2">
       {slot.buttons.length === 0 && (
