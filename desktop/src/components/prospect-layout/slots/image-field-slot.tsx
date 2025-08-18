@@ -14,7 +14,11 @@ export default function ImageFieldSlot({
   const isEditing = useIsSlotInEditMode();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  useSubscribeSlotToEventSystem(slot, imagePreview, setImagePreview);
+  useSubscribeSlotToEventSystem({
+    slot,
+    valueState: imagePreview,
+    setState: setImagePreview,
+  });
 
   const handleImageInput = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

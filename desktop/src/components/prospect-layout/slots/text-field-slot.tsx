@@ -34,7 +34,12 @@ export default function TextFieldSlot({
     );
   }, [text, touched, slot]);
 
-  useSubscribeSlotToEventSystem(slot, text, setText);
+  useSubscribeSlotToEventSystem({
+    slot,
+    valueState: text,
+    setState: setText,
+    onReadValue: () => setTouched(true),
+  });
 
   return (
     <div>

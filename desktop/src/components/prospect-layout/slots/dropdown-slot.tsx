@@ -42,7 +42,12 @@ export default function DropdownSlot({
     setSelected(defaultValue);
   }, [defaultValue]);
 
-  useSubscribeSlotToEventSystem(slot, selected, setSelected);
+  useSubscribeSlotToEventSystem({
+    slot,
+    valueState: selected,
+    setState: setSelected,
+    onReadValue: () => setTouched(true),
+  });
 
   return (
     <div>

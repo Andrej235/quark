@@ -3,11 +3,19 @@ import { useContext, useEffect, useRef } from "react";
 import { SlotData } from "../../types/data/slot-data";
 import { Slot } from "../../types/generalized-slots/slot";
 
-export function useSubscribeSlotToEventSystem(
-  slot: Slot,
-  valueState: string | null,
-  setState: ((value: string | null) => void) | ((value: string) => void),
-): void {
+type Options = {
+  slot: Slot;
+  valueState: string | null;
+  setState: ((value: string | null) => void) | ((value: string) => void);
+  onReadValue?: () => void;
+};
+
+export function useSubscribeSlotToEventSystem({
+  slot,
+  valueState,
+  setState,
+  onReadValue,
+}: Options): void {
   const context = useContext(slotEventSystemContext);
   const onReadSubscribe = context.onReadSubscribe;
   const onSetSubscribe = context.onSetSubscribe;
@@ -28,10 +36,11 @@ export function useSubscribeSlotToEventSystem(
     if (subscribedToOnRead.current) return;
     subscribedToOnRead.current = true;
 
-    onReadSubscribe(() =>
-      valueRef.current && slot ? [slot, valueRef.current] : null,
-    );
-  }, [onReadSubscribe, slot]);
+    onReadSubscribe(() => {
+      onReadValue?.();
+      return valueRef.current && slot ? [slot, valueRef.current] : null;
+    });
+  }, [onReadSubscribe, slot, onReadValue]);
 
   useEffect(() => {
     if (subscribedToOnSet.current === slot.id) return;
