@@ -321,6 +321,26 @@ builder.Services.AddScoped<IReadSingleSelectedService<TeamMember>, ReadService<T
 builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>>();
 #endregion
 
+#region Team Roles
+builder.Services.AddScoped<ITeamRoleService, TeamRoleService>();
+builder.Services.AddScoped<ICreateSingleService<TeamRole>, CreateService<TeamRole>>();
+builder.Services.AddScoped<IReadRangeSelectedService<TeamRole>, ReadService<TeamRole>>();
+builder.Services.AddScoped<IUpdateSingleService<TeamRole>, UpdateService<TeamRole>>();
+builder.Services.AddScoped<IDeleteService<TeamRole>, DeleteService<TeamRole>>();
+builder.Services.AddScoped<
+    IRequestMapper<CreateTeamRoleRequestDto, TeamRole>,
+    CreateTeamRoleRequestMapper
+>();
+builder.Services.AddScoped<
+    IRequestMapper<UpdateTeamRoleRequestDto, TeamRole>,
+    UpdateTeamRoleRequestMapper
+>();
+builder.Services.AddScoped<
+    IResponseMapper<TeamRole, TeamRoleResponseDto>,
+    TeamRoleResponseMapper
+>();
+#endregion
+
 #region Team Invitaions
 builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<TeamInvitation>>();
 #endregion
@@ -370,26 +390,6 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IRequestMapper<CreateProspectViewItemRequestDto, ProspectListViewItem>,
     CreateProspectViewItemRequestMapper
->();
-#endregion
-
-#region Team Roles
-builder.Services.AddScoped<ITeamRoleService, TeamRoleService>();
-builder.Services.AddScoped<ICreateSingleService<TeamRole>, CreateService<TeamRole>>();
-builder.Services.AddScoped<IReadRangeService<TeamRole>, ReadService<TeamRole>>();
-builder.Services.AddScoped<IUpdateSingleService<TeamRole>, UpdateService<TeamRole>>();
-builder.Services.AddScoped<IDeleteService<TeamRole>, DeleteService<TeamRole>>();
-builder.Services.AddScoped<
-    IRequestMapper<CreateTeamRoleRequestDto, TeamRole>,
-    CreateTeamRoleRequestMapper
->();
-builder.Services.AddScoped<
-    IRequestMapper<UpdateTeamRoleRequestDto, TeamRole>,
-    UpdateTeamRoleRequestMapper
->();
-builder.Services.AddScoped<
-    IResponseMapper<TeamRole, TeamRoleResponseDto>,
-    TeamRoleResponseMapper
 >();
 #endregion
 

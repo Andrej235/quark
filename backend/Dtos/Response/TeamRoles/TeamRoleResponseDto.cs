@@ -8,4 +8,6 @@ public class TeamRoleResponseDto
 
     public Guid TeamId { get; set; }
     public int Permissions { get; set; }
+
+    public int UserCount { get; set; }
 }

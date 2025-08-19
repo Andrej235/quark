@@ -59,7 +59,7 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
             teamMember
                 .HasOne(x => x.Role)
-                .WithMany()
+                .WithMany(x => x.Members)
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
 

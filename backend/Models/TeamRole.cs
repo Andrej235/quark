@@ -12,4 +12,6 @@ public class TeamRole
     public Team Team { get; set; } = null!;
 
     public TeamPermission Permissions { get; set; }
+
+    public ICollection<TeamMember> Members { get; set; } = [];
 }

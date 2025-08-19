@@ -81,7 +81,7 @@ export default function TeamRolesSettings() {
           {roles.data.map((role) => (
             <RoleCard
               key={role.id}
-              role={{ ...role, userCount: 0 }}
+              role={role}
               permissions={role.permissions}
               onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}

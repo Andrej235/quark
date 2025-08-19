@@ -27,13 +27,18 @@ public partial class TeamRoleService
         if (!hasPermission)
             return new Forbidden("You do not have permission to view roles");
 
-        var result = await readService.Get(
+        return await readService.Get(
+            x => new TeamRoleResponseDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Description = x.Description,
+                Permissions = (int)x.Permissions,
+                UserCount = x.Members.Count,
+                TeamId = x.TeamId,
+            },
             x => x.TeamId == teamId,
             cancellationToken: cancellationToken
         );
-        if (result.IsFailed)
-            return Result.Fail(result.Errors);
-
-        return Result.Ok(result.Value.Select(responseMapper.Map));
     }
 }

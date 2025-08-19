@@ -3021,6 +3021,10 @@ export type ApiSpec={
           "permissions": {
             "type": "integer",
             "format": "int32"
+          },
+          "userCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

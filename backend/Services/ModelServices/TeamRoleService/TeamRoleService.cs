@@ -14,7 +14,7 @@ namespace Quark.Services.ModelServices.TeamRoleService;
 
 public partial class TeamRoleService(
     ICreateSingleService<TeamRole> createService,
-    IReadRangeService<TeamRole> readService,
+    IReadRangeSelectedService<TeamRole> readService,
     IUpdateSingleService<TeamRole> updateService,
     IDeleteService<TeamRole> deleteService,
     IRequestMapper<CreateTeamRoleRequestDto, TeamRole> createRequestMapper,
