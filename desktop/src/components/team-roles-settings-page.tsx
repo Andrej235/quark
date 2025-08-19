@@ -1,8 +1,9 @@
+import { TeamPermission } from "@/lib/permissions/team-permission";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { DeleteRoleDialog } from "./delete-role-dialog";
-import { RoleCard } from "./role-card";
+import RoleCard from "./role-card";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -12,174 +13,21 @@ import {
   CardTitle,
 } from "./ui/card";
 
-export type Permission = {
-  id: string;
-  enumValue: number;
-  name: string;
-  description: string;
-  category: string;
-  requires?: string[];
-};
-
 export type Role = {
   id: string;
   name: string;
   description: string;
-  permissions: string[];
+  permissions: TeamPermission;
   userCount: number;
   isSystem?: boolean;
 };
-
-const AVAILABLE_PERMISSIONS: Permission[] = [
-  // User Management
-  {
-    id: "users.view",
-    enumValue: 1 << 0,
-    name: "View Users",
-    description: "Can view info about all team members",
-    category: "User Management",
-  },
-  {
-    id: "users.invite",
-    enumValue: 1 << 1,
-    name: "Invite Users",
-    description: "Can invite new users to the team",
-    category: "User Management",
-  },
-  {
-    id: "users.edit",
-    enumValue: 1 << 2,
-    name: "Edit Users",
-    description: "Can assign roles to users",
-    category: "User Management",
-    requires: ["users.view"],
-  },
-  {
-    id: "users.remove",
-    enumValue: 1 << 3,
-    name: "Remove Users",
-    description: "Can remove users from the team",
-    category: "User Management",
-    requires: ["users.view"],
-  },
-
-  // Prospect Management
-  {
-    id: "prospects.view",
-    enumValue: 1 << 4,
-    name: "View Prospects",
-    description: "Can view all prospect data",
-    category: "Content Management",
-  },
-  {
-    id: "prospects.create",
-    enumValue: 1 << 5,
-    name: "Create Prospects",
-    description: "Can create new prospects",
-    category: "Content Management",
-  },
-  {
-    id: "prospects.edit",
-    enumValue: 1 << 6,
-    name: "Edit Prospects",
-    description: "Can modify existing prospects' data",
-    category: "Content Management",
-    requires: ["prospects.view"],
-  },
-  {
-    id: "prospects.delete",
-    enumValue: 1 << 7,
-    name: "Delete Prospects",
-    description: "Can remove prospects from the system",
-    category: "Content Management",
-    requires: ["prospects.view"],
-  },
-
-  // Email Management
-  {
-    id: "emails.view",
-    enumValue: 1 << 8,
-    name: "View Emails",
-    description: "Can view all emails",
-    category: "Content Management",
-  },
-  {
-    id: "emails.create",
-    enumValue: 1 << 9,
-    name: "Create Emails",
-    description: "Can create new emails",
-    category: "Content Management",
-  },
-  {
-    id: "emails.edit",
-    enumValue: 1 << 10,
-    name: "Edit Emails",
-    description: "Can modify existing emails",
-    category: "Content Management",
-    requires: ["emails.view"],
-  },
-  {
-    id: "emails.delete",
-    enumValue: 1 << 11,
-    name: "Delete Emails",
-    description: "Can remove emails from the system",
-    category: "Content Management",
-    requires: ["emails.view"],
-  },
-  {
-    id: "emails.send",
-    enumValue: 1 << 12,
-    name: "Send Emails",
-    description: "Can send emails to prospects",
-    category: "Content Management",
-    requires: ["emails.edit"],
-  },
-  {
-    id: "emails.schedule",
-    enumValue: 1 << 13,
-    name: "Schedule Emails",
-    description: "Can schedule emails to be sent in the future",
-    category: "Content Management",
-    requires: ["emails.send", "emails.view"],
-  },
-
-  // System Administration
-  {
-    id: "admin.settings",
-    enumValue: 1 << 14,
-    name: "Team Settings",
-    description: "Can modify team-wide settings",
-    category: "System Administration",
-  },
-  {
-    id: "admin.roles",
-    enumValue: 1 << 15,
-    name: "Manage Roles",
-    description: "Can create and modify user roles",
-    category: "System Administration",
-  },
-  {
-    id: "admin.billing",
-    enumValue: 1 << 16,
-    name: "View Billing",
-    description: "Can view billing information and past invoices",
-    category: "System Administration",
-  },
-  {
-    id: "admin.delete",
-    enumValue: 1 << 17,
-    name: "Delete Team",
-    description: "Can delete the entire team",
-    category: "System Administration",
-  },
-];
 
 const INITIAL_ROLES: Role[] = [
   {
     id: "1",
     name: "Administrator",
     description: "Full system access with all permissions",
-    permissions: AVAILABLE_PERMISSIONS.map((p) => p.id),
+    permissions: TeamPermission.All,
     userCount: 2,
     isSystem: true,
   },
@@ -187,26 +35,18 @@ const INITIAL_ROLES: Role[] = [
     id: "2",
     name: "Editor",
     description: "Can create and edit content",
-    permissions: [
-      "emails.view",
-      "emails.create",
-      "emails.edit",
-      "emails.delete",
-      "emails.send",
-      "emails.schedule",
-      "prospects.view",
-      "prospects.create",
-      "prospects.edit",
-      "prospects.delete",
-      "users.view",
-    ],
+    permissions:
+      TeamPermission.ViewAll |
+      TeamPermission.ManageProspects |
+      TeamPermission.ManageEmails |
+      TeamPermission.ManageUsers,
     userCount: 12,
   },
   {
     id: "3",
     name: "Viewer",
     description: "Read-only access to content and users",
-    permissions: ["users.view", "prospects.view", "emails.view"],
+    permissions: TeamPermission.ViewAll,
     userCount: 28,
   },
 ];
@@ -246,7 +86,8 @@ export default function TeamRolesSettings() {
             <RoleCard
               key={role.id}
               role={role}
-              permissions={AVAILABLE_PERMISSIONS}
+              permissions={role.permissions}
+              onEdit={(role) => console.log(role)}
               onDelete={(role) => setDeletingRole(role)}
             />
           ))}
