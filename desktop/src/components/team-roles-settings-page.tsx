@@ -1,9 +1,9 @@
 import { TeamPermission } from "@/lib/permissions/team-permission";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { DeleteRoleDialog } from "./delete-role-dialog";
 import RoleCard from "./role-card";
+import { RoleDialog } from "./role-dialog";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -53,6 +53,8 @@ const INITIAL_ROLES: Role[] = [
 
 export default function TeamRolesSettings() {
   const [roles, setRoles] = useState<Role[]>(INITIAL_ROLES);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
 
   const handleDeleteRole = (roleId: string) => {
@@ -71,11 +73,9 @@ export default function TeamRolesSettings() {
             </CardDescription>
           </div>
 
-          <Button asChild>
-            <Link to="new">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Role
-            </Link>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Role
           </Button>
         </div>
       </CardHeader>
@@ -87,12 +87,29 @@ export default function TeamRolesSettings() {
               key={role.id}
               role={role}
               permissions={role.permissions}
-              onEdit={(role) => console.log(role)}
+              onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}
             />
           ))}
         </div>
       </CardContent>
+
+      <RoleDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={(x) => console.log(x)}
+        title="Create New Role"
+        description="Define a new role with specific permissions for your team members."
+      />
+
+      <RoleDialog
+        isOpen={!!editingRole}
+        onOpenChange={(open) => !open && setEditingRole(null)}
+        onSubmit={(x) => console.log(x)}
+        initialData={editingRole || undefined}
+        title="Edit Role"
+        description="Modify the role name, description, and permissions."
+      />
 
       <DeleteRoleDialog
         isOpen={deletingRole !== null}
