@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import sendApiRequest from "@/api-dsl/send-api-request";
 
 export type Role = {
   id: string;
@@ -44,6 +45,27 @@ export default function TeamRolesSettings() {
 
   const handleDeleteRole = async (roleId: string) => {
     if (!teamId) return;
+
+    const { isOk } = await sendApiRequest(
+      "/team-roles/{teamId}/{roleId}",
+      {
+        method: "delete",
+        parameters: {
+          teamId,
+          roleId,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Deleting role, please wait...",
+          success: "Role deleted successfully!",
+          error: (x) => x.message || "Failed to delete role, please try again",
+        },
+      },
+    );
+
+    if (!isOk) return;
 
     await queryClient.setQueryData(
       ["team-roles", teamId],

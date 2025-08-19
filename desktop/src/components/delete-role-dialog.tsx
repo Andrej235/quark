@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Users } from "lucide-react";
 import React from "react";
 import { Role } from "./team-roles-settings-page";
+import { getEnumKeys } from "@/lib/enums/get-enum-keys";
+import { TeamPermission } from "@/lib/permissions/team-permission";
+import { formatCount } from "@/lib/format/format-count";
 
 interface DeleteRoleDialogProps {
   isOpen: boolean;
@@ -67,7 +70,9 @@ export const DeleteRoleDialog: React.FC<DeleteRoleDialogProps> = ({
             </div>
             <div className="flex items-center justify-between">
               <span className="font-medium">Permissions:</span>
-              <Badge variant="outline">{role.permissions.length}</Badge>
+              <Badge variant="outline">
+                {getEnumKeys(role.permissions, TeamPermission).length}
+              </Badge>
             </div>
           </div>
 
@@ -79,10 +84,11 @@ export const DeleteRoleDialog: React.FC<DeleteRoleDialogProps> = ({
                 <div className="space-y-1">
                   <p className="text-destructive font-medium">Warning</p>
                   <p className="text-muted-foreground text-sm">
-                    This role is currently assigned to {role.userCount} user
-                    {role.userCount !== 1 ? "s" : ""}. Deleting this role will
-                    remove all permissions from these users. Make sure to assign
-                    them to another role first.
+                    This role is currently assigned to{" "}
+                    {formatCount(role.userCount, "user", "users")}. Deleting
+                    this role will remove all of these users from this team.
+                    Make sure to assign them to another role first if you do not
+                    want this to happen.
                   </p>
                 </div>
               </div>
