@@ -1,7 +1,11 @@
+import useQuery from "@/api-dsl/use-query";
 import { TeamPermission } from "@/lib/permissions/team-permission";
+import { useTeamStore } from "@/stores/team-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { DeleteRoleDialog } from "./delete-role-dialog";
+import LoadingIndicator from "./loading-indicator";
 import RoleCard from "./role-card";
 import { RoleDialog } from "./role-dialog";
 import { Button } from "./ui/button";
@@ -22,45 +26,37 @@ export type Role = {
   isSystem?: boolean;
 };
 
-const INITIAL_ROLES: Role[] = [
-  {
-    id: "1",
-    name: "Administrator",
-    description: "Full system access with all permissions",
-    permissions: TeamPermission.All,
-    userCount: 2,
-    isSystem: true,
-  },
-  {
-    id: "2",
-    name: "Editor",
-    description: "Can create and edit content",
-    permissions:
-      TeamPermission.ViewAll |
-      TeamPermission.ManageProspects |
-      TeamPermission.ManageEmails |
-      TeamPermission.ManageUsers,
-    userCount: 12,
-  },
-  {
-    id: "3",
-    name: "Viewer",
-    description: "Read-only access to content and users",
-    permissions: TeamPermission.ViewAll,
-    userCount: 28,
-  },
-];
-
 export default function TeamRolesSettings() {
-  const [roles, setRoles] = useState<Role[]>(INITIAL_ROLES);
+  const teamId = useTeamStore((x) => x.activeTeam?.id ?? null);
+
+  const roles = useQuery("/team-roles/{teamId}", {
+    queryKey: ["team-roles", teamId],
+    parameters: {
+      teamId: teamId || "",
+    },
+    enabled: !!teamId,
+  });
+  const queryClient = useQueryClient();
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
 
-  const handleDeleteRole = (roleId: string) => {
-    setRoles(roles.filter((role) => role.id !== roleId));
+  const handleDeleteRole = async (roleId: string) => {
+    if (!teamId) return;
+
+    await queryClient.setQueryData(
+      ["team-roles", teamId],
+      roles.data?.filter((role) => role.id !== roleId),
+    );
     setDeletingRole(null);
   };
+
+  if (roles.isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (!roles.data) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -82,10 +78,10 @@ export default function TeamRolesSettings() {
 
       <CardContent className="bg-transparent">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {roles.map((role) => (
+          {roles.data.map((role) => (
             <RoleCard
               key={role.id}
-              role={role}
+              role={{ ...role, userCount: 0 }}
               permissions={role.permissions}
               onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}
