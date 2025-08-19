@@ -1118,17 +1118,17 @@ export type ApiSpec={
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTeamRoleRequestDto"
+                "$ref": "#/components/schemas/UpdateTeamRoleRequestDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTeamRoleRequestDto"
+                "$ref": "#/components/schemas/UpdateTeamRoleRequestDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTeamRoleRequestDto"
+                "$ref": "#/components/schemas/UpdateTeamRoleRequestDto"
               }
             }
           },
@@ -3093,6 +3093,29 @@ export type ApiSpec={
             "items": {
               "$ref": "#/components/schemas/CreateProspectFieldRequestDto"
             }
+          }
+        }
+      },
+      "UpdateTeamRoleRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "permissions": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

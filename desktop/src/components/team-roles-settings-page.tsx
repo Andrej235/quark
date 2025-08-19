@@ -1,3 +1,4 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
 import { TeamPermission } from "@/lib/permissions/team-permission";
 import { useTeamStore } from "@/stores/team-store";
@@ -16,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import sendApiRequest from "@/api-dsl/send-api-request";
 
 export type Role = {
   id: string;
@@ -43,7 +43,7 @@ export default function TeamRolesSettings() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
 
-  const handleDeleteRole = async (roleId: string) => {
+  async function handleDeleteRole(roleId: string) {
     if (!teamId) return;
 
     const { isOk } = await sendApiRequest(
@@ -72,7 +72,84 @@ export default function TeamRolesSettings() {
       roles.data?.filter((role) => role.id !== roleId),
     );
     setDeletingRole(null);
-  };
+  }
+
+  async function handleCreateRole(role: {
+    name: string;
+    description: string;
+    permissions: TeamPermission;
+  }) {
+    if (!teamId) return;
+
+    const { isOk, response } = await sendApiRequest(
+      "/team-roles",
+      {
+        method: "post",
+        payload: {
+          teamId,
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Creating role, please wait...",
+          success: "Role created successfully!",
+          error: (x) => x.message || "Failed to create role, please try again",
+        },
+      },
+    );
+
+    if (!isOk || !response) return;
+
+    await queryClient.setQueryData(
+      ["team-roles", teamId],
+      [...roles.data!, response],
+    );
+    setIsCreateDialogOpen(false);
+  }
+
+  async function handleEditRole(role: {
+    name: string;
+    description: string;
+    permissions: TeamPermission;
+  }) {
+    if (!teamId || !editingRole) return;
+
+    const { isOk } = await sendApiRequest(
+      "/team-roles",
+      {
+        method: "put",
+        payload: {
+          teamId,
+          id: editingRole.id,
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving role, please wait...",
+          success: "Role edited successfully!",
+          error: (x) => x.message || "Failed to edit role, please try again",
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    await queryClient.setQueryData(
+      ["team-roles", teamId],
+      roles.data?.map((r) =>
+        r.id === editingRole.id ? { ...editingRole, ...role } : r,
+      ) ?? [],
+    );
+    setEditingRole(null);
+  }
 
   if (roles.isLoading) {
     return <LoadingIndicator />;
@@ -115,7 +192,7 @@ export default function TeamRolesSettings() {
       <RoleDialog
         isOpen={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        onSubmit={(x) => console.log(x)}
+        onSubmit={handleCreateRole}
         title="Create New Role"
         description="Define a new role with specific permissions for your team members."
       />
@@ -123,7 +200,7 @@ export default function TeamRolesSettings() {
       <RoleDialog
         isOpen={!!editingRole}
         onOpenChange={(open) => !open && setEditingRole(null)}
-        onSubmit={(x) => console.log(x)}
+        onSubmit={handleEditRole}
         initialData={editingRole || undefined}
         title="Edit Role"
         description="Modify the role name, description, and permissions."
