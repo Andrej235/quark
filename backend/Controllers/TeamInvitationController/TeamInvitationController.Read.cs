@@ -5,15 +5,15 @@ namespace Quark.Controllers.TeamInvitationController;
 
 public partial class TeamInvitationController
 {
-    [HttpGet]
+    [HttpGet("pending")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IEnumerable<TeamInvitationResponseDto>>> Read(
+    public async Task<ActionResult<IEnumerable<TeamInvitationResponseDto>>> GetPending(
         CancellationToken cancellationToken
     )
     {
-        var result = await invitationService.Get(User, cancellationToken);
+        var result = await invitationService.GetPending(User, cancellationToken);
 
         if (result.IsFailed)
             return BadRequest(new { result.Errors[0].Message });

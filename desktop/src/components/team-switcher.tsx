@@ -297,7 +297,7 @@ export function TeamSwitcher() {
                 </div>
 
                 <div className="text-muted-foreground font-medium">
-                  Add team
+                  Create team
                 </div>
               </Link>
             </DropdownMenuItem>

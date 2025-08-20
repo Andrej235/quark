@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FluentResults;
+using Quark.Dtos.Response.Team;
 using Quark.Errors;
 using Quark.Models;
 using Quark.Models.Enums;
@@ -8,7 +9,7 @@ namespace Quark.Services.ModelServices.TeamInvitationService;
 
 public partial class TeamInvitationService
 {
-    public async Task<Result> Accept(Guid invitationId, ClaimsPrincipal claim)
+    public async Task<Result<TeamResponseDto>> Accept(Guid invitationId, ClaimsPrincipal claim)
     {
         var userId = userManager.GetUserId(claim);
         if (userId is null)
@@ -21,7 +22,7 @@ public partial class TeamInvitationService
                 x.Status,
                 x.TeamId,
                 x.ReceiverId,
-                x.Team.DefaultRoleId,
+                x.Team.DefaultRole,
             },
             x => x.Id == invitationId
         );
@@ -38,7 +39,7 @@ public partial class TeamInvitationService
         if (invitationResult.Value.ExpiresAt < DateTime.UtcNow)
             return Result.Fail(new BadRequest("Invitation has expired"));
 
-        if (invitationResult.Value.DefaultRoleId is null)
+        if (invitationResult.Value.DefaultRole?.Id is null)
             return Result.Fail(new BadRequest("Team has no default role"));
 
         var updateResult = await updateService.Update(
@@ -53,7 +54,7 @@ public partial class TeamInvitationService
             new TeamMember
             {
                 UserId = userId,
-                RoleId = invitationResult.Value.DefaultRoleId.Value,
+                RoleId = invitationResult.Value.DefaultRole.Id,
                 TeamId = invitationResult.Value.TeamId,
                 JoinedAt = DateTime.UtcNow,
             }
@@ -62,6 +63,14 @@ public partial class TeamInvitationService
         if (!memberCreateResult.IsSuccess)
             return Result.Fail(memberCreateResult.Errors);
 
-        return Result.Ok();
+        var teamResult = await teamReadService.Get(x => x.Id == invitationResult.Value.TeamId);
+        if (!teamResult.IsSuccess)
+            return Result.Fail(teamResult.Errors);
+
+        var mappedResponse = teamResponseMapper.Map(teamResult.Value);
+        mappedResponse.Permissions = (int)invitationResult.Value.DefaultRole.Permissions;
+        mappedResponse.RoleName = invitationResult.Value.DefaultRole.Name;
+
+        return mappedResponse;
     }
 }

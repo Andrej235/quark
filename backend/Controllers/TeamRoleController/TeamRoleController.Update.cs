@@ -11,7 +11,7 @@ public partial class TeamRoleController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Update([FromBody] UpdateTeamRoleRequestDto request)
+    public async Task<ActionResult> Update([FromBody] UpdateTeamRoleRequestDto request)
     {
         var result = await teamRoleService.Update(request, User);
 

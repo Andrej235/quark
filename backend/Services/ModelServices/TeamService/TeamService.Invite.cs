@@ -37,6 +37,8 @@ public partial class TeamService
                 TeamId = request.TeamId,
                 SenderId = userId,
                 ReceiverId = invitedIdResult.Value,
+                ExpiresAt = DateTime.UtcNow.AddDays(1),
+                Status = TeamInvitationStatus.Pending,
             }
         );
 

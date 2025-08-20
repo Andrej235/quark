@@ -2,13 +2,14 @@ using System.Security.Claims;
 using FluentResults;
 using Quark.Dtos.Response.TeamInvitation;
 using Quark.Errors;
+using Quark.Models.Enums;
 using Quark.Services.Read;
 
 namespace Quark.Services.ModelServices.TeamInvitationService;
 
 public partial class TeamInvitationService
 {
-    public Task<Result<IEnumerable<TeamInvitationResponseDto>>> Get(
+    public Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetPending(
         ClaimsPrincipal claim,
         CancellationToken cancellationToken
     )
@@ -29,7 +30,10 @@ public partial class TeamInvitationService
                 TeamLogo = x.Team.Logo,
                 TeamName = x.Team.Name,
             },
-            x => x.ReceiverId == userId,
+            x =>
+                x.ReceiverId == userId
+                && x.Status == TeamInvitationStatus.Pending
+                && x.ExpiresAt > DateTime.UtcNow,
             queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt),
             cancellationToken: cancellationToken
         );

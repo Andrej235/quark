@@ -311,6 +311,7 @@ builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshTo
 #region Teams
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ICreateSingleService<Team>, CreateService<Team>>();
+builder.Services.AddScoped<IReadSingleService<Team>, ReadService<Team>>();
 builder.Services.AddScoped<IReadSingleSelectedService<Team>, ReadService<Team>>();
 builder.Services.AddScoped<IExecuteUpdateService<Team>, UpdateService<Team>>();
 builder.Services.AddScoped<IRequestMapper<CreateTeamRequestDto, Team>, CreateTeamRequestMapper>();

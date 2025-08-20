@@ -9,7 +9,7 @@ public partial class TeamInvitationController
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Decline(Guid id)
+    public async Task<ActionResult> Decline(Guid id)
     {
         var result = await invitationService.Decline(id, User);
 

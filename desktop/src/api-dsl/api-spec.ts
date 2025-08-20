@@ -1391,8 +1391,25 @@ export type ApiSpec={
           "503": {
             "description": "Service Unavailable"
           },
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResponseDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -1543,7 +1560,7 @@ export type ApiSpec={
         }
       }
     },
-    "/team-invitations": {
+    "/team-invitations/pending": {
       "get": {
         "tags": [
           "TeamInvitation"
