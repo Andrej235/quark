@@ -311,6 +311,7 @@ builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshTo
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ICreateSingleService<Team>, CreateService<Team>>();
 builder.Services.AddScoped<IReadSingleSelectedService<Team>, ReadService<Team>>();
+builder.Services.AddScoped<IExecuteUpdateService<Team>, UpdateService<Team>>();
 builder.Services.AddScoped<IRequestMapper<CreateTeamRequestDto, Team>, CreateTeamRequestMapper>();
 builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseMapper>();
 #endregion
@@ -343,6 +344,15 @@ builder.Services.AddScoped<
 
 #region Team Invitaions
 builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<TeamInvitation>>();
+builder.Services.AddScoped<
+    IReadSingleSelectedService<TeamInvitation>,
+    ReadService<TeamInvitation>
+>();
+builder.Services.AddScoped<
+    IReadRangeSelectedService<TeamInvitation>,
+    ReadService<TeamInvitation>
+>();
+builder.Services.AddScoped<IExecuteUpdateService<TeamInvitation>, UpdateService<TeamInvitation>>();
 #endregion
 
 #region Prospect Layouts

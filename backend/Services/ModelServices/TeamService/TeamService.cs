@@ -7,6 +7,7 @@ using Quark.Services.Mapping.Request;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Read;
 using Quark.Services.TeamPermissions;
+using Quark.Services.Update;
 
 namespace Quark.Services.ModelServices.TeamService;
 
@@ -17,6 +18,7 @@ public partial class TeamService(
     IReadSingleSelectedService<User> userReadSelectedService,
     IRequestMapper<CreateTeamRequestDto, Team> createRequestMapper,
     IResponseMapper<Team, TeamResponseDto> responseMapper,
+    IExecuteUpdateService<Team> updateService,
     UserManager<User> userManager,
     ITeamPermissionsService permissionsService
 ) : ITeamService;

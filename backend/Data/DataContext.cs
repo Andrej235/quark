@@ -33,6 +33,11 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
                 .HasForeignKey(x => x.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            team.HasOne(x => x.DefaultRole)
+                .WithMany()
+                .HasForeignKey(x => x.DefaultRoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             team.HasOne(x => x.DefaultProspectLayout)
                 .WithMany()
                 .HasForeignKey(x => x.DefaultProspectLayoutId)
@@ -81,7 +86,7 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
         builder.Entity<TeamInvitation>(teamInvitation =>
         {
-            teamInvitation.HasKey(x => x.Token);
+            teamInvitation.HasKey(x => x.Id);
 
             teamInvitation
                 .HasOne(x => x.Team)

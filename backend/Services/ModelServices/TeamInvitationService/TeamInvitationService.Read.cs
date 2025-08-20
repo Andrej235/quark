@@ -1,0 +1,33 @@
+using System.Security.Claims;
+using FluentResults;
+using Quark.Dtos.Response.TeamInvitation;
+using Quark.Errors;
+using Quark.Services.Read;
+
+namespace Quark.Services.ModelServices.TeamInvitationService;
+
+public partial class TeamInvitationService
+{
+    public Task<Result<IEnumerable<TeamInvitationResponseDto>>> Get(ClaimsPrincipal claim)
+    {
+        var userId = userManager.GetUserId(claim);
+        if (userId is null)
+            return Task.FromResult(
+                Result.Fail<IEnumerable<TeamInvitationResponseDto>>(new Unauthorized())
+            );
+
+        return readService.Get(
+            x => new TeamInvitationResponseDto
+            {
+                Id = x.Id,
+                ExpiresAt = x.ExpiresAt,
+                InvitedBy = x.Sender.UserName!,
+                Status = x.Status,
+                TeamLogo = x.Team.Logo,
+                TeamName = x.Team.Name,
+            },
+            x => x.ReceiverId == userId,
+            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt)
+        );
+    }
+}

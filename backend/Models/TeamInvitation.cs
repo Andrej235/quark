@@ -4,7 +4,7 @@ namespace Quark.Models;
 
 public class TeamInvitation
 {
-    public string Token { get; set; } = null!;
+    public Guid Id { get; set; }
     public DateTime ExpiresAt { get; set; }
     public TeamInvitationStatus Status { get; set; }
 
