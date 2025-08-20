@@ -9,11 +9,9 @@ import App from "./app";
 import ArchivedProspectsPage from "./components/archived-prospects-page";
 import DashboardLayout from "./components/dashboard-layout";
 import EditProspectPage from "./components/edit-prospect-page";
-import EditRolePage from "./components/edit-role-page";
 import ErrorPage from "./components/error-page";
 import FirstTeamPage from "./components/first-team-page";
 import NewProspectsPage from "./components/new-prospect-page";
-import NewRolePage from "./components/new-role-page";
 import NewTeamPage from "./components/new-team-page";
 import NotificationPage from "./components/notification-page";
 import NotificationSettingsPage from "./components/notification-settings-page";
@@ -53,14 +51,6 @@ const router = createBrowserRouter([
           {
             path: "/settings/team-roles",
             element: <TeamRolesSettings />,
-          },
-          {
-            path: "/settings/team-roles/new",
-            element: <NewRolePage />,
-          },
-          {
-            path: "/settings/team-roles/:roleId",
-            element: <EditRolePage />,
           },
           {
             path: "/settings/notifications",

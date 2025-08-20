@@ -1716,6 +1716,72 @@ export type ApiSpec={
         }
       }
     },
+    "/teams/{teamId}/default-role": {
+      "patch": {
+        "tags": [
+          "Team"
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDefaultRoleRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDefaultRoleRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDefaultRoleRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "503": {
+            "description": "Service Unavailable"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/teams/invite": {
       "post": {
         "tags": [
@@ -3227,6 +3293,15 @@ export type ApiSpec={
           }
         }
       },
+      "SetDefaultRoleRequestDto": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "TeamInvitationResponseDto": {
         "type": "object",
         "properties": {
@@ -3285,6 +3360,11 @@ export type ApiSpec={
           },
           "roleName": {
             "type": "string"
+          },
+          "defaultRoleId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         }
       },

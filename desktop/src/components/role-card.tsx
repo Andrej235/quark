@@ -4,19 +4,22 @@ import { formatCount } from "@/lib/format/format-count";
 import { Permission } from "@/lib/permissions/detailed-team-permission";
 import { getDetailedTeamPermissions } from "@/lib/permissions/get-detailed-team-permissions";
 import { TeamPermission } from "@/lib/permissions/team-permission";
-import { Edit, Edit2, Lock, Shield, Trash2, Users } from "lucide-react";
+import { Edit, Edit2, Lock, Shield, Trash2, User, Users } from "lucide-react";
 import { Role } from "./team-roles-settings-page";
 import { Badge } from "./ui/badge";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
 
 interface RoleCardProps {
   role: Role;
   permissions: TeamPermission;
+  isDefault: boolean;
+  setAsDefault: (role: Role) => void;
   onEdit: (role: Role) => void;
   onDelete: (role: Role) => void;
 }
@@ -24,6 +27,8 @@ interface RoleCardProps {
 export default function RoleCard({
   role,
   permissions,
+  isDefault,
+  setAsDefault,
   onEdit,
   onDelete,
 }: RoleCardProps) {
@@ -62,6 +67,11 @@ export default function RoleCard({
                         System
                       </Badge>
                     )}
+                    {isDefault && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        Default
+                      </Badge>
+                    )}
                   </CardTitle>
                   <p className="text-muted-foreground mt-1 text-sm">
                     {role.description}
@@ -70,6 +80,17 @@ export default function RoleCard({
               </div>
 
               <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                {!isDefault && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAsDefault(role)}
+                    className="hover:bg-primary/10 h-8 w-8 p-0"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                )}
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -78,6 +99,7 @@ export default function RoleCard({
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
+
                 {!role.isSystem && (
                   <Button
                     variant="ghost"
@@ -139,11 +161,20 @@ export default function RoleCard({
         </Card>
       </ContextMenuTrigger>
 
-      <ContextMenuContent>
+      <ContextMenuContent className="min-w-48">
         <ContextMenuItem onClick={() => onEdit(role)}>
           <span>Edit</span>
           <Edit2 className="ml-auto size-4" />
         </ContextMenuItem>
+
+        {!isDefault && (
+          <ContextMenuItem onClick={() => setAsDefault(role)}>
+            <span>Make Default</span>
+            <User className="ml-auto size-4" />
+          </ContextMenuItem>
+        )}
+
+        <ContextMenuSeparator />
 
         {!role.isSystem && (
           <ContextMenuItem variant="destructive" onClick={() => onDelete(role)}>

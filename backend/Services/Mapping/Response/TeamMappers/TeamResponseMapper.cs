@@ -12,5 +12,6 @@ public class TeamResponseMapper : IResponseMapper<Team, TeamResponseDto>
             Name = from.Name,
             Description = from.Description,
             Logo = from.Logo,
+            DefaultRoleId = from.DefaultRoleId,
         };
 }

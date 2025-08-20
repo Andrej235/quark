@@ -28,7 +28,10 @@ export type Role = {
 };
 
 export default function TeamRolesSettings() {
-  const teamId = useTeamStore((x) => x.activeTeam?.id ?? null);
+  const setTeam = useTeamStore((x) => x.setActiveTeam);
+  const team = useTeamStore((x) => x.activeTeam);
+  const teamId = team?.id;
+  const defaultRoleId = team?.defaultRoleId;
 
   const roles = useQuery("/team-roles/{teamId}", {
     queryKey: ["team-roles", teamId],
@@ -151,6 +154,39 @@ export default function TeamRolesSettings() {
     setEditingRole(null);
   }
 
+  async function setAsDefaultRole(role: { id: string }) {
+    if (!teamId) return;
+
+    const { isOk } = await sendApiRequest(
+      "/teams/{teamId}/default-role",
+      {
+        method: "patch",
+        parameters: {
+          teamId,
+        },
+        payload: {
+          roleId: role.id,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Setting default role, please wait...",
+          success: "Default role set successfully!",
+          error: (x) =>
+            x.message || "Failed to set default role, please try again",
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    setTeam({
+      ...team,
+      defaultRoleId: role.id,
+    });
+  }
+
   if (roles.isLoading) {
     return <LoadingIndicator />;
   }
@@ -182,6 +218,8 @@ export default function TeamRolesSettings() {
               key={role.id}
               role={role}
               permissions={role.permissions}
+              isDefault={role.id === defaultRoleId}
+              setAsDefault={setAsDefaultRole}
               onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}
             />
