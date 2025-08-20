@@ -16,6 +16,7 @@ public partial class TeamService(
     ICreateSingleService<TeamMember> createTeamMemberService,
     ICreateSingleService<TeamInvitation> createInvitationService,
     IReadSingleSelectedService<User> userReadSelectedService,
+    IReadRangeSelectedService<TeamMember> memberReadService,
     IRequestMapper<CreateTeamRequestDto, Team> createRequestMapper,
     IResponseMapper<Team, TeamResponseDto> responseMapper,
     IExecuteUpdateService<Team> updateService,

@@ -16,4 +16,10 @@ public interface ITeamService
         SetDefaultRoleRequestDto request,
         ClaimsPrincipal claims
     );
+
+    Task<Result<IEnumerable<TeamMemberResponseDto>>> GetMembers(
+        Guid teamId,
+        ClaimsPrincipal claims,
+        CancellationToken cancellationToken
+    );
 }

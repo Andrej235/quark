@@ -1,3 +1,4 @@
+import useQuery from "@/api-dsl/use-query";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -12,52 +13,44 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { LucideLogOut, Plus, UserCog2 } from "lucide-react";
+import { useTeamStore } from "@/stores/team-store";
+import { format } from "date-fns";
+import { Dot, LogOut, Plus, User, UserCog2 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "./ui/input";
-
-const members: { name: string }[] = [
-  {
-    name: "Andrej",
-  },
-  {
-    name: "Lecic",
-  },
-];
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "./ui/context-menu";
 
 export default function TeamMemberSettingsTab() {
-  const teamName = "My Team";
+  const team = useTeamStore((x) => x.activeTeam);
+  const teamId = team?.id;
+
+  const membersQuery = useQuery("/teams/{teamId}/members", {
+    parameters: {
+      teamId: teamId || "",
+    },
+    queryKey: ["team-members", teamId],
+    enabled: !!teamId,
+  });
+  const members = membersQuery.data || [];
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const filteredMembers =
     searchTerm.trim().length === 0
       ? members
-      : members.filter((member) =>
-          member.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      : members.filter(
+          (member) =>
+            member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (member.firstName + " " + member.lastName)
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()),
         );
 
-  function canAddUsers() {
-    return true;
-  }
-
-  function canRemoveUser(member: { name: string }) {
-    return member;
-  }
-
-  function canManageMemberRoles(member: { name: string }) {
-    return member;
-  }
+  if (!team) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -66,7 +59,7 @@ export default function TeamMemberSettingsTab() {
           <div>
             <CardTitle className="text-xl">Team Members</CardTitle>
             <CardDescription>
-              Manage members of &quot;{teamName}&quot;
+              Manage members of &quot;{team.name}&quot;
             </CardDescription>
           </div>
 
@@ -87,15 +80,13 @@ export default function TeamMemberSettingsTab() {
         <div className="mt-2 flex justify-between">
           <h1 className="text-2xl">Manage access</h1>
 
-          {canAddUsers() && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button>Add people</Button>
-              </AlertDialogTrigger>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button>Add people</Button>
+            </AlertDialogTrigger>
 
-              <AlertDialogContent>TODO: Implement this</AlertDialogContent>
-            </AlertDialog>
-          )}
+            <AlertDialogContent>TODO: Implement this</AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -110,66 +101,75 @@ export default function TeamMemberSettingsTab() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {filteredMembers.map((member) => (
-            <div
-              key={member.name}
-              className="flex items-center justify-between"
-            >
-              <div className="flex gap-2">
-                <div className="border-border flex h-12 w-12 items-center justify-center rounded-full border-2 p-0"></div>
+            <ContextMenu key={member.username}>
+              <ContextMenuTrigger asChild>
+                <Card className="hover:border-primary/80 group relative transition-colors">
+                  <CardHeader>
+                    <div className="bg-muted mx-auto rounded-full">
+                      {member.profilePicture && (
+                        <img
+                          src={member.profilePicture}
+                          alt={member.username}
+                          className="size-16 rounded-full"
+                        />
+                      )}
 
-                <div className="flex flex-col">
-                  <Tooltip delayDuration={2000}>
-                    <TooltipTrigger>
-                      <h2 className="text-left">{member.name}</h2>
-                    </TooltipTrigger>
+                      {!member.profilePicture && <User className="size-16" />}
+                    </div>
 
-                    <TooltipContent>
-                      {member.name + "@todo: add emails"}
-                    </TooltipContent>
-                  </Tooltip>
+                    <CardTitle className="mt-4 text-center">
+                      {member.firstName} {member.lastName}
+                    </CardTitle>
 
-                  <p className="text-muted-foreground text-xs">Role</p>
-                </div>
-              </div>
+                    <CardDescription className="flex justify-center">
+                      <span>{member.username}</span>
+                      <Dot />
+                      <a href={`mailto:${member.email}`}>
+                        <span>{member.email}</span>
+                      </a>
+                    </CardDescription>
+                  </CardHeader>
 
-              <div className="flex gap-2">
-                {canManageMemberRoles(member) && (
-                  <DropdownMenu>
-                    <Button
-                      className="hover:bg-primary/60! p-0 transition-colors duration-150"
-                      asChild
-                    >
-                      <DropdownMenuTrigger>
-                        <UserCog2 size={24} />
-                      </DropdownMenuTrigger>
+                  <CardContent>
+                    <div className="flex justify-between">
+                      <p className="text-muted-foreground">{member.roleName}</p>
+
+                      <p className="text-muted-foreground">
+                        {format(member.joinedAt, "MM.dd.yyyy.")}
+                      </p>
+                    </div>
+                  </CardContent>
+
+                  <div className="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button variant="ghost" size="sm" className="size-8 p-0">
+                      <UserCog2 />
                     </Button>
 
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Promote to admin</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
+                    >
+                      <LogOut />
+                    </Button>
+                  </div>
+                </Card>
+              </ContextMenuTrigger>
 
-                {canRemoveUser(member) && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        className="hover:bg-destructive/80! p-0 transition-colors duration-150"
-                        variant={"destructive"}
-                      >
-                        <LucideLogOut size={24} />
-                      </Button>
-                    </AlertDialogTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem>
+                  <span>Edit Role</span>
+                  <UserCog2 className="ml-auto" />
+                </ContextMenuItem>
 
-                    <AlertDialogContent>
-                      TODO: Implement this
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
-            </div>
+                <ContextMenuItem variant="destructive">
+                  <span>Remove</span>
+                  <LogOut className="ml-auto" />
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
         </div>
       </CardContent>
