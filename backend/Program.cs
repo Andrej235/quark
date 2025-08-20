@@ -34,6 +34,7 @@ using Quark.Services.Mapping.Response.UserMappers;
 using Quark.Services.ModelServices.ProspectLayoutService;
 using Quark.Services.ModelServices.ProspectService;
 using Quark.Services.ModelServices.ProspectViewService;
+using Quark.Services.ModelServices.TeamInvitationService;
 using Quark.Services.ModelServices.TeamRoleService;
 using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
@@ -343,6 +344,7 @@ builder.Services.AddScoped<
 #endregion
 
 #region Team Invitaions
+builder.Services.AddScoped<ITeamInvitationService, TeamInvitationService>();
 builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<TeamInvitation>>();
 builder.Services.AddScoped<
     IReadSingleSelectedService<TeamInvitation>,

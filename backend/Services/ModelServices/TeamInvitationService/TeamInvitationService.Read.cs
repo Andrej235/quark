@@ -8,7 +8,10 @@ namespace Quark.Services.ModelServices.TeamInvitationService;
 
 public partial class TeamInvitationService
 {
-    public Task<Result<IEnumerable<TeamInvitationResponseDto>>> Get(ClaimsPrincipal claim)
+    public Task<Result<IEnumerable<TeamInvitationResponseDto>>> Get(
+        ClaimsPrincipal claim,
+        CancellationToken cancellationToken
+    )
     {
         var userId = userManager.GetUserId(claim);
         if (userId is null)
@@ -27,7 +30,8 @@ public partial class TeamInvitationService
                 TeamName = x.Team.Name,
             },
             x => x.ReceiverId == userId,
-            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt)
+            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt),
+            cancellationToken: cancellationToken
         );
     }
 }
