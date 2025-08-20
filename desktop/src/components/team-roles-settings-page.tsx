@@ -2,6 +2,7 @@ import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
 import { TeamPermission } from "@/lib/permissions/team-permission";
 import { useTeamStore } from "@/stores/team-store";
+import { useUserStore } from "@/stores/user-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -28,10 +29,10 @@ export type Role = {
 };
 
 export default function TeamRolesSettings() {
-  const setTeam = useTeamStore((x) => x.setActiveTeam);
+  const user = useUserStore((x) => x.user);
+  const setUser = useUserStore((x) => x.setUser);
   const team = useTeamStore((x) => x.activeTeam);
   const teamId = team?.id;
-  const defaultRoleId = team?.defaultRoleId;
 
   const roles = useQuery("/team-roles/{teamId}", {
     queryKey: ["team-roles", teamId],
@@ -181,9 +182,17 @@ export default function TeamRolesSettings() {
 
     if (!isOk) return;
 
-    setTeam({
-      ...team,
-      defaultRoleId: role.id,
+    setUser({
+      ...user!,
+      teams: user!.teams.map((team) => {
+        if (team.id === teamId) {
+          return {
+            ...team,
+            defaultRoleId: role.id,
+          };
+        }
+        return team;
+      }),
     });
   }
 
@@ -218,7 +227,7 @@ export default function TeamRolesSettings() {
               key={role.id}
               role={role}
               permissions={role.permissions}
-              isDefault={role.id === defaultRoleId}
+              isDefault={role.id === team?.defaultRoleId}
               setAsDefault={setAsDefaultRole}
               onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}

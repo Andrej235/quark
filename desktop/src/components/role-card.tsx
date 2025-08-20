@@ -14,6 +14,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface RoleCardProps {
   role: Role;
@@ -81,34 +82,56 @@ export default function RoleCard({
 
               <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                 {!isDefault && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAsDefault(role)}
-                    className="hover:bg-primary/10 h-8 w-8 p-0"
-                  >
-                    <User className="h-4 w-4" />
-                  </Button>
+                  <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAsDefault(role)}
+                        className="hover:bg-primary/10 h-8 w-8 p-0"
+                      >
+                        <User className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+
+                    <TooltipContent>
+                      Set role as the default for all new users
+                    </TooltipContent>
+                  </Tooltip>
                 )}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(role)}
-                  className="hover:bg-primary/10 h-8 w-8 p-0"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                <Tooltip delayDuration={500}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEdit(role)}
+                      className="hover:bg-primary/10 h-8 w-8 p-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+
+                  <TooltipContent>Edit role</TooltipContent>
+                </Tooltip>
 
                 {!role.isSystem && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(role)}
-                    className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(role)}
+                        className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+
+                    <TooltipContent>
+                      Delete role and kick out all users who are assigned to it
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>
