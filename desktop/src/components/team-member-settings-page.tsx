@@ -12,18 +12,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useTeamStore } from "@/stores/team-store";
 import { format } from "date-fns";
-import { Dot, LogOut, Plus, User, UserCog2 } from "lucide-react";
+import { Dot, LogOut, User, UserCog2 } from "lucide-react";
 import { useState } from "react";
-import { Input } from "./ui/input";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import { Input } from "./ui/input";
 
 export default function TeamMemberSettingsTab() {
   const team = useTeamStore((x) => x.activeTeam);
@@ -54,45 +53,27 @@ export default function TeamMemberSettingsTab() {
 
   return (
     <Card className="border-0 bg-transparent">
-      <CardHeader className="pb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl">Team Members</CardTitle>
-            <CardDescription>
-              Manage members of &quot;{team.name}&quot;
-            </CardDescription>
-          </div>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Role
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent>Test</DialogContent>
-          </Dialog>
+      <CardHeader className="flex items-center justify-between gap-0">
+        <div>
+          <CardTitle className="text-xl">Team Members</CardTitle>
+          <CardDescription>
+            Manage members of &quot;{team.name}&quot;
+          </CardDescription>
         </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button>Invite Member</Button>
+          </AlertDialogTrigger>
+
+          <AlertDialogContent>TODO: Implement this</AlertDialogContent>
+        </AlertDialog>
       </CardHeader>
 
       <CardContent className="space-y-8 bg-transparent">
-        <div className="mt-2 flex justify-between">
-          <h1 className="text-2xl">Manage access</h1>
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button>Add people</Button>
-            </AlertDialogTrigger>
-
-            <AlertDialogContent>TODO: Implement this</AlertDialogContent>
-          </AlertDialog>
-        </div>
-
         <div className="flex flex-col gap-2">
           <Input
             placeholder="Search..."
-            className="h-12"
             onChange={(e) => setSearchTerm(e.target.value)}
           />
 
