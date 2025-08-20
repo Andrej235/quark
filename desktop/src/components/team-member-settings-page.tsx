@@ -15,6 +15,7 @@ import {
 import { useTeamStore } from "@/stores/team-store";
 import { format } from "date-fns";
 import { Dot, LogOut, User, UserCog2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import {
   ContextMenu,
@@ -83,75 +84,109 @@ export default function TeamMemberSettingsTab() {
         </div>
 
         <div className="grid grid-cols-4 gap-4">
-          {filteredMembers.map((member) => (
-            <ContextMenu key={member.username}>
-              <ContextMenuTrigger asChild>
-                <Card className="hover:border-primary/80 group relative transition-colors">
-                  <CardHeader>
-                    <div className="bg-muted mx-auto rounded-full">
-                      {member.profilePicture && (
-                        <img
-                          src={member.profilePicture}
-                          alt={member.username}
-                          className="size-16 rounded-full"
-                        />
-                      )}
+          {filteredMembers.length === 0 && (
+            <p className="text-muted-foreground col-span-4 text-center">
+              No members found
+            </p>
+          )}
 
-                      {!member.profilePicture && <User className="size-16" />}
-                    </div>
+          <AnimatePresence mode="popLayout">
+            {filteredMembers.map((member) => (
+              <motion.div
+                key={member.username}
+                layout
+                layoutId={member.username}
+                initial={{
+                  opacity: 0,
+                  scale: 0.85,
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.85,
+                }}
+              >
+                <ContextMenu>
+                  <ContextMenuTrigger asChild>
+                    <Card className="hover:border-primary/80 group relative transition-colors">
+                      <CardHeader>
+                        <div className="mx-auto">
+                          {member.profilePicture && (
+                            <img
+                              src={member.profilePicture}
+                              alt={member.username}
+                              className="size-16 rounded-full"
+                            />
+                          )}
 
-                    <CardTitle className="mt-4 text-center">
-                      {member.firstName} {member.lastName}
-                    </CardTitle>
+                          {!member.profilePicture && (
+                            <User className="size-16" />
+                          )}
+                        </div>
 
-                    <CardDescription className="flex justify-center">
-                      <span>{member.username}</span>
-                      <Dot />
-                      <a href={`mailto:${member.email}`}>
-                        <span>{member.email}</span>
-                      </a>
-                    </CardDescription>
-                  </CardHeader>
+                        <CardTitle className="mt-4 text-center">
+                          {member.firstName} {member.lastName}
+                        </CardTitle>
 
-                  <CardContent>
-                    <div className="flex justify-between">
-                      <p className="text-muted-foreground">{member.roleName}</p>
+                        <CardDescription className="flex justify-center">
+                          <span>{member.username}</span>
+                          <Dot className="-mx-1" />
+                          <a href={`mailto:${member.email}`}>
+                            <span>{member.email}</span>
+                          </a>
+                        </CardDescription>
+                      </CardHeader>
 
-                      <p className="text-muted-foreground">
-                        {format(member.joinedAt, "MM.dd.yyyy.")}
-                      </p>
-                    </div>
-                  </CardContent>
+                      <CardContent>
+                        <div className="flex justify-between">
+                          <p className="text-muted-foreground">
+                            {member.roleName}
+                          </p>
 
-                  <div className="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button variant="ghost" size="sm" className="size-8 p-0">
-                      <UserCog2 />
-                    </Button>
+                          <p className="text-muted-foreground">
+                            {format(member.joinedAt, "MM.dd.yyyy")}
+                          </p>
+                        </div>
+                      </CardContent>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
-                    >
-                      <LogOut />
-                    </Button>
-                  </div>
-                </Card>
-              </ContextMenuTrigger>
+                      <div className="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="size-8 p-0"
+                        >
+                          <UserCog2 />
+                        </Button>
 
-              <ContextMenuContent>
-                <ContextMenuItem>
-                  <span>Edit Role</span>
-                  <UserCog2 className="ml-auto" />
-                </ContextMenuItem>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
+                        >
+                          <LogOut />
+                        </Button>
+                      </div>
+                    </Card>
+                  </ContextMenuTrigger>
 
-                <ContextMenuItem variant="destructive">
-                  <span>Remove</span>
-                  <LogOut className="ml-auto" />
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-          ))}
+                  <ContextMenuContent>
+                    <ContextMenuItem>
+                      <span>Edit Role</span>
+                      <UserCog2 className="ml-auto" />
+                    </ContextMenuItem>
+
+                    <ContextMenuItem variant="destructive">
+                      <span>Remove</span>
+                      <LogOut className="ml-auto" />
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </CardContent>
     </Card>
