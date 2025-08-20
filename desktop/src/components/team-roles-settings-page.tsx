@@ -1,8 +1,14 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
+import useQuery from "@/api-dsl/use-query";
+import { TeamPermission } from "@/lib/permissions/team-permission";
+import { useTeamStore } from "@/stores/team-store";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { DeleteRoleDialog } from "./delete-role-dialog";
-import { RoleCard } from "./role-card";
+import LoadingIndicator from "./loading-indicator";
+import RoleCard from "./role-card";
+import { RoleDialog } from "./role-dialog";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -12,213 +18,144 @@ import {
   CardTitle,
 } from "./ui/card";
 
-export type Permission = {
-  id: string;
-  enumValue: number;
-  name: string;
-  description: string;
-  category: string;
-  requires?: string[];
-};
-
 export type Role = {
   id: string;
   name: string;
   description: string;
-  permissions: string[];
+  permissions: TeamPermission;
   userCount: number;
   isSystem?: boolean;
 };
 
-const AVAILABLE_PERMISSIONS: Permission[] = [
-  // User Management
-  {
-    id: "users.view",
-    enumValue: 1 << 0,
-    name: "View Users",
-    description: "Can view info about all team members",
-    category: "User Management",
-  },
-  {
-    id: "users.invite",
-    enumValue: 1 << 1,
-    name: "Invite Users",
-    description: "Can invite new users to the team",
-    category: "User Management",
-  },
-  {
-    id: "users.edit",
-    enumValue: 1 << 2,
-    name: "Edit Users",
-    description: "Can assign roles to users",
-    category: "User Management",
-    requires: ["users.view"],
-  },
-  {
-    id: "users.remove",
-    enumValue: 1 << 3,
-    name: "Remove Users",
-    description: "Can remove users from the team",
-    category: "User Management",
-    requires: ["users.view"],
-  },
-
-  // Prospect Management
-  {
-    id: "prospects.view",
-    enumValue: 1 << 4,
-    name: "View Prospects",
-    description: "Can view all prospect data",
-    category: "Content Management",
-  },
-  {
-    id: "prospects.create",
-    enumValue: 1 << 5,
-    name: "Create Prospects",
-    description: "Can create new prospects",
-    category: "Content Management",
-  },
-  {
-    id: "prospects.edit",
-    enumValue: 1 << 6,
-    name: "Edit Prospects",
-    description: "Can modify existing prospects' data",
-    category: "Content Management",
-    requires: ["prospects.view"],
-  },
-  {
-    id: "prospects.delete",
-    enumValue: 1 << 7,
-    name: "Delete Prospects",
-    description: "Can remove prospects from the system",
-    category: "Content Management",
-    requires: ["prospects.view"],
-  },
-
-  // Email Management
-  {
-    id: "emails.view",
-    enumValue: 1 << 8,
-    name: "View Emails",
-    description: "Can view all emails",
-    category: "Content Management",
-  },
-  {
-    id: "emails.create",
-    enumValue: 1 << 9,
-    name: "Create Emails",
-    description: "Can create new emails",
-    category: "Content Management",
-  },
-  {
-    id: "emails.edit",
-    enumValue: 1 << 10,
-    name: "Edit Emails",
-    description: "Can modify existing emails",
-    category: "Content Management",
-    requires: ["emails.view"],
-  },
-  {
-    id: "emails.delete",
-    enumValue: 1 << 11,
-    name: "Delete Emails",
-    description: "Can remove emails from the system",
-    category: "Content Management",
-    requires: ["emails.view"],
-  },
-  {
-    id: "emails.send",
-    enumValue: 1 << 12,
-    name: "Send Emails",
-    description: "Can send emails to prospects",
-    category: "Content Management",
-    requires: ["emails.edit"],
-  },
-  {
-    id: "emails.schedule",
-    enumValue: 1 << 13,
-    name: "Schedule Emails",
-    description: "Can schedule emails to be sent in the future",
-    category: "Content Management",
-    requires: ["emails.send", "emails.view"],
-  },
-
-  // System Administration
-  {
-    id: "admin.settings",
-    enumValue: 1 << 14,
-    name: "Team Settings",
-    description: "Can modify team-wide settings",
-    category: "System Administration",
-  },
-  {
-    id: "admin.roles",
-    enumValue: 1 << 15,
-    name: "Manage Roles",
-    description: "Can create and modify user roles",
-    category: "System Administration",
-  },
-  {
-    id: "admin.billing",
-    enumValue: 1 << 16,
-    name: "View Billing",
-    description: "Can view billing information and past invoices",
-    category: "System Administration",
-  },
-  {
-    id: "admin.delete",
-    enumValue: 1 << 17,
-    name: "Delete Team",
-    description: "Can delete the entire team",
-    category: "System Administration",
-  },
-];
-
-const INITIAL_ROLES: Role[] = [
-  {
-    id: "1",
-    name: "Administrator",
-    description: "Full system access with all permissions",
-    permissions: AVAILABLE_PERMISSIONS.map((p) => p.id),
-    userCount: 2,
-    isSystem: true,
-  },
-  {
-    id: "2",
-    name: "Editor",
-    description: "Can create and edit content",
-    permissions: [
-      "emails.view",
-      "emails.create",
-      "emails.edit",
-      "emails.delete",
-      "emails.send",
-      "emails.schedule",
-      "prospects.view",
-      "prospects.create",
-      "prospects.edit",
-      "prospects.delete",
-      "users.view",
-    ],
-    userCount: 12,
-  },
-  {
-    id: "3",
-    name: "Viewer",
-    description: "Read-only access to content and users",
-    permissions: ["users.view", "prospects.view", "emails.view"],
-    userCount: 28,
-  },
-];
-
 export default function TeamRolesSettings() {
-  const [roles, setRoles] = useState<Role[]>(INITIAL_ROLES);
+  const teamId = useTeamStore((x) => x.activeTeam?.id ?? null);
+
+  const roles = useQuery("/team-roles/{teamId}", {
+    queryKey: ["team-roles", teamId],
+    parameters: {
+      teamId: teamId || "",
+    },
+    enabled: !!teamId,
+  });
+  const queryClient = useQueryClient();
+
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
 
-  const handleDeleteRole = (roleId: string) => {
-    setRoles(roles.filter((role) => role.id !== roleId));
+  async function handleDeleteRole(roleId: string) {
+    if (!teamId) return;
+
+    const { isOk } = await sendApiRequest(
+      "/team-roles/{teamId}/{roleId}",
+      {
+        method: "delete",
+        parameters: {
+          teamId,
+          roleId,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Deleting role, please wait...",
+          success: "Role deleted successfully!",
+          error: (x) => x.message || "Failed to delete role, please try again",
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    await queryClient.setQueryData(
+      ["team-roles", teamId],
+      roles.data?.filter((role) => role.id !== roleId),
+    );
     setDeletingRole(null);
-  };
+  }
+
+  async function handleCreateRole(role: {
+    name: string;
+    description: string;
+    permissions: TeamPermission;
+  }) {
+    if (!teamId) return;
+
+    const { isOk, response } = await sendApiRequest(
+      "/team-roles",
+      {
+        method: "post",
+        payload: {
+          teamId,
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Creating role, please wait...",
+          success: "Role created successfully!",
+          error: (x) => x.message || "Failed to create role, please try again",
+        },
+      },
+    );
+
+    if (!isOk || !response) return;
+
+    await queryClient.setQueryData(
+      ["team-roles", teamId],
+      [...roles.data!, response],
+    );
+    setIsCreateDialogOpen(false);
+  }
+
+  async function handleEditRole(role: {
+    name: string;
+    description: string;
+    permissions: TeamPermission;
+  }) {
+    if (!teamId || !editingRole) return;
+
+    const { isOk } = await sendApiRequest(
+      "/team-roles",
+      {
+        method: "put",
+        payload: {
+          teamId,
+          id: editingRole.id,
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Saving role, please wait...",
+          success: "Role edited successfully!",
+          error: (x) => x.message || "Failed to edit role, please try again",
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    await queryClient.setQueryData(
+      ["team-roles", teamId],
+      roles.data?.map((r) =>
+        r.id === editingRole.id ? { ...editingRole, ...role } : r,
+      ) ?? [],
+    );
+    setEditingRole(null);
+  }
+
+  if (roles.isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (!roles.data) return null;
 
   return (
     <Card className="border-0 bg-transparent">
@@ -231,27 +168,43 @@ export default function TeamRolesSettings() {
             </CardDescription>
           </div>
 
-          <Button asChild>
-            <Link to="new">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Role
-            </Link>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Role
           </Button>
         </div>
       </CardHeader>
 
       <CardContent className="bg-transparent">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {roles.map((role) => (
+          {roles.data.map((role) => (
             <RoleCard
               key={role.id}
               role={role}
-              permissions={AVAILABLE_PERMISSIONS}
+              permissions={role.permissions}
+              onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}
             />
           ))}
         </div>
       </CardContent>
+
+      <RoleDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={handleCreateRole}
+        title="Create New Role"
+        description="Define a new role with specific permissions for your team members."
+      />
+
+      <RoleDialog
+        isOpen={!!editingRole}
+        onOpenChange={(open) => !open && setEditingRole(null)}
+        onSubmit={handleEditRole}
+        initialData={editingRole || undefined}
+        title="Edit Role"
+        description="Modify the role name, description, and permissions."
+      />
 
       <DeleteRoleDialog
         isOpen={deletingRole !== null}

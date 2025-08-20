@@ -12,7 +12,9 @@ using Quark.Data;
 using Quark.Dtos.Request.Prospect;
 using Quark.Dtos.Request.ProspectListViewItem;
 using Quark.Dtos.Request.Team;
+using Quark.Dtos.Request.TeamRoles;
 using Quark.Dtos.Response.Team;
+using Quark.Dtos.Response.TeamRoles;
 using Quark.Dtos.Response.User;
 using Quark.Exceptions;
 using Quark.Models;
@@ -24,12 +26,15 @@ using Quark.Services.Mapping.Request;
 using Quark.Services.Mapping.Request.ProspectMappers;
 using Quark.Services.Mapping.Request.ProspectViewMappers;
 using Quark.Services.Mapping.Request.TeamMappers;
+using Quark.Services.Mapping.Request.TeamRoleMappers;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Mapping.Response.TeamMappers;
+using Quark.Services.Mapping.Response.TeamRoleMappers;
 using Quark.Services.Mapping.Response.UserMappers;
 using Quark.Services.ModelServices.ProspectLayoutService;
 using Quark.Services.ModelServices.ProspectService;
 using Quark.Services.ModelServices.ProspectViewService;
+using Quark.Services.ModelServices.TeamRoleService;
 using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
 using Quark.Services.ModelServices.UserService;
@@ -314,6 +319,26 @@ builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseM
 builder.Services.AddScoped<ICreateSingleService<TeamMember>, CreateService<TeamMember>>();
 builder.Services.AddScoped<IReadSingleSelectedService<TeamMember>, ReadService<TeamMember>>();
 builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>>();
+#endregion
+
+#region Team Roles
+builder.Services.AddScoped<ITeamRoleService, TeamRoleService>();
+builder.Services.AddScoped<ICreateSingleService<TeamRole>, CreateService<TeamRole>>();
+builder.Services.AddScoped<IReadRangeSelectedService<TeamRole>, ReadService<TeamRole>>();
+builder.Services.AddScoped<IUpdateSingleService<TeamRole>, UpdateService<TeamRole>>();
+builder.Services.AddScoped<IDeleteService<TeamRole>, DeleteService<TeamRole>>();
+builder.Services.AddScoped<
+    IRequestMapper<CreateTeamRoleRequestDto, TeamRole>,
+    CreateTeamRoleRequestMapper
+>();
+builder.Services.AddScoped<
+    IRequestMapper<UpdateTeamRoleRequestDto, TeamRole>,
+    UpdateTeamRoleRequestMapper
+>();
+builder.Services.AddScoped<
+    IResponseMapper<TeamRole, TeamRoleResponseDto>,
+    TeamRoleResponseMapper
+>();
 #endregion
 
 #region Team Invitaions

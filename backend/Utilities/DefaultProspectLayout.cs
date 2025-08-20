@@ -117,7 +117,7 @@ public static class DefaultProspectLayout
                                 "type": "button",
                                 "label": "Save",
                                 "variant": "default",
-                                "size": "default",
+                                "size": "default"
                             }
                         ]
                     }
