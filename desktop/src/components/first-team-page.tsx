@@ -11,10 +11,11 @@ import useAuthStore from "@/stores/auth-store";
 import { useUserStore } from "@/stores/user-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Users2 } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import FirstTeamPageInvitationsDialogContent from "./first-team-page-invitations-dialog-content";
 import { Dialog, DialogTrigger } from "./ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import UserTeamInvitationsDialogContent from "./user-team-invitations-dialog-content";
 
 export default function FirstTeamPage() {
   const user = useUserStore((x) => x.user);
@@ -22,6 +23,8 @@ export default function FirstTeamPage() {
   const navigate = useNavigate();
   const logOut = useAuthStore((x) => x.logOut);
   const queryClient = useQueryClient();
+
+  const [invitationsDialogOpen, setInvitationsDialogOpen] = useState(false);
 
   return (
     <div className="grid h-screen w-screen place-items-center">
@@ -80,12 +83,17 @@ export default function FirstTeamPage() {
               <Link to="/new-team">Create a team</Link>
             </Button>
 
-            <Dialog>
+            <Dialog
+              open={invitationsDialogOpen}
+              onOpenChange={setInvitationsDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button className="w-full">Join an existing team</Button>
               </DialogTrigger>
 
-              <FirstTeamPageInvitationsDialogContent />
+              <UserTeamInvitationsDialogContent
+                isOpen={invitationsDialogOpen}
+              />
             </Dialog>
           </div>
 

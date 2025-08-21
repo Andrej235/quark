@@ -67,15 +67,15 @@ export function TeamSwitcher() {
     [teams, user?.defaultTeamId],
   );
 
-  useEffect(
-    () =>
-      setActiveTeam(
-        activeTeam && teams.includes(activeTeam)
-          ? (activeTeam ?? defaultTeam ?? null)
-          : (defaultTeam ?? null),
-      ),
-    [defaultTeam, setActiveTeam, activeTeam, teams],
-  );
+  useEffect(() => {
+    console.log(teams);
+
+    setActiveTeam(
+      activeTeam && teams.includes(activeTeam)
+        ? (activeTeam ?? defaultTeam ?? teams[0] ?? null)
+        : (defaultTeam ?? teams[0] ?? null),
+    );
+  }, [defaultTeam, setActiveTeam, activeTeam, teams]);
 
   async function handleSetSetDefault(team: Schema<"TeamResponseDto">) {
     if (team.id === user?.defaultTeamId) {
