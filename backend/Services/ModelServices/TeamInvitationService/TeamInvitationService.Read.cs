@@ -38,4 +38,31 @@ public partial class TeamInvitationService
             cancellationToken: cancellationToken
         );
     }
+
+    public Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetAll(
+        ClaimsPrincipal claim,
+        CancellationToken cancellationToken
+    )
+    {
+        var userId = userManager.GetUserId(claim);
+        if (userId is null)
+            return Task.FromResult(
+                Result.Fail<IEnumerable<TeamInvitationResponseDto>>(new Unauthorized())
+            );
+
+        return readService.Get(
+            x => new TeamInvitationResponseDto
+            {
+                Id = x.Id,
+                ExpiresAt = x.ExpiresAt,
+                InvitedBy = x.Sender.UserName!,
+                Status = x.Status,
+                TeamLogo = x.Team.Logo,
+                TeamName = x.Team.Name,
+            },
+            x => x.ReceiverId == userId && x.ExpiresAt > DateTime.UtcNow,
+            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt),
+            cancellationToken: cancellationToken
+        );
+    }
 }

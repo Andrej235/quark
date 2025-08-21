@@ -10,6 +10,10 @@ public interface ITeamInvitationService
     Task<Result<TeamResponseDto>> Accept(Guid invitationId, ClaimsPrincipal claim);
     Task<Result> Decline(Guid invitationId, ClaimsPrincipal claim);
 
+    Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetAll(
+        ClaimsPrincipal claim,
+        CancellationToken cancellationToken
+    );
     Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetPending(
         ClaimsPrincipal claim,
         CancellationToken cancellationToken

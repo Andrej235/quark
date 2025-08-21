@@ -22,12 +22,13 @@ import { useUserStore } from "@/stores/user-store";
 import { AlertDialog } from "@radix-ui/react-alert-dialog";
 import {
   ChevronsUpDown,
+  ClipboardList,
   LogOut,
   LucideCheckCircle,
   Plus,
   Star,
 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertDescription } from "./ui/alert";
@@ -48,6 +49,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import { Dialog, DialogTrigger } from "./ui/dialog";
+import UserTeamInvitationsDialogContent from "./user-team-invitations-dialog-content";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
@@ -55,6 +58,8 @@ export function TeamSwitcher() {
   const setUser = useUserStore((x) => x.setUser);
   const activeTeam = useTeamStore((x) => x.activeTeam);
   const setActiveTeam = useTeamStore((x) => x.setActiveTeam);
+
+  const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
 
   const teams = useMemo(() => user?.teams ?? [], [user?.teams]);
   const defaultTeam = useMemo(
@@ -292,15 +297,33 @@ export function TeamSwitcher() {
 
             <DropdownMenuItem className="gap-2 p-2" asChild>
               <Link to="/new-team">
-                <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <Plus className="size-4" />
-                </div>
+                <Plus className="size-6 rounded-md border p-1" />
 
-                <div className="text-muted-foreground font-medium">
+                <span className="text-muted-foreground font-medium">
                   Create team
-                </div>
+                </span>
               </Link>
             </DropdownMenuItem>
+
+            <Dialog
+              open={invitationDialogOpen}
+              onOpenChange={setInvitationDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <DropdownMenuItem
+                  className="gap-2 p-2"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <ClipboardList className="size-6 rounded-md border p-1" />
+
+                  <span className="text-muted-foreground font-medium">
+                    Manage Invitations
+                  </span>
+                </DropdownMenuItem>
+              </DialogTrigger>
+
+              <UserTeamInvitationsDialogContent isOpen={invitationDialogOpen} />
+            </Dialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
