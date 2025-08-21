@@ -1,166 +1,272 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import useQuery from "@/api-dsl/use-query";
-import { useUserStore } from "@/stores/user-store";
-import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Loader2, Users2, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "./ui/button";
-import { Card, CardDescription, CardTitle } from "./ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import toTitleCase from "@/lib/format/title-case";
+import { useTeamStore } from "@/stores/team-store";
+import { Ban, Check, Clock, User2, X } from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "./ui/context-menu";
 import {
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
+import { Toggle } from "./ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-export default function TeamInvitationsDialogContent() {
-  const invitations = useQuery("/team-invitations/pending", {
-    queryKey: ["team-invitations"],
+const possibleStatuses: Schema<"TeamInvitationStatus">[] = [
+  "accepted",
+  "declined",
+  "pending",
+  "revoked",
+];
+
+export default function TeamInvitationsDialogContent({
+  isOpen,
+}: {
+  isOpen: boolean;
+}) {
+  const team = useTeamStore((x) => x.activeTeam);
+  const invitationsQuery = useQuery("/team-invitations/for-team/{teamId}", {
+    parameters: {
+      teamId: team?.id || "",
+    },
+    queryKey: ["team-invitations", team?.id],
+    enabled: isOpen && !!team?.id,
   });
-  const queryClient = useQueryClient();
 
-  const user = useUserStore((x) => x.user);
-  const setUser = useUserStore((x) => x.setUser);
+  const [invitations, setInvitations] = useState<
+    Schema<"TeamInvitationResponseDto">[]
+  >([]);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (!invitationsQuery.data) return;
 
-  async function handleAcceptInvitation(
-    invitation: Schema<"TeamInvitationResponseDto">,
-  ) {
-    if (!user) return;
+    // Sync store with query data
+    setInvitations(invitationsQuery.data);
+  }, [invitationsQuery.data, setInvitations]);
 
-    const { isOk, response } = await sendApiRequest(
-      "/team-invitations/accept/{id}",
-      {
-        method: "post",
-        parameters: {
-          id: invitation.id,
-        },
-      },
-      {
-        showToast: true,
-        toastOptions: {
-          loading: "Accepting invitation, please wait...",
-          success: "Invitation accepted successfully!",
-          error: (x) =>
-            x.message || "Failed to accept invitation, please try again",
-        },
-      },
-    );
+  const [statusFilter, setStatusFilter] =
+    useState<Schema<"TeamInvitationStatus">[]>(possibleStatuses);
 
-    if (!isOk || !response) return;
+  const [search, setSearch] = useState("");
 
-    await queryClient.setQueryData(
-      ["team-invitations"],
-      invitations.data?.filter((x) => x.id !== invitation.id),
-    );
+  const filteredInvitations = invitations.filter((invitation) => {
+    const matchesStatus = statusFilter.includes(invitation.status);
+    const matchesSearch = search
+      ? invitation.userName.toLowerCase().includes(search.toLowerCase())
+      : true;
+    return matchesStatus && matchesSearch;
+  });
 
-    setUser({ ...user, teams: [...user.teams, response] });
-    await navigate("/");
-  }
+  async function handleRevoke(invitation: Schema<"TeamInvitationResponseDto">) {
+    if (!team) return;
 
-  async function handleDeclineInvitation(
-    invitation: Schema<"TeamInvitationResponseDto">,
-  ) {
     const { isOk } = await sendApiRequest(
-      "/team-invitations/decline/{id}",
+      "/team-invitations/revoke/{teamId}/{id}",
       {
         method: "post",
         parameters: {
+          teamId: team.id,
           id: invitation.id,
         },
       },
       {
         showToast: true,
         toastOptions: {
-          loading: "Declining invitation, please wait...",
-          success: "Invitation declined successfully!",
+          loading: "Revoking invitation, please wait...",
+          success: "Invitation revoked successfully!",
           error: (x) =>
-            x.message || "Failed to decline invitation, please try again",
+            x.message || "Failed to revoke invitation, please try again",
         },
       },
     );
 
     if (!isOk) return;
 
-    await queryClient.setQueryData(
-      ["team-invitations"],
-      invitations.data?.filter((x) => x.id !== invitation.id),
+    setInvitations(
+      invitations.map((inv) =>
+        inv.id === invitation.id ? { ...inv, status: "revoked" } : inv,
+      ),
     );
+  }
+
+  function getStatusIcon(status: Schema<"TeamInvitationStatus">) {
+    switch (status) {
+      case "pending":
+        return <Clock className="size-4" />;
+      case "accepted":
+        return <Check className="size-4" />;
+      case "declined":
+        return <X className="size-4" />;
+      case "revoked":
+        return <Ban className="size-4" />;
+    }
   }
 
   return (
     <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Team invitations</DialogTitle>
-
+      <DialogHeader className="mb-8">
+        <DialogTitle>Manage your team&apos;s invitations</DialogTitle>
         <DialogDescription>
-          Here you can manage all your team invitations, any new ones will
-          appear automatically
+          Here you can view and manage all invitations sent by your team.
         </DialogDescription>
+
+        <Separator className="my-4" />
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="status-filter">Filter by status</Label>
+            <div
+              id="status-filter"
+              className="flex w-full min-w-full max-w-full flex-wrap gap-2"
+            >
+              {possibleStatuses.map((status) => (
+                <Toggle
+                  key={status}
+                  pressed={statusFilter?.includes(status)}
+                  onPressedChange={(isPressed) => {
+                    if (isPressed) {
+                      setStatusFilter((prev) => [...(prev || []), status]);
+                    } else {
+                      setStatusFilter(
+                        (prev) => prev?.filter((s) => s !== status) || null,
+                      );
+                    }
+                  }}
+                >
+                  <span>{toTitleCase(status)}</span>
+                  {getStatusIcon(status)}
+                </Toggle>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative space-y-2">
+            <Label htmlFor="search">Search by username</Label>
+            <Input
+              id="search"
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <p className="text-muted-foreground absolute right-0 border-0 text-xs">
+              Showing {filteredInvitations.length} of {invitations.length ?? 0}{" "}
+              invitations
+            </p>
+          </div>
+        </div>
       </DialogHeader>
 
-      <Separator />
+      {!invitationsQuery.isLoading && filteredInvitations.length === 0 && (
+        <div className="h-96">
+          <p className="text-muted-foreground text-center">No invitations</p>
+        </div>
+      )}
 
-      <div className="mt-2 flex w-full flex-col items-center">
-        {invitations.isLoading && <Loader2 className="animate-spin" />}
+      {!invitationsQuery.isLoading && filteredInvitations.length > 0 && (
+        <ul className="h-96 max-h-96 space-y-2 overflow-y-auto">
+          {filteredInvitations.map((invitation) => (
+            <InvitationContextMenu
+              key={invitation.id}
+              show={invitation.status === "pending"}
+              onRevoke={() => handleRevoke(invitation)}
+            >
+              <li>
+                <Card key={invitation.id} className="w-full p-4">
+                  <div className="flex items-center gap-2">
+                    {invitation.userProfilePicture && (
+                      <img
+                        src={invitation.userProfilePicture}
+                        className="size-8"
+                        alt="user profile picture"
+                      />
+                    )}
 
-        {!invitations.isLoading && invitations.data?.length === 0 && (
-          <p className="text-muted-foreground">
-            You have no pending team invitations
-          </p>
-        )}
+                    {!invitation.userProfilePicture && (
+                      <User2 className="size-8" />
+                    )}
 
-        {!invitations.isLoading &&
-          invitations.data &&
-          invitations.data.length > 0 &&
-          invitations.data.map((x) => (
-            <Card key={x.id} className="w-full p-4">
-              <div className="flex items-center gap-2">
-                {x.teamLogo && (
-                  <img src={x.teamLogo} className="size-8" alt="team logo" />
-                )}
+                    <div>
+                      <CardTitle className="flex items-center gap-1 font-medium">
+                        <span>{invitation.userName}</span>
 
-                {!x.teamLogo && <Users2 className="size-8" />}
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger>
+                            {getStatusIcon(invitation.status)}
+                          </TooltipTrigger>
 
-                <div>
-                  <CardTitle className="font-medium">{x.teamName}</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Invited by &quot;{x.invitedBy}&quot;
-                  </CardDescription>
-                </div>
+                          <TooltipContent>
+                            {toTitleCase(invitation.status)}
+                          </TooltipContent>
+                        </Tooltip>
+                      </CardTitle>
+                      <CardDescription className="text-muted-foreground">
+                        Invited by &quot;{invitation.invitedBy}&quot;
+                      </CardDescription>
+                    </div>
 
-                <div className="ml-auto flex gap-2">
-                  <Tooltip delayDuration={500}>
-                    <TooltipTrigger asChild>
-                      <Button onClick={() => handleAcceptInvitation(x)}>
-                        <CheckCircle />
-                      </Button>
-                    </TooltipTrigger>
+                    {invitation.status === "pending" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="ml-auto"
+                            onClick={() => handleRevoke(invitation)}
+                          >
+                            <Ban />
+                          </Button>
+                        </TooltipTrigger>
 
-                    <TooltipContent>Accept invitation</TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip delayDuration={500}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleDeclineInvitation(x)}
-                      >
-                        <X />
-                      </Button>
-                    </TooltipTrigger>
-
-                    <TooltipContent>Decline invitation</TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
-            </Card>
+                        <TooltipContent>Revoke invitation</TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                </Card>
+              </li>
+            </InvitationContextMenu>
           ))}
-      </div>
+        </ul>
+      )}
     </DialogContent>
+  );
+}
+
+function InvitationContextMenu({
+  show,
+  onRevoke,
+  children,
+}: {
+  show: boolean;
+  onRevoke: () => void;
+  children: ReactNode;
+}) {
+  if (!show) return children;
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+
+      <ContextMenuContent>
+        <ContextMenuItem variant="destructive" onClick={onRevoke}>
+          <span>Revoke</span>
+          <Ban className="ml-auto" />
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

@@ -2,10 +2,11 @@ import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import { create } from "zustand";
 
 type TeamInvitationsStore = {
-  invitations: Schema<"TeamInvitationResponseDto">[];
-  setInvitations: (invitations: Schema<"TeamInvitationResponseDto">[]) => void;
-  addInvitation: (invitation: Schema<"TeamInvitationResponseDto">) => void;
-  removeInvitation: (id: string) => void;
+  invitations: Schema<"UserTeamInvitationResponseDto">[];
+  setInvitations: (
+    invitations: Schema<"UserTeamInvitationResponseDto">[],
+  ) => void;
+  addInvitation: (invitation: Schema<"UserTeamInvitationResponseDto">) => void;
 };
 
 export const useTeamInvitationsStore = create<TeamInvitationsStore>((set) => ({
@@ -14,11 +15,5 @@ export const useTeamInvitationsStore = create<TeamInvitationsStore>((set) => ({
   addInvitation: (invitation) =>
     set((state) => ({
       invitations: [...state.invitations, invitation],
-    })),
-  removeInvitation: (id) =>
-    set((state) => ({
-      invitations: state.invitations.filter(
-        (invitation) => invitation.id !== id,
-      ),
     })),
 }));

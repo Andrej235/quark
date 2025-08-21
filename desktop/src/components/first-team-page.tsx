@@ -12,7 +12,7 @@ import { useUserStore } from "@/stores/user-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Users2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import TeamInvitationsDialogContent from "./team-invitations-dialog-content";
+import FirstTeamPageInvitationsDialogContent from "./first-team-page-invitations-dialog-content";
 import { Dialog, DialogTrigger } from "./ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
@@ -85,7 +85,7 @@ export default function FirstTeamPage() {
                 <Button className="w-full">Join an existing team</Button>
               </DialogTrigger>
 
-              <TeamInvitationsDialogContent />
+              <FirstTeamPageInvitationsDialogContent />
             </Dialog>
           </div>
 

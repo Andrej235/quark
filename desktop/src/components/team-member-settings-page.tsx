@@ -30,9 +30,11 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
+import TeamInvitationsDialogContent from "./team-invitations-dialog-content";
 
 export default function TeamMemberSettingsTab() {
   const [inviteEmail, setInviteEmail] = useState("");
+  const [invitationsDialogOpen, setInvitationsDialogOpen] = useState(false);
   const team = useTeamStore((x) => x.activeTeam);
   const teamId = team?.id;
 
@@ -107,37 +109,50 @@ export default function TeamMemberSettingsTab() {
           </CardDescription>
         </div>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>Invite Member</Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>Invite Member</Button>
+            </DialogTrigger>
 
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite Team Members</DialogTitle>
-              <DialogDescription>
-                Send an invitation to a colleague to join your team. If a
-                pending invitation already exists, the user will be notified
-                again and the invitation will be extended.
-              </DialogDescription>
-            </DialogHeader>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite Team Members</DialogTitle>
+                <DialogDescription>
+                  Send an invitation to a colleague to join your team. If a
+                  pending invitation already exists, the user will be notified
+                  again and the invitation will be extended.
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="invite-email">Email Address</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="invite-email"
-                  type="email"
-                  placeholder="colleague@company.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="flex-1"
-                />
-                <Button onClick={handleInvite}>Send Invite</Button>
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Email Address</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    placeholder="colleague@company.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleInvite}>Send Invite</Button>
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={invitationsDialogOpen}
+            onOpenChange={setInvitationsDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline">Manage Invitations</Button>
+            </DialogTrigger>
+
+            <TeamInvitationsDialogContent isOpen={invitationsDialogOpen} />
+          </Dialog>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-8 bg-transparent">

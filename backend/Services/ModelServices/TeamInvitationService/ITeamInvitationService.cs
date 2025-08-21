@@ -9,12 +9,18 @@ public interface ITeamInvitationService
 {
     Task<Result<TeamResponseDto>> Accept(Guid invitationId, ClaimsPrincipal claim);
     Task<Result> Decline(Guid invitationId, ClaimsPrincipal claim);
+    Task<Result> Revoke(Guid teamId, Guid invitationId, ClaimsPrincipal claim);
 
-    Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetAll(
+    Task<Result<IEnumerable<UserTeamInvitationResponseDto>>> GetAll(
         ClaimsPrincipal claim,
         CancellationToken cancellationToken
     );
-    Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetPending(
+    Task<Result<IEnumerable<TeamInvitationResponseDto>>> GetAllForTeam(
+        Guid teamId,
+        ClaimsPrincipal claim,
+        CancellationToken cancellationToken
+    );
+    Task<Result<IEnumerable<UserTeamInvitationResponseDto>>> GetPending(
         ClaimsPrincipal claim,
         CancellationToken cancellationToken
     );

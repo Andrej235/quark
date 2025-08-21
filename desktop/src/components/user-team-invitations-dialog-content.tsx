@@ -75,7 +75,9 @@ export default function UserTeamInvitationsDialogContent({
     return matchesStatus && matchesSearch;
   });
 
-  async function handleAccept(invitation: Schema<"TeamInvitationResponseDto">) {
+  async function handleAccept(
+    invitation: Schema<"UserTeamInvitationResponseDto">,
+  ) {
     if (!user) return;
 
     const { isOk, response } = await sendApiRequest(
@@ -108,7 +110,7 @@ export default function UserTeamInvitationsDialogContent({
   }
 
   async function handleDecline(
-    invitation: Schema<"TeamInvitationResponseDto">,
+    invitation: Schema<"UserTeamInvitationResponseDto">,
   ) {
     const { isOk } = await sendApiRequest(
       "/team-invitations/decline/{id}",

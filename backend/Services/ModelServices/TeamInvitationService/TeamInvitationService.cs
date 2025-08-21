@@ -4,6 +4,7 @@ using Quark.Models;
 using Quark.Services.Create;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Read;
+using Quark.Services.TeamPermissions;
 using Quark.Services.Update;
 
 namespace Quark.Services.ModelServices.TeamInvitationService;
@@ -15,5 +16,6 @@ public partial class TeamInvitationService(
     IReadSingleService<Team> teamReadService,
     IExecuteUpdateService<TeamInvitation> updateService,
     IResponseMapper<Team, TeamResponseDto> teamResponseMapper,
-    UserManager<User> userManager
+    UserManager<User> userManager,
+    ITeamPermissionsService permissionService
 ) : ITeamInvitationService;
