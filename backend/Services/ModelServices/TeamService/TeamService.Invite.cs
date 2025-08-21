@@ -31,6 +31,17 @@ public partial class TeamService
         if (invitedIdResult.IsFailed)
             return new NotFound("User not found");
 
+        var updateResult = await invitationUpdateService.Update(
+            x =>
+                x.Status == TeamInvitationStatus.Pending
+                && x.ReceiverId == invitedIdResult.Value
+                && x.TeamId == request.TeamId,
+            x => x.SetProperty(x => x.ExpiresAt, DateTime.UtcNow.AddDays(1))
+        );
+
+        if (updateResult.IsSuccess)
+            return updateResult;
+
         var createResult = await createInvitationService.Add(
             new TeamInvitation()
             {

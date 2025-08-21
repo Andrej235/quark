@@ -20,6 +20,7 @@ public partial class TeamService(
     IRequestMapper<CreateTeamRequestDto, Team> createRequestMapper,
     IResponseMapper<Team, TeamResponseDto> responseMapper,
     IExecuteUpdateService<Team> updateService,
+    IExecuteUpdateService<TeamInvitation> invitationUpdateService,
     UserManager<User> userManager,
     ITeamPermissionsService permissionsService
 ) : ITeamService;
