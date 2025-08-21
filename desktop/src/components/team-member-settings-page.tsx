@@ -1,9 +1,5 @@
+import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,20 +8,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useTeamStore } from "@/stores/team-store";
 import { format } from "date-fns";
 import { Dot, LogOut, User, UserCog2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import { Input } from "./ui/input";
 
 export default function TeamMemberSettingsTab() {
+  const [inviteEmail, setInviteEmail] = useState("");
   const team = useTeamStore((x) => x.activeTeam);
   const teamId = team?.id;
 
@@ -50,6 +57,44 @@ export default function TeamMemberSettingsTab() {
               .includes(searchTerm.toLowerCase()),
         );
 
+  const handleInvite = async () => {
+    if (!teamId) return;
+
+    if (!inviteEmail.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    } else if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(inviteEmail)
+    ) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    const { isOk } = await sendApiRequest(
+      "/teams/invite",
+      {
+        method: "post",
+        payload: {
+          teamId: teamId,
+          email: inviteEmail,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Inviting user, please wait...",
+          success: "User invited successfully!",
+          error: (x) => {
+            return x.message || "Failed to invite user, please try again";
+          },
+        },
+      },
+    );
+
+    if (!isOk) return;
+    setInviteEmail("");
+  };
+
   if (!team) return null;
 
   return (
@@ -62,13 +107,37 @@ export default function TeamMemberSettingsTab() {
           </CardDescription>
         </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+        <Dialog>
+          <DialogTrigger asChild>
             <Button>Invite Member</Button>
-          </AlertDialogTrigger>
+          </DialogTrigger>
 
-          <AlertDialogContent>TODO: Implement this</AlertDialogContent>
-        </AlertDialog>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invite Team Members</DialogTitle>
+              <DialogDescription>
+                Send an invitation to a colleague to join your team. If a
+                pending invitation already exists, the user will be notified
+                again and the invitation will be extended.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Email Address</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="invite-email"
+                  type="email"
+                  placeholder="colleague@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={handleInvite}>Send Invite</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
 
       <CardContent className="space-y-8 bg-transparent">
