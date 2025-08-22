@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { createEditor, Descendant } from "slate";
 import { withHistory } from "slate-history";
 import { Editable, Slate, withReact } from "slate-react";
+import EmailTemplateEditorToolbar from "./email-template-editor-toolbar";
 
 export default function EmailTemplateEditor() {
   const editor: Editor = useMemo(
@@ -22,14 +23,15 @@ export default function EmailTemplateEditor() {
   ]);
 
   return (
-    <div className="rounded border p-4">
-      <div className="mb-2"></div>
+    <div className="bg-card rounded-md border p-4">
+      <EmailTemplateEditorToolbar />
 
       <Slate editor={editor} onChange={setValue} initialValue={value}>
         <Editable
           placeholder="Write your email template..."
           spellCheck
           autoFocus
+          className="outline-0!"
         />
       </Slate>
     </div>

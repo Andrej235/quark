@@ -9,7 +9,7 @@ import {
 
 export default function EmailsPage() {
   return (
-    <Card className="h-full">
+    <Card className="h-full border-none bg-transparent">
       <CardHeader>
         <CardTitle>Edit email template</CardTitle>
         <CardDescription>
