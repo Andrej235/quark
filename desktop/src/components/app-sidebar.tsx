@@ -8,18 +8,15 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { hasFlag } from "@/lib/enums/has-flag";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
 import { TeamPermission } from "@/lib/permissions/team-permission";
-import { useTeamStore } from "@/stores/team-store";
 import { Book, Briefcase, Home, Send, Settings2 } from "lucide-react";
 import { useMemo } from "react";
 
 export function AppSidebar() {
-  const team = useTeamStore((x) => x.activeTeam);
+  const hasPerm = useHasPermission();
 
   const navigation = useMemo<NavigationItem[]>(() => {
-    if (!team?.permissions) return [];
-
     const items: NavigationItem[] = [
       {
         title: "Dashboard",
@@ -28,8 +25,6 @@ export function AppSidebar() {
         forceOpen: true,
       },
     ];
-
-    const hasPerm = (perm: TeamPermission) => hasFlag(team.permissions, perm);
 
     if (hasPerm(TeamPermission.CanViewProspects)) {
       items.push({
@@ -150,7 +145,7 @@ export function AppSidebar() {
     items.push(settings);
 
     return items;
-  }, [team?.permissions]);
+  }, [hasPerm]);
 
   return (
     <Sidebar collapsible="icon">

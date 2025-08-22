@@ -1,5 +1,5 @@
 import { slotTreeContext } from "@/contexts/slot-tree-context";
-import { useShortcut } from "@/hooks/use-shortcut";
+import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { cn } from "@/lib/cn";
 import { RenderSlotProps } from "@/lib/prospects/types/slots-utility/render-slot-props";
 import { useSlotEditorStore } from "@/stores/slot-editor-store";

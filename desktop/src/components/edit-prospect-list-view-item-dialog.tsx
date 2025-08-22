@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useShortcut } from "@/hooks/use-shortcut";
+import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { cn } from "@/lib/cn";
 import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
 import { useProspectLayout } from "@/lib/prospects/hooks/use-prospect-layout";

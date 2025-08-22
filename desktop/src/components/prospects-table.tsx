@@ -1,9 +1,9 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
-import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
-import { useProspectView } from "@/lib/prospects/hooks/use-prospect-view";
 import toTitleCase from "@/lib/format/title-case";
+import { useInvalidateProspectTable } from "@/lib/prospects/hooks/use-invalidate-prospect-table";
 import { useProspectTable } from "@/lib/prospects/hooks/use-prospect-table";
+import { useProspectView } from "@/lib/prospects/hooks/use-prospect-view";
 import { useTeamStore } from "@/stores/team-store";
 import { ColumnDef } from "@tanstack/react-table";
 import { Archive, ArchiveX, Edit2, Eye, MoreHorizontal } from "lucide-react";
@@ -12,6 +12,12 @@ import { Link } from "react-router-dom";
 import { DataTable } from "./data-table";
 import { Button } from "./ui/button";
 import {
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+} from "./ui/context-menu";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,12 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuLabel,
-  ContextMenuSeparator,
-} from "./ui/context-menu";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { TeamPermission } from "@/lib/permissions/team-permission";
 
 export default function ProspectsTable({
   archived = false,
@@ -32,8 +34,9 @@ export default function ProspectsTable({
   archived?: boolean;
 }) {
   const [dataFields] = useProspectView();
+  const hasPerm = useHasPermission();
 
-  const teamId = useTeamStore().activeTeam?.id ?? "";
+  const teamId = useTeamStore((x) => x.activeTeam)?.id ?? "";
 
   const { addCursor, currentCursor, pageIndex, setPageIndex } =
     useProspectTable();
@@ -132,7 +135,7 @@ export default function ProspectsTable({
                 </Link>
               </DropdownMenuItem>
 
-              {!archived && (
+              {!archived && hasPerm(TeamPermission.CanEditProspects) && (
                 <DropdownMenuItem asChild>
                   <Link to={`${row.original.id}/edit`}>
                     <span>Edit</span>
@@ -141,19 +144,23 @@ export default function ProspectsTable({
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuSeparator />
+              {hasPerm(TeamPermission.CanArchiveProspects) && (
+                <DropdownMenuSeparator />
+              )}
 
-              <DropdownMenuItem
-                onClick={() => handleArchive(row.original.id)}
-                variant="destructive"
-              >
-                <span>{archived ? "Unarchive" : "Archive"}</span>
-                {archived ? (
-                  <ArchiveX className="ml-auto size-4" />
-                ) : (
-                  <Archive className="ml-auto size-4" />
-                )}
-              </DropdownMenuItem>
+              {hasPerm(TeamPermission.CanArchiveProspects) && (
+                <DropdownMenuItem
+                  onClick={() => handleArchive(row.original.id)}
+                  variant="destructive"
+                >
+                  <span>{archived ? "Unarchive" : "Archive"}</span>
+                  {archived ? (
+                    <ArchiveX className="ml-auto size-4" />
+                  ) : (
+                    <Archive className="ml-auto size-4" />
+                  )}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -161,7 +168,7 @@ export default function ProspectsTable({
     });
 
     return columns;
-  }, [dataFields, handleArchive, archived]);
+  }, [dataFields, handleArchive, archived, hasPerm]);
 
   const RowContextMenuContent = useCallback(
     ({
@@ -182,7 +189,7 @@ export default function ProspectsTable({
             </Link>
           </ContextMenuItem>
 
-          {!archived && (
+          {!archived && hasPerm(TeamPermission.CanEditProspects) && (
             <ContextMenuItem asChild>
               <Link to={`${original.id}/edit`}>
                 <span>Edit</span>
@@ -191,23 +198,27 @@ export default function ProspectsTable({
             </ContextMenuItem>
           )}
 
-          <ContextMenuSeparator />
+          {hasPerm(TeamPermission.CanArchiveProspects) && (
+            <ContextMenuSeparator />
+          )}
 
-          <ContextMenuItem
-            onClick={() => handleArchive(original.id)}
-            variant="destructive"
-          >
-            <span>{archived ? "Unarchive" : "Archive"}</span>
-            {archived ? (
-              <ArchiveX className="ml-auto size-4" />
-            ) : (
-              <Archive className="ml-auto size-4" />
-            )}
-          </ContextMenuItem>
+          {hasPerm(TeamPermission.CanArchiveProspects) && (
+            <ContextMenuItem
+              onClick={() => handleArchive(original.id)}
+              variant="destructive"
+            >
+              <span>{archived ? "Unarchive" : "Archive"}</span>
+              {archived ? (
+                <ArchiveX className="ml-auto size-4" />
+              ) : (
+                <Archive className="ml-auto size-4" />
+              )}
+            </ContextMenuItem>
+          )}
         </ContextMenuContent>
       );
     },
-    [archived, handleArchive],
+    [archived, handleArchive, hasPerm],
   );
 
   return (

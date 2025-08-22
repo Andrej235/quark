@@ -12,8 +12,11 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Separator } from "./ui/separator";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { TeamPermission } from "@/lib/permissions/team-permission";
 
 export default function ProspectsPage() {
+  const hasPerm = useHasPermission();
   const [isEditListViewOpen, setIsEditListViewOpen] = useState(false);
 
   return (
@@ -26,21 +29,25 @@ export default function ProspectsPage() {
           </div>
 
           <div className="space-x-2">
-            <Button asChild>
-              <Link to="new">
-                <Plus />
-                <span className="sr-only">Add Prospect</span>
-              </Link>
-            </Button>
+            {hasPerm(TeamPermission.CanCreateProspects) && (
+              <Button asChild>
+                <Link to="new">
+                  <Plus />
+                  <span className="sr-only">Add Prospect</span>
+                </Link>
+              </Button>
+            )}
 
-            <Button
-              variant="secondary"
-              onClick={() => setIsEditListViewOpen(true)}
-              disabled={isEditListViewOpen}
-            >
-              <Edit />
-              <span className="sr-only">Edit Prospect List View</span>
-            </Button>
+            {hasPerm(TeamPermission.CanEditProspectLayout) && (
+              <Button
+                variant="secondary"
+                onClick={() => setIsEditListViewOpen(true)}
+                disabled={isEditListViewOpen}
+              >
+                <Edit />
+                <span className="sr-only">Edit Prospect List View</span>
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
