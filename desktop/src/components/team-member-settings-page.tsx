@@ -12,7 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useTeamStore } from "@/stores/team-store";
 import { format } from "date-fns";
-import { Dot, LogOut, User, UserCog2 } from "lucide-react";
+import { Dot, LogOut, Mail, User, UserCog2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -43,8 +43,11 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { TeamPermission } from "@/lib/permissions/team-permission";
 
 export default function TeamMemberSettingsTab() {
+  const hasPerm = useHasPermission();
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitationsDialogOpen, setInvitationsDialogOpen] = useState(false);
   const team = useTeamStore((x) => x.activeTeam);
@@ -199,48 +202,52 @@ export default function TeamMemberSettingsTab() {
         </div>
 
         <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>Invite Member</Button>
-            </DialogTrigger>
+          {hasPerm(TeamPermission.CanInviteUsers) && (
+            <>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>Invite Member</Button>
+                </DialogTrigger>
 
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite Team Members</DialogTitle>
-                <DialogDescription>
-                  Send an invitation to a colleague to join your team. If a
-                  pending invitation already exists, the user will be notified
-                  again and the invitation will be extended.
-                </DialogDescription>
-              </DialogHeader>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Invite Team Members</DialogTitle>
+                    <DialogDescription>
+                      Send an invitation to a colleague to join your team. If a
+                      pending invitation already exists, the user will be
+                      notified again and the invitation will be extended.
+                    </DialogDescription>
+                  </DialogHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="invite-email">Email Address</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="invite-email"
-                    type="email"
-                    placeholder="colleague@company.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleInvite}>Send Invite</Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-email">Email Address</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="invite-email"
+                        type="email"
+                        placeholder="colleague@company.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button onClick={handleInvite}>Send Invite</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
-          <Dialog
-            open={invitationsDialogOpen}
-            onOpenChange={setInvitationsDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button variant="outline">Manage Invitations</Button>
-            </DialogTrigger>
+              <Dialog
+                open={invitationsDialogOpen}
+                onOpenChange={setInvitationsDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline">Manage Invitations</Button>
+                </DialogTrigger>
 
-            <TeamInvitationsDialogContent isOpen={invitationsDialogOpen} />
-          </Dialog>
+                <TeamInvitationsDialogContent isOpen={invitationsDialogOpen} />
+              </Dialog>
+            </>
+          )}
         </div>
       </CardHeader>
 
@@ -326,52 +333,67 @@ export default function TeamMemberSettingsTab() {
                       </CardContent>
 
                       <div className="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="size-8 p-0"
-                              onClick={() => setEditingRole(member)}
-                            >
-                              <UserCog2 />
-                            </Button>
-                          </TooltipTrigger>
+                        {hasPerm(TeamPermission.CanEditUsers) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="size-8 p-0"
+                                onClick={() => setEditingRole(member)}
+                              >
+                                <UserCog2 />
+                              </Button>
+                            </TooltipTrigger>
 
-                          <TooltipContent>Edit Role</TooltipContent>
-                        </Tooltip>
+                            <TooltipContent>Edit Role</TooltipContent>
+                          </Tooltip>
+                        )}
 
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
-                              onClick={() => setRemovingUser(member)}
-                            >
-                              <LogOut />
-                            </Button>
-                          </TooltipTrigger>
+                        {hasPerm(TeamPermission.CanRemoveUsers) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
+                                onClick={() => setRemovingUser(member)}
+                              >
+                                <LogOut />
+                              </Button>
+                            </TooltipTrigger>
 
-                          <TooltipContent>Remove Member</TooltipContent>
-                        </Tooltip>
+                            <TooltipContent>Remove Member</TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </Card>
                   </ContextMenuTrigger>
 
                   <ContextMenuContent>
-                    <ContextMenuItem onClick={() => setEditingRole(member)}>
-                      <span>Edit Role</span>
-                      <UserCog2 className="ml-auto" />
+                    <ContextMenuItem asChild>
+                      <a href={`mailto:${member.email}`}>
+                        <span>Email</span>
+                        <Mail className="ml-auto" />
+                      </a>
                     </ContextMenuItem>
 
-                    <ContextMenuItem
-                      variant="destructive"
-                      onClick={() => setRemovingUser(member)}
-                    >
-                      <span>Remove</span>
-                      <LogOut className="ml-auto" />
-                    </ContextMenuItem>
+                    {hasPerm(TeamPermission.CanEditUsers) && (
+                      <ContextMenuItem onClick={() => setEditingRole(member)}>
+                        <span>Edit Role</span>
+                        <UserCog2 className="ml-auto" />
+                      </ContextMenuItem>
+                    )}
+
+                    {hasPerm(TeamPermission.CanRemoveUsers) && (
+                      <ContextMenuItem
+                        variant="destructive"
+                        onClick={() => setRemovingUser(member)}
+                      >
+                        <span>Remove</span>
+                        <LogOut className="ml-auto" />
+                      </ContextMenuItem>
+                    )}
                   </ContextMenuContent>
                 </ContextMenu>
               </motion.div>
