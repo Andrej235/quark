@@ -24,6 +24,7 @@ import UserSettingsPage from "./components/user-settings-page";
 import VerifyEmailPage from "./components/verify-email-page";
 import ViewProspectPage from "./components/view-prospect-page";
 import "./globals.css";
+import EmailsPage from "./components/emails-page";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,10 @@ const router = createBrowserRouter([
           {
             path: "/prospects/layout",
             element: <ProspectsLayoutPage />,
+          },
+          {
+            path: "/emails",
+            element: <EmailsPage />,
           },
           {
             path: "*",
