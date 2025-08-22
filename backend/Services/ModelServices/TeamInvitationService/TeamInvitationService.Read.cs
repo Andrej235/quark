@@ -9,36 +9,6 @@ namespace Quark.Services.ModelServices.TeamInvitationService;
 
 public partial class TeamInvitationService
 {
-    public Task<Result<IEnumerable<UserTeamInvitationResponseDto>>> GetPending(
-        ClaimsPrincipal claim,
-        CancellationToken cancellationToken
-    )
-    {
-        var userId = userManager.GetUserId(claim);
-        if (userId is null)
-            return Task.FromResult(
-                Result.Fail<IEnumerable<UserTeamInvitationResponseDto>>(new Unauthorized())
-            );
-
-        return readService.Get(
-            x => new UserTeamInvitationResponseDto
-            {
-                Id = x.Id,
-                ExpiresAt = x.ExpiresAt,
-                InvitedBy = x.Sender.UserName!,
-                Status = x.Status,
-                TeamLogo = x.Team.Logo,
-                TeamName = x.Team.Name,
-            },
-            x =>
-                x.ReceiverId == userId
-                && x.Status == TeamInvitationStatus.Pending
-                && x.ExpiresAt > DateTime.UtcNow,
-            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt),
-            cancellationToken: cancellationToken
-        );
-    }
-
     public Task<Result<IEnumerable<UserTeamInvitationResponseDto>>> GetAll(
         ClaimsPrincipal claim,
         CancellationToken cancellationToken
@@ -54,14 +24,14 @@ public partial class TeamInvitationService
             x => new UserTeamInvitationResponseDto
             {
                 Id = x.Id,
-                ExpiresAt = x.ExpiresAt,
+                CreatedAt = x.CreatedAt,
                 InvitedBy = x.Sender.UserName!,
                 Status = x.Status,
                 TeamLogo = x.Team.Logo,
                 TeamName = x.Team.Name,
             },
-            x => x.ReceiverId == userId && x.ExpiresAt > DateTime.UtcNow,
-            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt),
+            x => x.ReceiverId == userId,
+            queryBuilder: q => q.OrderByDescending(x => x.CreatedAt),
             cancellationToken: cancellationToken
         );
     }
@@ -90,15 +60,15 @@ public partial class TeamInvitationService
             x => new TeamInvitationResponseDto
             {
                 Id = x.Id,
-                ExpiresAt = x.ExpiresAt,
+                CreatedAt = x.CreatedAt,
                 InvitedBy = x.Sender.UserName!,
                 Status = x.Status,
                 UserName = x.Receiver.UserName!,
                 Email = x.Receiver.Email!,
                 UserProfilePicture = x.Receiver.ProfilePicture,
             },
-            x => x.TeamId == teamId && x.ExpiresAt > DateTime.UtcNow,
-            queryBuilder: q => q.OrderByDescending(x => x.ExpiresAt),
+            x => x.TeamId == teamId,
+            queryBuilder: q => q.OrderByDescending(x => x.CreatedAt),
             cancellationToken: cancellationToken
         );
     }

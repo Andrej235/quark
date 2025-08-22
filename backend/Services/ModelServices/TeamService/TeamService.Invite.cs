@@ -36,7 +36,7 @@ public partial class TeamService
                 x.Status == TeamInvitationStatus.Pending
                 && x.ReceiverId == invitedIdResult.Value
                 && x.TeamId == request.TeamId,
-            x => x.SetProperty(x => x.ExpiresAt, DateTime.UtcNow.AddDays(1))
+            x => x.SetProperty(x => x.CreatedAt, DateTime.UtcNow)
         );
 
         if (updateResult.IsSuccess)
@@ -48,7 +48,7 @@ public partial class TeamService
                 TeamId = request.TeamId,
                 SenderId = userId,
                 ReceiverId = invitedIdResult.Value,
-                ExpiresAt = DateTime.UtcNow.AddDays(1),
+                CreatedAt = DateTime.UtcNow,
                 Status = TeamInvitationStatus.Pending,
             }
         );

@@ -5,7 +5,7 @@ namespace Quark.Dtos.Response.TeamInvitation;
 public class TeamInvitationResponseDto
 {
     public Guid Id { get; set; }
-    public DateTime ExpiresAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public string UserName { get; set; } = null!;
     public string Email { get; set; } = null!;

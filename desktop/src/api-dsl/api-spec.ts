@@ -1753,87 +1753,6 @@ export type ApiSpec={
         }
       }
     },
-    "/team-invitations/pending": {
-      "get": {
-        "tags": [
-          "TeamInvitation"
-        ],
-        "responses": {
-          "503": {
-            "description": "Service Unavailable"
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserTeamInvitationResponseDto"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserTeamInvitationResponseDto"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserTeamInvitationResponseDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/team-invitations/revoke/{teamId}/{id}": {
       "post": {
         "tags": [
@@ -3820,7 +3739,7 @@ export type ApiSpec={
             "type": "string",
             "format": "uuid"
           },
-          "expiresAt": {
+          "createdAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -4092,7 +4011,7 @@ export type ApiSpec={
             "type": "string",
             "format": "uuid"
           },
-          "expiresAt": {
+          "createdAt": {
             "type": "string",
             "format": "date-time"
           },

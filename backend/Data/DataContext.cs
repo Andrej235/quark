@@ -108,7 +108,7 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
             teamInvitation.HasIndex(x => x.TeamId);
 
-            teamInvitation.HasIndex(x => new { x.ReceiverId, x.ExpiresAt });
+            teamInvitation.HasIndex(x => new { x.ReceiverId, x.CreatedAt });
         });
 
         builder.Entity<RefreshToken>(refreshToken =>

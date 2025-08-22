@@ -38,20 +38,4 @@ public partial class TeamInvitationController
 
         return Ok(result.Value);
     }
-
-    [HttpGet("pending")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<IEnumerable<UserTeamInvitationResponseDto>>> GetPending(
-        CancellationToken cancellationToken
-    )
-    {
-        var result = await invitationService.GetPending(User, cancellationToken);
-
-        if (result.IsFailed)
-            return BadRequest(new { result.Errors[0].Message });
-
-        return Ok(result.Value);
-    }
 }

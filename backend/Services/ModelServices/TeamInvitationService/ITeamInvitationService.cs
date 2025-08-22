@@ -20,8 +20,4 @@ public interface ITeamInvitationService
         ClaimsPrincipal claim,
         CancellationToken cancellationToken
     );
-    Task<Result<IEnumerable<UserTeamInvitationResponseDto>>> GetPending(
-        ClaimsPrincipal claim,
-        CancellationToken cancellationToken
-    );
 }

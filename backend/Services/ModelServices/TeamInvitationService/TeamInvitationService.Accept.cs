@@ -18,7 +18,6 @@ public partial class TeamInvitationService
         var invitationResult = await readSingleService.Get(
             x => new
             {
-                x.ExpiresAt,
                 x.Status,
                 x.TeamId,
                 x.ReceiverId,
@@ -35,9 +34,6 @@ public partial class TeamInvitationService
 
         if (invitationResult.Value.ReceiverId != userId)
             return Result.Fail(new BadRequest("You are not the receiver of this invitation"));
-
-        if (invitationResult.Value.ExpiresAt < DateTime.UtcNow)
-            return Result.Fail(new BadRequest("Invitation has expired"));
 
         if (invitationResult.Value.DefaultRole?.Id is null)
             return Result.Fail(new BadRequest("Team has no default role"));
