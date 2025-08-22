@@ -11,7 +11,7 @@ public partial class ProspectViewController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ReplaceAll(
+    public async Task<ActionResult> ReplaceAll(
         [FromBody] AddProspectViewItemsRequestDto request,
         Guid teamId
     )

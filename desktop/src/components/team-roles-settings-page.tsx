@@ -2,6 +2,7 @@ import sendApiRequest from "@/api-dsl/send-api-request";
 import useQuery from "@/api-dsl/use-query";
 import { TeamPermission } from "@/lib/permissions/team-permission";
 import { useTeamStore } from "@/stores/team-store";
+import { useUserStore } from "@/stores/user-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -28,7 +29,10 @@ export type Role = {
 };
 
 export default function TeamRolesSettings() {
-  const teamId = useTeamStore((x) => x.activeTeam?.id ?? null);
+  const user = useUserStore((x) => x.user);
+  const setUser = useUserStore((x) => x.setUser);
+  const team = useTeamStore((x) => x.activeTeam);
+  const teamId = team?.id;
 
   const roles = useQuery("/team-roles/{teamId}", {
     queryKey: ["team-roles", teamId],
@@ -36,6 +40,7 @@ export default function TeamRolesSettings() {
       teamId: teamId || "",
     },
     enabled: !!teamId,
+    retryOnMount: false,
   });
   const queryClient = useQueryClient();
 
@@ -151,6 +156,47 @@ export default function TeamRolesSettings() {
     setEditingRole(null);
   }
 
+  async function setAsDefaultRole(role: { id: string }) {
+    if (!teamId) return;
+
+    const { isOk } = await sendApiRequest(
+      "/teams/{teamId}/default-role",
+      {
+        method: "patch",
+        parameters: {
+          teamId,
+        },
+        payload: {
+          roleId: role.id,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Setting default role, please wait...",
+          success: "Default role set successfully!",
+          error: (x) =>
+            x.message || "Failed to set default role, please try again",
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    setUser({
+      ...user!,
+      teams: user!.teams.map((team) => {
+        if (team.id === teamId) {
+          return {
+            ...team,
+            defaultRoleId: role.id,
+          };
+        }
+        return team;
+      }),
+    });
+  }
+
   if (roles.isLoading) {
     return <LoadingIndicator />;
   }
@@ -182,6 +228,9 @@ export default function TeamRolesSettings() {
               key={role.id}
               role={role}
               permissions={role.permissions}
+              mode="edit"
+              isDefault={role.id === team?.defaultRoleId}
+              setAsDefault={setAsDefaultRole}
               onEdit={(role) => setEditingRole(role)}
               onDelete={(role) => setDeletingRole(role)}
             />

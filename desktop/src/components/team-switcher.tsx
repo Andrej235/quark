@@ -22,12 +22,13 @@ import { useUserStore } from "@/stores/user-store";
 import { AlertDialog } from "@radix-ui/react-alert-dialog";
 import {
   ChevronsUpDown,
+  ClipboardList,
   LogOut,
   LucideCheckCircle,
   Plus,
   Star,
 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { AlertDescription } from "./ui/alert";
@@ -48,6 +49,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import { Dialog, DialogTrigger } from "./ui/dialog";
+import UserTeamInvitationsDialogContent from "./user-team-invitations-dialog-content";
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar();
@@ -56,21 +59,21 @@ export function TeamSwitcher() {
   const activeTeam = useTeamStore((x) => x.activeTeam);
   const setActiveTeam = useTeamStore((x) => x.setActiveTeam);
 
+  const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
+
   const teams = useMemo(() => user?.teams ?? [], [user?.teams]);
   const defaultTeam = useMemo(
     () => teams.find((x) => x.id === (user?.defaultTeamId ?? teams[0]?.id)),
     [teams, user?.defaultTeamId],
   );
 
-  useEffect(
-    () =>
-      setActiveTeam(
-        activeTeam && teams.includes(activeTeam)
-          ? (activeTeam ?? defaultTeam ?? null)
-          : (defaultTeam ?? null),
-      ),
-    [defaultTeam, setActiveTeam, activeTeam, teams],
-  );
+  useEffect(() => {
+    setActiveTeam(
+      activeTeam && teams.includes(activeTeam)
+        ? (activeTeam ?? defaultTeam ?? teams[0] ?? null)
+        : (defaultTeam ?? teams[0] ?? null),
+    );
+  }, [defaultTeam, setActiveTeam, activeTeam, teams]);
 
   async function handleSetSetDefault(team: Schema<"TeamResponseDto">) {
     if (team.id === user?.defaultTeamId) {
@@ -292,15 +295,33 @@ export function TeamSwitcher() {
 
             <DropdownMenuItem className="gap-2 p-2" asChild>
               <Link to="/new-team">
-                <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <Plus className="size-4" />
-                </div>
+                <Plus className="size-6 rounded-md border p-1" />
 
-                <div className="text-muted-foreground font-medium">
-                  Add team
-                </div>
+                <span className="text-muted-foreground font-medium">
+                  Create team
+                </span>
               </Link>
             </DropdownMenuItem>
+
+            <Dialog
+              open={invitationDialogOpen}
+              onOpenChange={setInvitationDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <DropdownMenuItem
+                  className="gap-2 p-2"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <ClipboardList className="size-6 rounded-md border p-1" />
+
+                  <span className="text-muted-foreground font-medium">
+                    Manage Invitations
+                  </span>
+                </DropdownMenuItem>
+              </DialogTrigger>
+
+              <UserTeamInvitationsDialogContent isOpen={invitationDialogOpen} />
+            </Dialog>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

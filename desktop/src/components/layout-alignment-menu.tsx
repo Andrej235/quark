@@ -28,7 +28,6 @@ export default function LayoutAlignmentMenu({
 
   useEffect(() => {
     setSelectedMode([initialHorizontalMode, initialVerticalMode]);
-    console.log(initialHorizontalMode, initialVerticalMode);
   }, [initialHorizontalMode, initialVerticalMode]);
 
   const dragControls = useDragControls();

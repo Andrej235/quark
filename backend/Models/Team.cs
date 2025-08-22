@@ -13,6 +13,9 @@ public class Team
     public ICollection<TeamMember> Members { get; set; } = [];
     public ICollection<TeamRole> Roles { get; set; } = [];
 
+    public Guid? DefaultRoleId { get; set; }
+    public TeamRole? DefaultRole { get; set; }
+
     public Guid DefaultProspectLayoutId { get; set; }
     public ProspectLayout DefaultProspectLayout { get; set; } = null!;
 

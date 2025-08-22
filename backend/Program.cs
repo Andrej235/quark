@@ -34,6 +34,7 @@ using Quark.Services.Mapping.Response.UserMappers;
 using Quark.Services.ModelServices.ProspectLayoutService;
 using Quark.Services.ModelServices.ProspectService;
 using Quark.Services.ModelServices.ProspectViewService;
+using Quark.Services.ModelServices.TeamInvitationService;
 using Quark.Services.ModelServices.TeamRoleService;
 using Quark.Services.ModelServices.TeamService;
 using Quark.Services.ModelServices.TokenService;
@@ -310,7 +311,9 @@ builder.Services.AddScoped<IDeleteService<RefreshToken>, DeleteService<RefreshTo
 #region Teams
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ICreateSingleService<Team>, CreateService<Team>>();
+builder.Services.AddScoped<IReadSingleService<Team>, ReadService<Team>>();
 builder.Services.AddScoped<IReadSingleSelectedService<Team>, ReadService<Team>>();
+builder.Services.AddScoped<IExecuteUpdateService<Team>, UpdateService<Team>>();
 builder.Services.AddScoped<IRequestMapper<CreateTeamRequestDto, Team>, CreateTeamRequestMapper>();
 builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseMapper>();
 #endregion
@@ -318,6 +321,8 @@ builder.Services.AddScoped<IResponseMapper<Team, TeamResponseDto>, TeamResponseM
 #region Team Members
 builder.Services.AddScoped<ICreateSingleService<TeamMember>, CreateService<TeamMember>>();
 builder.Services.AddScoped<IReadSingleSelectedService<TeamMember>, ReadService<TeamMember>>();
+builder.Services.AddScoped<IReadRangeSelectedService<TeamMember>, ReadService<TeamMember>>();
+builder.Services.AddScoped<IExecuteUpdateService<TeamMember>, UpdateService<TeamMember>>();
 builder.Services.AddScoped<IDeleteService<TeamMember>, DeleteService<TeamMember>>();
 #endregion
 
@@ -342,7 +347,17 @@ builder.Services.AddScoped<
 #endregion
 
 #region Team Invitaions
+builder.Services.AddScoped<ITeamInvitationService, TeamInvitationService>();
 builder.Services.AddScoped<ICreateSingleService<TeamInvitation>, CreateService<TeamInvitation>>();
+builder.Services.AddScoped<
+    IReadSingleSelectedService<TeamInvitation>,
+    ReadService<TeamInvitation>
+>();
+builder.Services.AddScoped<
+    IReadRangeSelectedService<TeamInvitation>,
+    ReadService<TeamInvitation>
+>();
+builder.Services.AddScoped<IExecuteUpdateService<TeamInvitation>, UpdateService<TeamInvitation>>();
 #endregion
 
 #region Prospect Layouts

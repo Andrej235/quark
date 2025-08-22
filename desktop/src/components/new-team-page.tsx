@@ -314,9 +314,9 @@ function CreateTeam() {
               {pricingPlans.map((plan) => (
                 <Card
                   key={plan.id}
-                  className={`relative cursor-pointer transition-all duration-300 hover:shadow-[var(--shadow-elegant)] ${
+                  className={`relative cursor-pointer transition-all duration-300 ${
                     selectedPlan === plan.id
-                      ? "ring-primary shadow-[var(--shadow-elegant)] ring-2"
+                      ? "ring-primary ring-2"
                       : "hover:ring-primary/50 hover:ring-1"
                   } ${plan.popular ? "scale-105" : ""}`}
                   onClick={() => setSelectedPlan(plan.id)}

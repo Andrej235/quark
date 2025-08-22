@@ -32,11 +32,20 @@ public partial class TeamService
                 UserId = userId,
                 TeamId = newTeam.Id,
                 RoleId = newTeam.Roles.First(x => x.Name == "Owner").Id,
+                JoinedAt = DateTime.UtcNow,
             }
         );
 
         if (!teamMemberResult.IsSuccess)
             return Result.Fail(teamMemberResult.Errors);
+
+        var defaultRoleId = newTeam.Roles.First(x => x.Name == "Member").Id;
+        var updateResult = await updateService.Update(
+            x => x.Id == newTeam.Id,
+            x => x.SetProperty(x => x.DefaultRoleId, defaultRoleId)
+        );
+        if (!updateResult.IsSuccess)
+            return Result.Fail(updateResult.Errors);
 
         var mappedResponse = responseMapper.Map(newTeam);
         mappedResponse.RoleName = teamMemberResult.Value.Role.Name;

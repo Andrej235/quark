@@ -31,12 +31,25 @@ public partial class TeamService
         if (invitedIdResult.IsFailed)
             return new NotFound("User not found");
 
+        var updateResult = await invitationUpdateService.Update(
+            x =>
+                x.Status == TeamInvitationStatus.Pending
+                && x.ReceiverId == invitedIdResult.Value
+                && x.TeamId == request.TeamId,
+            x => x.SetProperty(x => x.CreatedAt, DateTime.UtcNow)
+        );
+
+        if (updateResult.IsSuccess)
+            return updateResult;
+
         var createResult = await createInvitationService.Add(
             new TeamInvitation()
             {
                 TeamId = request.TeamId,
                 SenderId = userId,
                 ReceiverId = invitedIdResult.Value,
+                CreatedAt = DateTime.UtcNow,
+                Status = TeamInvitationStatus.Pending,
             }
         );
 

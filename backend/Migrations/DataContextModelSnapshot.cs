@@ -352,6 +352,9 @@ namespace Quark.Migrations
                     b.Property<Guid>("DefaultProspectLayoutId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("DefaultRoleId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
@@ -370,6 +373,8 @@ namespace Quark.Migrations
 
                     b.HasIndex("DefaultProspectLayoutId");
 
+                    b.HasIndex("DefaultRoleId");
+
                     b.HasIndex("Name")
                         .IsUnique();
 
@@ -380,10 +385,11 @@ namespace Quark.Migrations
 
             modelBuilder.Entity("Quark.Models.TeamInvitation", b =>
                 {
-                    b.Property<string>("Token")
-                        .HasColumnType("text");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                    b.Property<DateTime>("ExpiresAt")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ReceiverId")
@@ -403,7 +409,7 @@ namespace Quark.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("text");
 
-                    b.HasKey("Token");
+                    b.HasKey("Id");
 
                     b.HasIndex("SenderId");
 
@@ -411,7 +417,7 @@ namespace Quark.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("ReceiverId", "ExpiresAt");
+                    b.HasIndex("ReceiverId", "CreatedAt");
 
                     b.ToTable("TeamInvitations");
                 });
@@ -604,6 +610,11 @@ namespace Quark.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("Quark.Models.TeamRole", "DefaultRole")
+                        .WithMany()
+                        .HasForeignKey("DefaultRoleId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("Quark.Models.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
@@ -611,6 +622,8 @@ namespace Quark.Migrations
                         .IsRequired();
 
                     b.Navigation("DefaultProspectLayout");
+
+                    b.Navigation("DefaultRole");
 
                     b.Navigation("Owner");
                 });
@@ -649,7 +662,7 @@ namespace Quark.Migrations
             modelBuilder.Entity("Quark.Models.TeamMember", b =>
                 {
                     b.HasOne("Quark.Models.TeamRole", "Role")
-                        .WithMany()
+                        .WithMany("Members")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -708,6 +721,11 @@ namespace Quark.Migrations
                     b.Navigation("Prospects");
 
                     b.Navigation("Roles");
+                });
+
+            modelBuilder.Entity("Quark.Models.TeamRole", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Quark.Models.User", b =>

@@ -4,28 +4,50 @@ import { formatCount } from "@/lib/format/format-count";
 import { Permission } from "@/lib/permissions/detailed-team-permission";
 import { getDetailedTeamPermissions } from "@/lib/permissions/get-detailed-team-permissions";
 import { TeamPermission } from "@/lib/permissions/team-permission";
-import { Edit, Edit2, Lock, Shield, Trash2, Users } from "lucide-react";
+import {
+  Check,
+  Edit,
+  Edit2,
+  Lock,
+  Shield,
+  Trash2,
+  User,
+  Users,
+} from "lucide-react";
 import { Role } from "./team-roles-settings-page";
 import { Badge } from "./ui/badge";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { cn } from "@/lib/cn";
 
-interface RoleCardProps {
+type RoleCardProps = {
   role: Role;
   permissions: TeamPermission;
-  onEdit: (role: Role) => void;
-  onDelete: (role: Role) => void;
-}
+} & (
+  | {
+      mode: "select";
+      isSelected: boolean;
+      onSelect: (role: Role) => void;
+    }
+  | {
+      mode: "edit";
+      isDefault: boolean;
+      setAsDefault: (role: Role) => void;
+      onEdit: (role: Role) => void;
+      onDelete: (role: Role) => void;
+    }
+);
 
 export default function RoleCard({
   role,
   permissions,
-  onEdit,
-  onDelete,
+  ...props
 }: RoleCardProps) {
   const rolePermissions = getDetailedTeamPermissions(permissions);
 
@@ -43,7 +65,15 @@ export default function RoleCard({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <Card className="shadow-elegant hover:shadow-glow group border-0 transition-all duration-300 hover:-translate-y-1">
+        <Card
+          className={cn(
+            "group border-transparent transition-all duration-300 hover:-translate-y-1",
+            props.mode === "select" && props.isSelected && "border-primary",
+          )}
+          onClick={
+            props.mode === "select" ? () => props.onSelect(role) : undefined
+          }
+        >
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
@@ -62,6 +92,11 @@ export default function RoleCard({
                         System
                       </Badge>
                     )}
+                    {props.mode === "edit" && props.isDefault && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        Default
+                      </Badge>
+                    )}
                   </CardTitle>
                   <p className="text-muted-foreground mt-1 text-sm">
                     {role.description}
@@ -69,26 +104,63 @@ export default function RoleCard({
                 </div>
               </div>
 
-              <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(role)}
-                  className="hover:bg-primary/10 h-8 w-8 p-0"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                {!role.isSystem && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(role)}
-                    className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              {props.mode === "edit" && (
+                <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  {!props.isDefault && (
+                    <Tooltip delayDuration={500}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => props.setAsDefault(role)}
+                          className="hover:bg-primary/10 h-8 w-8 p-0"
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+
+                      <TooltipContent>
+                        Set role as the default for all new users
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
+                  <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => props.onEdit(role)}
+                        className="hover:bg-primary/10 h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+
+                    <TooltipContent>Edit role</TooltipContent>
+                  </Tooltip>
+
+                  {!role.isSystem && (
+                    <Tooltip delayDuration={500}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => props.onDelete(role)}
+                          className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+
+                      <TooltipContent>
+                        Delete role and kick out all users who are assigned to
+                        it
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
             </div>
           </CardHeader>
 
@@ -139,19 +211,45 @@ export default function RoleCard({
         </Card>
       </ContextMenuTrigger>
 
-      <ContextMenuContent>
-        <ContextMenuItem onClick={() => onEdit(role)}>
-          <span>Edit</span>
-          <Edit2 className="ml-auto size-4" />
-        </ContextMenuItem>
-
-        {!role.isSystem && (
-          <ContextMenuItem variant="destructive" onClick={() => onDelete(role)}>
-            <span>Delete</span>
-            <Trash2 className="ml-auto size-4" />
+      {props.mode === "edit" && (
+        <ContextMenuContent className="min-w-48">
+          <ContextMenuItem onClick={() => props.onEdit(role)}>
+            <span>Edit</span>
+            <Edit2 className="ml-auto size-4" />
           </ContextMenuItem>
-        )}
-      </ContextMenuContent>
+
+          {!props.isDefault && (
+            <ContextMenuItem onClick={() => props.setAsDefault(role)}>
+              <span>Make Default</span>
+              <User className="ml-auto size-4" />
+            </ContextMenuItem>
+          )}
+
+          <ContextMenuSeparator />
+
+          {!role.isSystem && (
+            <ContextMenuItem
+              variant="destructive"
+              onClick={() => props.onDelete(role)}
+            >
+              <span>Delete</span>
+              <Trash2 className="ml-auto size-4" />
+            </ContextMenuItem>
+          )}
+        </ContextMenuContent>
+      )}
+
+      {props.mode === "select" && (
+        <ContextMenuContent className="min-w-48">
+          <ContextMenuItem
+            onClick={() => props.onSelect(role)}
+            className={props.isSelected ? "bg-accent" : ""}
+          >
+            <span>Select</span>
+            <Check className="ml-auto size-4" />
+          </ContextMenuItem>
+        </ContextMenuContent>
+      )}
     </ContextMenu>
   );
 }
