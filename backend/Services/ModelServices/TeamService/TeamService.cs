@@ -3,6 +3,7 @@ using Quark.Dtos.Request.Team;
 using Quark.Dtos.Response.Team;
 using Quark.Models;
 using Quark.Services.Create;
+using Quark.Services.Delete;
 using Quark.Services.Mapping.Request;
 using Quark.Services.Mapping.Response;
 using Quark.Services.Read;
@@ -21,6 +22,7 @@ public partial class TeamService(
     IResponseMapper<Team, TeamResponseDto> responseMapper,
     IExecuteUpdateService<Team> updateService,
     IExecuteUpdateService<TeamInvitation> invitationUpdateService,
+    IDeleteService<TeamMember> memberDeleteService,
     UserManager<User> userManager,
     ITeamPermissionsService permissionsService
 ) : ITeamService;

@@ -1,4 +1,5 @@
 import sendApiRequest from "@/api-dsl/send-api-request";
+import { Schema } from "@/api-dsl/types/endpoints/schema-parser";
 import useQuery from "@/api-dsl/use-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +14,18 @@ import { useTeamStore } from "@/stores/team-store";
 import { format } from "date-fns";
 import { Dot, LogOut, User, UserCog2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import TeamInvitationsDialogContent from "./team-invitations-dialog-content";
+import { AlertDescription, AlertTitle } from "./ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+} from "./ui/alert-dialog";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -30,13 +41,16 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Input } from "./ui/input";
-import TeamInvitationsDialogContent from "./team-invitations-dialog-content";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export default function TeamMemberSettingsTab() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitationsDialogOpen, setInvitationsDialogOpen] = useState(false);
   const team = useTeamStore((x) => x.activeTeam);
   const teamId = team?.id;
+
+  const [removingUser, setRemovingUser] =
+    useState<Schema<"TeamMemberResponseDto"> | null>(null);
 
   const membersQuery = useQuery("/teams/{teamId}/members", {
     parameters: {
@@ -45,7 +59,11 @@ export default function TeamMemberSettingsTab() {
     queryKey: ["team-members", teamId],
     enabled: !!teamId,
   });
-  const members = membersQuery.data || [];
+
+  const [members, setMembers] = useState<Schema<"TeamMemberResponseDto">[]>([]);
+  useEffect(() => {
+    if (membersQuery.data) setMembers(membersQuery.data);
+  }, [membersQuery.data]);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const filteredMembers =
@@ -96,6 +114,37 @@ export default function TeamMemberSettingsTab() {
     if (!isOk) return;
     setInviteEmail("");
   };
+
+  async function handleRemoveUser() {
+    if (!removingUser || !teamId) return;
+
+    const { isOk } = await sendApiRequest(
+      `/teams/{teamId}/members/{username}`,
+      {
+        method: "delete",
+        parameters: {
+          teamId: teamId,
+          username: removingUser.username,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Removing user, please wait...",
+          success: "User removed successfully!",
+          error: (x) => {
+            return x.message || "Failed to remove user, please try again";
+          },
+        },
+      },
+    );
+
+    if (!isOk) return;
+    setRemovingUser(null);
+    setMembers((prev) =>
+      prev.filter((m) => m.username !== removingUser.username),
+    );
+  }
 
   if (!team) return null;
 
@@ -237,21 +286,34 @@ export default function TeamMemberSettingsTab() {
                       </CardContent>
 
                       <div className="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="size-8 p-0"
-                        >
-                          <UserCog2 />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="size-8 p-0"
+                            >
+                              <UserCog2 />
+                            </Button>
+                          </TooltipTrigger>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
-                        >
-                          <LogOut />
-                        </Button>
+                          <TooltipContent>Edit Role</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="hover:bg-destructive/10 hover:text-destructive size-8 p-0"
+                              onClick={() => setRemovingUser(member)}
+                            >
+                              <LogOut />
+                            </Button>
+                          </TooltipTrigger>
+
+                          <TooltipContent>Remove Member</TooltipContent>
+                        </Tooltip>
                       </div>
                     </Card>
                   </ContextMenuTrigger>
@@ -262,7 +324,10 @@ export default function TeamMemberSettingsTab() {
                       <UserCog2 className="ml-auto" />
                     </ContextMenuItem>
 
-                    <ContextMenuItem variant="destructive">
+                    <ContextMenuItem
+                      variant="destructive"
+                      onClick={() => setRemovingUser(member)}
+                    >
                       <span>Remove</span>
                       <LogOut className="ml-auto" />
                     </ContextMenuItem>
@@ -273,6 +338,31 @@ export default function TeamMemberSettingsTab() {
           </AnimatePresence>
         </div>
       </CardContent>
+
+      <AlertDialog
+        open={!!removingUser}
+        onOpenChange={() => setRemovingUser(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertTitle>
+              Are you sure you want to remove {removingUser?.username} from{" "}
+              {team.name}?
+            </AlertTitle>
+
+            <AlertDescription>
+              This action cannot be undone and will take effect immediately.
+            </AlertDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveUser}>
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

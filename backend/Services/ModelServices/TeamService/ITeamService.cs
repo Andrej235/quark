@@ -10,6 +10,7 @@ public interface ITeamService
     Task<Result<TeamResponseDto>> CreateTeam(CreateTeamRequestDto request, ClaimsPrincipal claims);
 
     Task<Result> InviteUser(InviteUserRequestDto request, ClaimsPrincipal claims);
+    Task<Result> RemoveMember(Guid teamId, string username, ClaimsPrincipal claims);
 
     Task<Result> SetDefaultRole(
         Guid teamId,
