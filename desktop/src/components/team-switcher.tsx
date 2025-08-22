@@ -68,8 +68,6 @@ export function TeamSwitcher() {
   );
 
   useEffect(() => {
-    console.log(teams);
-
     setActiveTeam(
       activeTeam && teams.includes(activeTeam)
         ? (activeTeam ?? defaultTeam ?? teams[0] ?? null)

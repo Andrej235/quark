@@ -16,6 +16,7 @@ import { Dot, LogOut, User, UserCog2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import EditMemberRoleDialogContent from "./edit-member-role-dialog-content";
 import TeamInvitationsDialogContent from "./team-invitations-dialog-content";
 import { AlertDescription, AlertTitle } from "./ui/alert";
 import {
@@ -50,6 +51,8 @@ export default function TeamMemberSettingsTab() {
   const teamId = team?.id;
 
   const [removingUser, setRemovingUser] =
+    useState<Schema<"TeamMemberResponseDto"> | null>(null);
+  const [editingRole, setEditingRole] =
     useState<Schema<"TeamMemberResponseDto"> | null>(null);
 
   const membersQuery = useQuery("/teams/{teamId}/members", {
@@ -143,6 +146,43 @@ export default function TeamMemberSettingsTab() {
     setRemovingUser(null);
     setMembers((prev) =>
       prev.filter((m) => m.username !== removingUser.username),
+    );
+  }
+
+  async function updateMemberRole(role: Schema<"TeamRoleResponseDto">) {
+    if (!teamId || !editingRole) return;
+
+    const { isOk } = await sendApiRequest(
+      "/teams/{teamId}/members/role",
+      {
+        method: "patch",
+        parameters: {
+          teamId,
+        },
+        payload: {
+          roleId: role.id,
+          userName: editingRole.username,
+        },
+      },
+      {
+        showToast: true,
+        toastOptions: {
+          loading: "Updating role, please wait...",
+          success: "Role updated successfully!",
+          error: (x) => {
+            return x.message || "Failed to update role, please try again";
+          },
+        },
+      },
+    );
+
+    if (!isOk) return;
+
+    setEditingRole(null);
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.username === editingRole.username ? { ...m, roleName: role.name } : m,
+      ),
     );
   }
 
@@ -292,6 +332,7 @@ export default function TeamMemberSettingsTab() {
                               variant="ghost"
                               size="sm"
                               className="size-8 p-0"
+                              onClick={() => setEditingRole(member)}
                             >
                               <UserCog2 />
                             </Button>
@@ -319,7 +360,7 @@ export default function TeamMemberSettingsTab() {
                   </ContextMenuTrigger>
 
                   <ContextMenuContent>
-                    <ContextMenuItem>
+                    <ContextMenuItem onClick={() => setEditingRole(member)}>
                       <span>Edit Role</span>
                       <UserCog2 className="ml-auto" />
                     </ContextMenuItem>
@@ -363,6 +404,17 @@ export default function TeamMemberSettingsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!editingRole} onOpenChange={() => setEditingRole(null)}>
+        <EditMemberRoleDialogContent
+          open={!!editingRole}
+          defaultSelectedName={editingRole?.roleName}
+          onSave={(role) => {
+            if (!role) return;
+            updateMemberRole(role);
+          }}
+        />
+      </Dialog>
     </Card>
   );
 }

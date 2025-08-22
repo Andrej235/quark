@@ -40,6 +40,7 @@ export default function TeamRolesSettings() {
       teamId: teamId || "",
     },
     enabled: !!teamId,
+    retryOnMount: false,
   });
   const queryClient = useQueryClient();
 
@@ -227,6 +228,7 @@ export default function TeamRolesSettings() {
               key={role.id}
               role={role}
               permissions={role.permissions}
+              mode="edit"
               isDefault={role.id === team?.defaultRoleId}
               setAsDefault={setAsDefaultRole}
               onEdit={(role) => setEditingRole(role)}

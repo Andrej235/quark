@@ -12,6 +12,12 @@ public interface ITeamService
     Task<Result> InviteUser(InviteUserRequestDto request, ClaimsPrincipal claims);
     Task<Result> RemoveMember(Guid teamId, string username, ClaimsPrincipal claims);
 
+    Task<Result> ChangeRole(
+        Guid teamId,
+        ChangeMemberRoleRequestDto request,
+        ClaimsPrincipal claims
+    );
+
     Task<Result> SetDefaultRole(
         Guid teamId,
         SetDefaultRoleRequestDto request,

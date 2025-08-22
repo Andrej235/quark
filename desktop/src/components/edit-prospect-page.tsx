@@ -177,8 +177,6 @@ export default function EditProspectPage() {
   if (!layout || !prospect.data) return null;
 
   if (prospect.data.archived) {
-    console.log("archived");
-
     return (
       <Card className="border-0 bg-transparent">
         <CardHeader className="pb-6">
