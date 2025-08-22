@@ -10,6 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { useHasPermission } from "@/lib/hooks/use-has-permission";
+import { TeamPermission } from "@/lib/permissions/team-permission";
 import { useTeamStore } from "@/stores/team-store";
 import { format } from "date-fns";
 import { Dot, LogOut, Mail, User, UserCog2 } from "lucide-react";
@@ -31,6 +33,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "./ui/context-menu";
 import {
@@ -43,8 +46,6 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { useHasPermission } from "@/lib/hooks/use-has-permission";
-import { TeamPermission } from "@/lib/permissions/team-permission";
 
 export default function TeamMemberSettingsTab() {
   const hasPerm = useHasPermission();
@@ -334,7 +335,7 @@ export default function TeamMemberSettingsTab() {
 
                       <div className="absolute right-2 top-2 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                         {hasPerm(TeamPermission.CanEditUsers) && (
-                          <Tooltip>
+                          <Tooltip delayDuration={500}>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
@@ -351,7 +352,7 @@ export default function TeamMemberSettingsTab() {
                         )}
 
                         {hasPerm(TeamPermission.CanRemoveUsers) && (
-                          <Tooltip>
+                          <Tooltip delayDuration={500}>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
@@ -386,13 +387,17 @@ export default function TeamMemberSettingsTab() {
                     )}
 
                     {hasPerm(TeamPermission.CanRemoveUsers) && (
-                      <ContextMenuItem
-                        variant="destructive"
-                        onClick={() => setRemovingUser(member)}
-                      >
-                        <span>Remove</span>
-                        <LogOut className="ml-auto" />
-                      </ContextMenuItem>
+                      <>
+                        <ContextMenuSeparator />
+
+                        <ContextMenuItem
+                          variant="destructive"
+                          onClick={() => setRemovingUser(member)}
+                        >
+                          <span>Remove</span>
+                          <LogOut className="ml-auto" />
+                        </ContextMenuItem>
+                      </>
                     )}
                   </ContextMenuContent>
                 </ContextMenu>
