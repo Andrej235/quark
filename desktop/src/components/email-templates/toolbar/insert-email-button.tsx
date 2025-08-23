@@ -1,25 +1,25 @@
 import ToolbarButton from "@/components/email-templates/toolbar/toolbar-button";
 import { useSlateElement } from "@/lib/emails/hooks/use-slate-element";
-import { Link } from "lucide-react";
+import { Mail } from "lucide-react";
 import { useState } from "react";
 import { Node, Text, Transforms } from "slate";
 import { useSlate } from "slate-react";
-import InsertLinkDialog from "./insert-link-dialog";
+import InsertEmailDialog from "./insert-email-dialog";
 
-export default function InsertLinkButton() {
+export default function InsertEmailButton() {
   const editor = useSlate();
 
-  const [element, path] = useSlateElement("link");
-  const [enteringLink, setEnteringLink] = useState(false);
+  const [element, path] = useSlateElement("email-address");
+  const [enteringEmail, setEnteringEmail] = useState(false);
 
   function handleClick() {
-    // If there's no link element selected, open the link dialog
+    // If there's no email element selected, open the email dialog
     if (!element || !path) {
-      setEnteringLink(true);
+      setEnteringEmail(true);
       return;
     }
 
-    // Otherwise remove the selected link leaving it's text
+    // Otherwise remove the selected email leaving it's text
     for (const [child, childPath] of Node.children(editor, path)) {
       if (Text.isText(child)) {
         Transforms.setNodes(
@@ -36,13 +36,13 @@ export default function InsertLinkButton() {
   return (
     <>
       <ToolbarButton
-        icon={Link}
-        name="Insert Link"
+        icon={Mail}
+        name="Insert Email"
         onClick={handleClick}
         className={element ? "bg-accent border-border" : ""}
       />
 
-      <InsertLinkDialog open={enteringLink} setOpen={setEnteringLink} />
+      <InsertEmailDialog open={enteringEmail} setOpen={setEnteringEmail} />
     </>
   );
 }

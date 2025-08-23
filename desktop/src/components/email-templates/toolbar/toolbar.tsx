@@ -3,19 +3,19 @@ import {
   Braces,
   Image,
   Italic,
-  Mail,
   Paperclip,
   Sparkles,
   Strikethrough,
   Underline,
 } from "lucide-react";
 import { Separator as ShadcnSeparator } from "../../ui/separator";
+import FontSizePicker from "./font-size-picker";
+import InsertEmailButton from "./insert-email-button";
+import InsertLinkButton from "./insert-link-button";
 import ListDropdown from "./list-dropdown";
-import ToolbarToggle from "./toolbar-toggle";
-import FontSizeDropdown from "./font-size-picker";
-import EmailTemplateInsertLinkButton from "./insert-link-button";
-import ToolbarButton from "./toolbar-button";
 import TextAlignDropdown from "./text-align-dropdown";
+import ToolbarButton from "./toolbar-button";
+import ToolbarToggle from "./toolbar-toggle";
 
 export default function Toolbar() {
   return (
@@ -36,7 +36,7 @@ export default function Toolbar() {
 
       <Separator />
 
-      <FontSizeDropdown />
+      <FontSizePicker />
 
       <Separator />
 
@@ -46,8 +46,8 @@ export default function Toolbar() {
       <Separator />
 
       <ToolbarButton icon={Image} name="Insert Image" />
-      <EmailTemplateInsertLinkButton />
-      <ToolbarButton icon={Mail} name="Insert Email" />
+      <InsertLinkButton />
+      <InsertEmailButton />
 
       <Separator />
 

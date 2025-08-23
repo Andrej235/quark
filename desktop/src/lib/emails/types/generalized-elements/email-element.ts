@@ -1,13 +1,14 @@
+import { EmailAddressElement } from "../elements/email-address-element";
 import { LinkElement } from "../elements/link-element";
 import { ParagraphElement } from "../elements/paragraph-element";
 
-export type EmailElementType = "paragraph" | "link";
+export type EmailElementType = "paragraph" | "link" | "email-address";
 
 type BaseEmailElement = {
   type: EmailElementType;
 };
 
-type UnsafeEmailElement = ParagraphElement | LinkElement;
+type UnsafeEmailElement = ParagraphElement | LinkElement | EmailAddressElement;
 
 type SafeEmailElement = Extract<
   UnsafeEmailElement,
