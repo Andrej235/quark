@@ -1,14 +1,29 @@
 import { EmailAddressElement } from "../elements/email-address-element";
 import { LinkElement } from "../elements/link-element";
+import { ListItemElement } from "../elements/list-item-element";
+import { OrderedListElement } from "../elements/ordered-list-element";
 import { ParagraphElement } from "../elements/paragraph-element";
+import { UnorderedListElement } from "../elements/unordered-list-element";
 
-export type EmailElementType = "paragraph" | "link" | "email-address";
+export type EmailElementType =
+  | "paragraph"
+  | "link"
+  | "email-address"
+  | "list-item"
+  | "unordered-list"
+  | "ordered-list";
 
 type BaseEmailElement = {
   type: EmailElementType;
 };
 
-type UnsafeEmailElement = ParagraphElement | LinkElement | EmailAddressElement;
+type UnsafeEmailElement =
+  | ParagraphElement
+  | LinkElement
+  | EmailAddressElement
+  | ListItemElement
+  | UnorderedListElement
+  | OrderedListElement;
 
 type SafeEmailElement = Extract<
   UnsafeEmailElement,

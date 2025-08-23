@@ -18,6 +18,22 @@ export default function EmailTemplateEditor() {
       type: "paragraph",
       children: [{ text: "Hello World!" }],
     },
+    {
+      type: "paragraph",
+      children: [{ text: "Hello World!" }],
+    },
+    {
+      type: "paragraph",
+      children: [{ text: "Hello World!" }],
+    },
+    {
+      type: "paragraph",
+      children: [{ text: "Hello World!" }],
+    },
+    {
+      type: "paragraph",
+      children: [{ text: "Hello World!" }],
+    },
   ]);
 
   function onKeyDown(event: KeyboardEvent) {
