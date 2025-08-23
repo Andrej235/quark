@@ -5,10 +5,11 @@ import { Editable, Slate, withReact } from "slate-react";
 import EmailTemplateEditorToolbar from "./email-template-editor-toolbar";
 import Leaf from "./leaf";
 import RenderElement from "./render-element";
+import { withInline } from "@/lib/emails/with/with-inline";
 
 export default function EmailTemplateEditor() {
   const editor: Editor = useMemo(
-    () => withHistory(withReact(createEditor())),
+    () => withInline(withHistory(withReact(createEditor()))),
     [],
   );
 
@@ -35,7 +36,7 @@ export default function EmailTemplateEditor() {
           placeholder="Write your email template..."
           spellCheck
           autoFocus
-          className="outline-0! prose prose-invert prose-p:text-base min-w-full"
+          className="outline-0! prose prose-invert prose-p:text-base prose-a:font-normal prose-a:no-underline min-w-full"
           renderElement={RenderElement}
           renderLeaf={Leaf}
           onKeyDown={onKeyDown}

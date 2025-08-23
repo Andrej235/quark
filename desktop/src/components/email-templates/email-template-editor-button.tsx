@@ -21,7 +21,15 @@ export default function EditorButton({
 }: EditorButtonProps) {
   return (
     <Tooltip delayDuration={500}>
-      <Button className={className} asChild onClick={onClick} variant="ghost">
+      <Button
+        className={className}
+        asChild
+        onClick={(e) => {
+          e.preventDefault();
+          onClick?.();
+        }}
+        variant="ghost"
+      >
         <TooltipTrigger>
           <Icon />
           <span className="sr-only">{name}</span>

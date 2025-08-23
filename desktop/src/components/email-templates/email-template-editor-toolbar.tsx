@@ -3,7 +3,6 @@ import {
   Braces,
   Image,
   Italic,
-  Link,
   Mail,
   Paperclip,
   Sparkles,
@@ -16,6 +15,7 @@ import EditorButton from "./email-template-editor-button";
 import EditorListDropdown from "./email-template-editor-list-dropdown";
 import EditorToggle from "./email-template-editor-toggle";
 import FontSizeDropdown from "./font-size-dropdown";
+import EmailTemplateInsertLinkButton from "./insert-link-button";
 
 export default function EmailTemplateEditorToolbar() {
   return (
@@ -46,7 +46,7 @@ export default function EmailTemplateEditorToolbar() {
       <Separator />
 
       <EditorButton icon={Image} name="Insert Image" />
-      <EditorButton icon={Link} name="Insert Link" />
+      <EmailTemplateInsertLinkButton />
       <EditorButton icon={Mail} name="Insert Email" />
 
       <Separator />
