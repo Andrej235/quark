@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Editor, Transforms } from "slate";
 import { useSlate } from "slate-react";
-import { Button } from "../ui/button";
+import { Button } from "../../ui/button";
 import {
   Dialog,
   DialogClose,
@@ -10,11 +10,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
+} from "../../ui/dialog";
+import { Input } from "../../ui/input";
+import { Label } from "../../ui/label";
 
-export default function EmailTemplateInsertLink({
+export default function InsertLinkDialog({
   open,
   setOpen,
 }: {

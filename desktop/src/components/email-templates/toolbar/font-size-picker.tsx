@@ -6,8 +6,8 @@ import {
 } from "@/components/ui/select";
 import { Editor } from "slate";
 import { useSlate } from "slate-react";
-import { buttonVariants } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { buttonVariants } from "../../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
 
 export default function FontSizePicker() {
   const editor = useSlate();

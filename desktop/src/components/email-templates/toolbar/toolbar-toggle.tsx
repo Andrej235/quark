@@ -15,7 +15,7 @@ type EditorButtonProps = {
   className?: string;
 };
 
-export default function EditorToggle({
+export default function ToolbarToggle({
   icon: Icon,
   className,
   name,

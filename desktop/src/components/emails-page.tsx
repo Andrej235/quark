@@ -1,4 +1,4 @@
-import EmailTemplateEditor from "./email-templates/email-template-editor";
+import EmailTemplateEditor from "./email-templates/email-editor";
 import {
   Card,
   CardContent,

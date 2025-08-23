@@ -1,10 +1,10 @@
-import EditorButton from "@/components/email-templates/email-template-editor-button";
+import ToolbarButton from "@/components/email-templates/toolbar/toolbar-button";
 import { useSlateElement } from "@/lib/emails/hooks/use-slate-element";
 import { Link } from "lucide-react";
 import { useState } from "react";
 import { Node, Text, Transforms } from "slate";
 import { useSlate } from "slate-react";
-import EmailTemplateInsertLinkDialog from "./email-template-insert-link-dialog";
+import EmailTemplateInsertLinkDialog from "./insert-link-dialog";
 
 export default function InsertLinkButton() {
   const editor = useSlate();
@@ -35,7 +35,7 @@ export default function InsertLinkButton() {
 
   return (
     <>
-      <EditorButton
+      <ToolbarButton
         icon={Link}
         name="Insert Link"
         onClick={handleClick}

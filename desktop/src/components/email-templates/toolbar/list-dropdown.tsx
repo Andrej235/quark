@@ -5,11 +5,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { Toggle } from "../ui/toggle";
+} from "../../ui/dropdown-menu";
+import { Toggle } from "../../ui/toggle";
 import { cn } from "@/lib/cn";
 
-export default function EditorListDropdown() {
+export default function ListDropdown() {
   const [selected, setSelected] = useState<"ul" | "ol" | null>(null);
 
   return (

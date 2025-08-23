@@ -2,7 +2,7 @@ import { KeyboardEvent, useMemo, useState } from "react";
 import { createEditor, Descendant, Editor } from "slate";
 import { withHistory } from "slate-history";
 import { Editable, Slate, withReact } from "slate-react";
-import EmailTemplateEditorToolbar from "./email-template-editor-toolbar";
+import TextAlignDropdown from "./toolbar/toolbar";
 import Leaf from "./leaf";
 import RenderElement from "./render-element";
 import { withInline } from "@/lib/emails/with/with-inline";
@@ -30,7 +30,7 @@ export default function EmailTemplateEditor() {
   return (
     <div className="bg-card rounded-md border p-4">
       <Slate editor={editor} onChange={setValue} initialValue={value}>
-        <EmailTemplateEditorToolbar />
+        <TextAlignDropdown />
 
         <Editable
           placeholder="Write your email template..."

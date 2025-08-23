@@ -4,7 +4,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { LucideIcon } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "../../ui/button";
 
 type EditorButtonProps = {
   icon: LucideIcon;
@@ -13,7 +13,7 @@ type EditorButtonProps = {
   onClick?: () => void;
 };
 
-export default function EditorButton({
+export default function ToolbarButton({
   icon: Icon,
   className,
   name,

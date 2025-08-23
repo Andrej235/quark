@@ -33,7 +33,7 @@ const options: Option[] = [
   { value: "justify", label: "Justify", icon: AlignJustify },
 ];
 
-export default function EditorSelectAlignSelect() {
+export default function TextAlignDropdown() {
   const editor = useSlate();
   const [match] = Editor.nodes(editor, {
     match: (n) => Element.isElement(n) && Editor.isBlock(editor, n),
