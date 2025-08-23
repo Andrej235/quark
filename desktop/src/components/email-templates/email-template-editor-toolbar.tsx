@@ -14,6 +14,7 @@ import { Separator as ShadcnSeparator } from "../ui/separator";
 import EditorSelectAlignSelect from "./email-template-editor-align-select";
 import EditorButton from "./email-template-editor-button";
 import EditorListDropdown from "./email-template-editor-list-dropdown";
+import EditorToggle from "./email-template-editor-toggle";
 import FontSizeDropdown from "./font-size-dropdown";
 
 export default function EmailTemplateEditorToolbar() {
@@ -24,10 +25,14 @@ export default function EmailTemplateEditorToolbar() {
 
       <Separator />
 
-      <EditorButton icon={Bold} name="Bold" />
-      <EditorButton icon={Italic} name="Italic" />
-      <EditorButton icon={Underline} name="Underline" />
-      <EditorButton icon={Strikethrough} name="Strikethrough" />
+      <EditorToggle icon={Bold} name="Bold" mark="bold" />
+      <EditorToggle icon={Italic} name="Italic" mark="italic" />
+      <EditorToggle icon={Underline} name="Underline" mark="underline" />
+      <EditorToggle
+        icon={Strikethrough}
+        name="Strikethrough"
+        mark="strikethrough"
+      />
 
       <Separator />
 
