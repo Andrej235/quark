@@ -39,6 +39,8 @@ export default function EmailTemplateInsertLink({
     const { text, url } = link;
     if (!text || !url) return;
 
+    const currentMarks = Editor.marks(editor);
+
     Transforms.insertNodes(editor, {
       type: "link",
       url,
@@ -47,6 +49,7 @@ export default function EmailTemplateInsertLink({
           text: text || url,
           italic: true,
           underline: true,
+          ...currentMarks,
         },
       ],
     });

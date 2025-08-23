@@ -23,7 +23,7 @@ type SpecificEmailElement<
   ? TEmailElement
   : never;
 
-type Element<Type extends EmailElementType = EmailElementType> =
+type EmailElement<Type extends EmailElementType = EmailElementType> =
   SpecificEmailElement<Type, SafeEmailElement>;
 
-export type { Element };
+export type { EmailElement };
