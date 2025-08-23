@@ -5,4 +5,5 @@ export type Text = {
   italic?: boolean;
   underline?: boolean;
   strikethrough?: boolean;
+  align?: "left" | "center" | "right" | "justify";
 };

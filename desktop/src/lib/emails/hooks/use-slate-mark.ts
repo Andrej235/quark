@@ -1,6 +1,6 @@
 import { Editor } from "slate";
 import { useSlate } from "slate-react";
-import { TextMarks } from "../types/text-marks";
+import { TextMarks } from "../types/generalized-elements/text-marks";
 
 export function useSlateMark(mark: TextMarks) {
   const editor = useSlate();

@@ -5,7 +5,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSlateMark } from "@/lib/emails/hooks/use-slate-mark";
-import { TextMarks } from "@/lib/emails/types/text-marks";
+import { TextMarks } from "@/lib/emails/types/generalized-elements/text-marks";
 import { LucideIcon } from "lucide-react";
 
 type EditorButtonProps = {

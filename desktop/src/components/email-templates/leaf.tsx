@@ -7,7 +7,12 @@ export default function Leaf({ attributes, children, leaf }: RenderLeafProps) {
   if (leaf.strikethrough) children = <s>{children}</s>;
 
   return (
-    <span style={{ fontSize: (leaf.fontSize || 10) * 1.33 }} {...attributes}>
+    <span
+      style={{
+        fontSize: (leaf.fontSize || 10) * 1.33,
+      }}
+      {...attributes}
+    >
       {children}
     </span>
   );
