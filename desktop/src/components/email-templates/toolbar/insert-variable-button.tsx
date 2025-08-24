@@ -26,7 +26,7 @@ export default function InsertVariableButton() {
   const [variableQuery, setVariableQuery] = useState<string | null>(null);
   const targetRange = useRef<Range | null>(null);
   const editor = useSlate();
-  const [insideVariable] = useSlateElement("variable");
+  const [insideVariable, variablePath] = useSlateElement("variable");
 
   useSubscribeToEmailEditorEventContext({
     id: "insert-variable-button",
@@ -147,12 +147,29 @@ export default function InsertVariableButton() {
     },
   });
 
+  function handleClick() {
+    if (insideVariable && variablePath) {
+      Transforms.unwrapNodes(editor, {
+        at: variablePath,
+      });
+      return;
+    }
+
+    const selection = editor.selection;
+    if (!selection || !Range.isCollapsed(selection)) return;
+
+    Transforms.insertText(editor, "{}", {
+      at: selection,
+    });
+  }
+
   return (
     <>
       <ToolbarButton
         icon={Braces}
         name="Insert Variable"
         className={insideVariable ? "bg-accent" : ""}
+        onClick={handleClick}
       />
 
       <Popover open={!!variableQuery}>
