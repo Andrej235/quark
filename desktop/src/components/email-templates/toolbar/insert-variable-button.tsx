@@ -5,6 +5,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent } from "@/components/ui/popover";
+import { useSlateElement } from "@/lib/emails/hooks/use-slate-element";
 import { useSubscribeToEmailEditorEventContext } from "@/lib/emails/hooks/use-subscribe-to-key-down-event-context";
 import { VariableElement } from "@/lib/emails/types/elements/variable-element";
 import toTitleCase from "@/lib/format/title-case";
@@ -25,9 +26,20 @@ export default function InsertVariableButton() {
   const [variableQuery, setVariableQuery] = useState<string | null>(null);
   const targetRange = useRef<Range | null>(null);
   const editor = useSlate();
+  const [insideVariable] = useSlateElement("variable");
 
   useSubscribeToEmailEditorEventContext({
     id: "insert-variable-button",
+    onKeyDown: (e) => {
+      if (
+        e.key === "Enter" &&
+        Editor.above(editor, {
+          match: (n) => Element.isElement(n) && n.type === "variable",
+        })
+      ) {
+        e.preventDefault();
+      }
+    },
     onChange: (x) => {
       if (x?.type !== "insert_text" && x?.type !== "remove_text") return;
 
@@ -118,7 +130,7 @@ export default function InsertVariableButton() {
             },
             focus: {
               path: editor.selection!.focus.path,
-              offset: variableBlockEnd + 1,
+              offset: variableBlockEnd,
             },
             offset: openingBrace,
             path: editor.selection!.anchor.path,
@@ -137,7 +149,11 @@ export default function InsertVariableButton() {
 
   return (
     <>
-      <ToolbarButton icon={Braces} name="Insert Variable" />
+      <ToolbarButton
+        icon={Braces}
+        name="Insert Variable"
+        className={insideVariable ? "bg-accent" : ""}
+      />
 
       <Popover open={!!variableQuery}>
         <PopoverContent className="w-64 p-0">

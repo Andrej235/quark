@@ -1,7 +1,7 @@
-import { Descendant } from "slate";
+import { Text } from "slate";
 
 export type VariableElement = {
   type: "variable";
   variable: string;
-  children: Descendant[];
+  children: Text[];
 };
