@@ -5,6 +5,7 @@ import ListItemElement from "./elements/list-item-element";
 import OrderedListElement from "./elements/ordered-list-element";
 import ParagraphElement from "./elements/paragraph-emelent";
 import UnorderedListElement from "./elements/unordered-list-element";
+import VariableElement from "./elements/variable-element";
 
 export default function RenderElement(props: RenderElementProps) {
   switch (props.element.type) {
@@ -20,6 +21,8 @@ export default function RenderElement(props: RenderElementProps) {
       return <OrderedListElement {...props} />;
     case "list-item":
       return <ListItemElement {...props} />;
+    case "variable":
+      return <VariableElement {...props} />;
     default:
       return <ParagraphElement {...props} />;
   }

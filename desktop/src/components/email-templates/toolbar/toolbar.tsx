@@ -1,17 +1,18 @@
 import {
   Bold,
-  Braces,
   Image,
   Italic,
   Paperclip,
   Sparkles,
   Strikethrough,
+  Text,
   Underline,
 } from "lucide-react";
 import { Separator as ShadcnSeparator } from "../../ui/separator";
 import FontSizePicker from "./font-size-picker";
 import InsertEmailButton from "./insert-email-button";
 import InsertLinkButton from "./insert-link-button";
+import InsertVariableButton from "./insert-variable-button";
 import ListDropdown from "./list-dropdown";
 import TextAlignDropdown from "./text-align-dropdown";
 import ToolbarButton from "./toolbar-button";
@@ -20,8 +21,9 @@ import ToolbarToggle from "./toolbar-toggle";
 export default function Toolbar() {
   return (
     <div className="bg-background mb-2 flex items-stretch gap-1.5 rounded-md border px-2 py-1">
-      <ToolbarButton icon={Braces} name="Insert Variable" />
+      <InsertVariableButton />
       <ToolbarButton icon={Sparkles} name="Insert AI Block" />
+      <ToolbarButton icon={Text} name="Insert Text Block" />
 
       <Separator />
 

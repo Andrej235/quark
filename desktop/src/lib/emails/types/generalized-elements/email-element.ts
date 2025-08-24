@@ -4,6 +4,7 @@ import { ListItemElement } from "../elements/list-item-element";
 import { OrderedListElement } from "../elements/ordered-list-element";
 import { ParagraphElement } from "../elements/paragraph-element";
 import { UnorderedListElement } from "../elements/unordered-list-element";
+import { VariableElement } from "../elements/variable-element";
 
 export type EmailElementType =
   | "paragraph"
@@ -11,7 +12,8 @@ export type EmailElementType =
   | "email-address"
   | "list-item"
   | "unordered-list"
-  | "ordered-list";
+  | "ordered-list"
+  | "variable";
 
 type BaseEmailElement = {
   type: EmailElementType;
@@ -23,7 +25,8 @@ type UnsafeEmailElement =
   | EmailAddressElement
   | ListItemElement
   | UnorderedListElement
-  | OrderedListElement;
+  | OrderedListElement
+  | VariableElement;
 
 type SafeEmailElement = Extract<
   UnsafeEmailElement,

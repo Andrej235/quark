@@ -22,7 +22,7 @@ function slotToDataTypeShallow(slot: Slot): ProspectFieldDefinition | null {
   function getType(): ProspectDataType | null {
     switch (slot.type) {
       case "text-field":
-        return "dropdown";
+        return "text";
       case "dropdown":
         return "dropdown";
       default:
