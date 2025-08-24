@@ -1,7 +1,7 @@
-import { onKeyDownEventContext } from "@/lib/emails/contexts/on-key-down-event-context";
+import { emailEditorEventContext } from "@/lib/emails/contexts/on-key-down-event-context";
 import { withInline } from "@/lib/emails/with/with-inline";
-import { KeyboardEvent, useRef, useState } from "react";
-import { createEditor, Descendant, Editor } from "slate";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
+import { BaseOperation, createEditor, Descendant, Editor } from "slate";
 import { withHistory } from "slate-history";
 import { Editable, Slate, withReact } from "slate-react";
 import Leaf from "./leaf";
@@ -37,7 +37,10 @@ export default function EmailTemplateEditor() {
   ]);
 
   const keyDownSubscribers = useRef<{
-    [id: string]: (event: KeyboardEvent) => void;
+    [id: string]: {
+      onKeyDown: (event: KeyboardEvent) => void;
+      onChange: (operation?: BaseOperation) => void;
+    };
   }>({});
 
   function onKeyDown(event: KeyboardEvent) {
@@ -46,22 +49,37 @@ export default function EmailTemplateEditor() {
       editor.insertText("\n"); // soft break
     }
 
-    Object.entries(keyDownSubscribers.current).forEach(([, callback]) =>
-      callback(event),
+    Object.entries(keyDownSubscribers.current).forEach(([, { onKeyDown }]) =>
+      onKeyDown(event),
     );
   }
+
+  useEffect(() => {
+    const old = editor.onChange;
+
+    editor.onChange = (x) => {
+      Object.entries(keyDownSubscribers.current).forEach(([, { onChange }]) =>
+        onChange(x?.operation),
+      );
+      old();
+    };
+
+    return () => {
+      editor.onChange = old;
+    };
+  }, [editor]);
 
   return (
     <div className="bg-card rounded-md border p-4">
       <Slate editor={editor} onChange={setValue} initialValue={value}>
-        <onKeyDownEventContext.Provider
+        <emailEditorEventContext.Provider
           value={{
             onSubscribe: (id, callback) =>
               void (keyDownSubscribers.current[id] = callback),
           }}
         >
           <Toolbar />
-        </onKeyDownEventContext.Provider>
+        </emailEditorEventContext.Provider>
 
         <Editable
           placeholder="Write your email template..."
