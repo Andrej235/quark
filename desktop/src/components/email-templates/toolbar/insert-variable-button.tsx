@@ -28,6 +28,8 @@ export default function InsertVariableButton() {
   useSubscribeToEmailEditorEventContext({
     id: "insert-variable-button",
     onChange: (x) => {
+      if (x?.type !== "insert_text" && x?.type !== "remove_text") return;
+
       const caret = editor.selection!.anchor.offset;
       const line = Editor.above(editor, {
         match: (x) => {
@@ -76,6 +78,47 @@ export default function InsertVariableButton() {
         return;
 
       console.log("Wrap in variable element");
+      Transforms.insertNodes(
+        editor,
+        {
+          type: "variable",
+          name: variableName,
+          children: [{ text: "" }],
+        },
+        {
+          at: {
+            anchor: {
+              path: editor.selection!.anchor.path,
+              offset: openingBrace,
+            },
+            focus: {
+              path: editor.selection!.focus.path,
+              offset: variableBlockEnd + 1,
+            },
+          },
+        },
+      );
+
+      /*       Transforms.wrapNodes(
+        editor,
+        {
+          type: "variable",
+          name: variableName,
+          children: [{ text: "" }],
+        },
+        {
+          at: {
+            anchor: {
+              path: editor.selection!.anchor.path,
+              offset: openingBrace,
+            },
+            focus: {
+              path: editor.selection!.focus.path,
+              offset: variableBlockEnd,
+            },
+          },
+        },
+      ); */
     },
   });
 
