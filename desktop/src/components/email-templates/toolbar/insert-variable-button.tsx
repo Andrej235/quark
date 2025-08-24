@@ -7,6 +7,7 @@ import {
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { useSubscribeToEmailEditorEventContext } from "@/lib/emails/hooks/use-subscribe-to-key-down-event-context";
 import { VariableElement } from "@/lib/emails/types/elements/variable-element";
+import toTitleCase from "@/lib/format/title-case";
 import { Braces } from "lucide-react";
 import { useRef, useState } from "react";
 import { Editor, Element, Path, Range, Transforms } from "slate";
@@ -29,6 +30,14 @@ export default function InsertVariableButton() {
     id: "insert-variable-button",
     onChange: (x) => {
       if (x?.type !== "insert_text" && x?.type !== "remove_text") return;
+
+      // Inside a variable element already
+      if (
+        Editor.above(editor, {
+          match: (n) => Element.isElement(n) && n.type === "variable",
+        })
+      )
+        return;
 
       const caret = editor.selection!.anchor.offset;
       const text = Editor.string(
@@ -95,7 +104,11 @@ export default function InsertVariableButton() {
         {
           type: "variable",
           variable: variableName,
-          children: [],
+          children: [
+            {
+              text: toTitleCase(variableName.replace(".", " ")),
+            },
+          ],
         },
         {
           at: {
@@ -107,6 +120,8 @@ export default function InsertVariableButton() {
               path: editor.selection!.focus.path,
               offset: variableBlockEnd + 1,
             },
+            offset: openingBrace,
+            path: editor.selection!.anchor.path,
           },
         },
       );
