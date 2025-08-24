@@ -9,7 +9,7 @@ import { useSubscribeToEmailEditorEventContext } from "@/lib/emails/hooks/use-su
 import { VariableElement } from "@/lib/emails/types/elements/variable-element";
 import { Braces } from "lucide-react";
 import { useRef, useState } from "react";
-import { Editor, Element, Range, Transforms } from "slate";
+import { Editor, Element, Path, Range, Transforms } from "slate";
 import { useSlate } from "slate-react";
 import ToolbarButton from "./toolbar-button";
 
@@ -31,13 +31,10 @@ export default function InsertVariableButton() {
       if (x?.type !== "insert_text" && x?.type !== "remove_text") return;
 
       const caret = editor.selection!.anchor.offset;
-      const line = Editor.above(editor, {
-        match: (x) => {
-          return Element.isElement(x) && x.type === "paragraph";
-        },
-      });
-
-      const text = line ? Editor.string(editor, line[1]) : null;
+      const text = Editor.string(
+        editor,
+        Editor.node(editor, editor.selection!)[1],
+      );
       if (!text) return;
 
       let openingBrace = -1;
@@ -77,13 +74,28 @@ export default function InsertVariableButton() {
       if (!completedVariableName || !VALID_VARIABLES.includes(variableName))
         return;
 
-      console.log("Wrap in variable element");
+      // There is nothing after the variable, add a space just so the caret's position doesn't get messed up
+      if (variableBlockEnd === text.length - 1) {
+        Transforms.insertText(editor, " ", {
+          at: {
+            anchor: {
+              path: editor.selection!.anchor.path,
+              offset: variableBlockEnd + 1,
+            },
+            focus: {
+              path: editor.selection!.focus.path,
+              offset: variableBlockEnd + 1,
+            },
+          },
+        });
+      }
+
       Transforms.insertNodes(
         editor,
         {
           type: "variable",
-          name: variableName,
-          children: [{ text: "" }],
+          variable: variableName,
+          children: [],
         },
         {
           at: {
@@ -99,26 +111,12 @@ export default function InsertVariableButton() {
         },
       );
 
-      /*       Transforms.wrapNodes(
-        editor,
-        {
-          type: "variable",
-          name: variableName,
-          children: [{ text: "" }],
+      const [newVar] = Editor.nodes(editor, {
+        match: (n) => {
+          return Element.isElement(n) && n.type === "variable";
         },
-        {
-          at: {
-            anchor: {
-              path: editor.selection!.anchor.path,
-              offset: openingBrace,
-            },
-            focus: {
-              path: editor.selection!.focus.path,
-              offset: variableBlockEnd,
-            },
-          },
-        },
-      ); */
+      });
+      editor.select(Path.next(newVar[1]));
     },
   });
 
@@ -157,8 +155,8 @@ export default function InsertVariableButton() {
 function insertVariable(editor: Editor, name: string) {
   const variable: VariableElement = {
     type: "variable",
-    name,
-    children: [{ text: "" }],
+    variable: name,
+    children: [],
   };
 
   Transforms.insertNodes(editor, variable);
