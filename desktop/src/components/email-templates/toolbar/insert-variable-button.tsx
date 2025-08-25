@@ -1,9 +1,5 @@
-import {
-  Command,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import { useSlateElement } from "@/lib/emails/hooks/use-slate-element";
 import { useSubscribeToEmailEditorEventContext } from "@/lib/emails/hooks/use-subscribe-to-key-down-event-context";
 import { VariableElement } from "@/lib/emails/types/elements/variable-element";
@@ -24,26 +20,46 @@ const VALID_VARIABLES = [
 
 export default function InsertVariableButton() {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
   const [variableQuery, setVariableQuery] = useState<string | null>(null);
   const targetRange = useRef<Range | null>(null);
   const editor = useSlate();
   const autocompleteContainerRef = useRef<HTMLDivElement>(null);
   const [insideVariable, variablePath] = useSlateElement("variable");
 
+  const filteredVariables = VALID_VARIABLES.filter((v) =>
+    v.includes(variableQuery ?? ""),
+  );
+
   useSubscribeToEmailEditorEventContext({
     id: "insert-variable-button",
     onKeyDown: (e) => {
-      if (
-        e.key === "Enter" &&
-        Editor.above(editor, {
-          match: (n) => Element.isElement(n) && n.type === "variable",
-        })
-      ) {
+      if (e.key === "Enter" && insideVariable) {
         e.preventDefault();
       }
 
       if (e.key === "Escape") {
         setShowAutocomplete(false);
+      }
+
+      if (showAutocomplete) {
+        switch (e.key) {
+          case "ArrowUp":
+            setFocusedIndex(
+              (x) =>
+                (x - 1 + filteredVariables.length) % filteredVariables.length,
+            );
+            e.preventDefault();
+            break;
+          case "ArrowDown":
+            setFocusedIndex((x) => (x + 1) % filteredVariables.length);
+            e.preventDefault();
+            break;
+          case "Enter":
+            setShowAutocomplete(false);
+            break;
+        }
       }
     },
     onChange: (x) => {
@@ -229,29 +245,27 @@ export default function InsertVariableButton() {
         transition={{
           duration: 0.2,
         }}
-        className="bg-popover fixed left-0 top-0 z-50 max-h-64 rounded-md border p-2"
+        className={cn(
+          "bg-popover fixed left-0 top-0 z-50 flex max-h-64 flex-col gap-1 rounded-md border p-2",
+          filteredVariables.length === 0 && "p-0",
+        )}
         ref={autocompleteContainerRef}
       >
-        <Command>
-          <CommandInput value={variableQuery ?? ""} />
-          <CommandList>
-            {VALID_VARIABLES.filter((v) => v.includes(variableQuery ?? "")).map(
-              (v) => (
-                <CommandItem
-                  key={v}
-                  onSelect={() => {
-                    Transforms.delete(editor, { at: targetRange.current! });
-                    insertVariable(editor, v);
-                    setVariableQuery(null);
-                    targetRange.current = null;
-                  }}
-                >
-                  {v}
-                </CommandItem>
-              ),
-            )}
-          </CommandList>
-        </Command>
+        {filteredVariables.map((v, i) => (
+          <Button
+            key={v}
+            variant="ghost"
+            className={cn("justify-start", focusedIndex === i && "bg-accent!")}
+            onClick={() => {
+              Transforms.delete(editor, { at: targetRange.current! });
+              insertVariable(editor, v);
+              setVariableQuery(null);
+              targetRange.current = null;
+            }}
+          >
+            {v}
+          </Button>
+        ))}
       </motion.div>
     </>
   );

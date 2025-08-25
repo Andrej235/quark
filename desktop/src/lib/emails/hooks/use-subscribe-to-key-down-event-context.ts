@@ -17,6 +17,5 @@ export function useSubscribeToEmailEditorEventContext({
 
   useEffect(() => {
     onSubscribe(id, { onKeyDown, onChange });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, onSubscribe]);
+  }, [id, onSubscribe, onKeyDown, onChange]);
 }
