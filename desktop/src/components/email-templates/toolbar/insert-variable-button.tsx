@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useSlateElement } from "@/lib/emails/hooks/use-slate-element";
 import { useSubscribeToEmailEditorEventContext } from "@/lib/emails/hooks/use-subscribe-to-key-down-event-context";
-import { VariableElement } from "@/lib/emails/types/elements/variable-element";
 import toTitleCase from "@/lib/format/title-case";
 import { Braces } from "lucide-react";
 import { animate, motion } from "motion/react";
@@ -23,7 +22,6 @@ export default function InsertVariableButton() {
   const [focusedIndex, setFocusedIndex] = useState(0);
 
   const [variableQuery, setVariableQuery] = useState<string | null>(null);
-  const targetRange = useRef<Range | null>(null);
   const editor = useSlate();
   const autocompleteContainerRef = useRef<HTMLDivElement>(null);
   const [insideVariable, variablePath] = useSlateElement("variable");
@@ -31,6 +29,45 @@ export default function InsertVariableButton() {
   const filteredVariables = VALID_VARIABLES.filter((v) =>
     v.includes(variableQuery ?? ""),
   );
+
+  function getVariableBounds() {
+    if (!editor.selection || !Range.isCollapsed(editor.selection)) return;
+
+    const caret = editor.selection.anchor.offset;
+    const text = Editor.string(
+      editor,
+      Editor.node(editor, editor.selection)[1],
+    );
+    if (!text) return;
+
+    let openingBrace = -1;
+    let variableBlockEnd = -1;
+
+    for (let i = caret - 1; i >= 0; i--) {
+      if (/[\s}]/.test(text[i])) {
+        if (caret - 1 !== i || text[caret - 1] !== "}") break;
+      }
+
+      if (text[i] === "{") {
+        openingBrace = i;
+        break;
+      }
+    }
+
+    for (let i = caret - 1; i < text.length; i++) {
+      if (/[\s}]/.test(text[i])) {
+        variableBlockEnd = i;
+        break;
+      }
+    }
+
+    return {
+      openingBrace,
+      variableBlockEnd,
+      text,
+      path: editor.selection.anchor.path,
+    };
+  }
 
   useSubscribeToEmailEditorEventContext({
     id: "insert-variable-button",
@@ -57,7 +94,8 @@ export default function InsertVariableButton() {
             e.preventDefault();
             break;
           case "Enter":
-            setShowAutocomplete(false);
+            insertVariable(filteredVariables[focusedIndex]);
+            e.preventDefault();
             break;
         }
       }
@@ -80,33 +118,12 @@ export default function InsertVariableButton() {
       )
         return;
 
-      const caret = editor.selection.anchor.offset;
-      const text = Editor.string(
-        editor,
-        Editor.node(editor, editor.selection)[1],
-      );
+      const bounds = getVariableBounds();
+      if (!bounds) return;
+
+      const { openingBrace, variableBlockEnd, text } = bounds;
+
       if (!text) return;
-
-      let openingBrace = -1;
-      let variableBlockEnd = -1;
-
-      for (let i = caret - 1; i >= 0; i--) {
-        if (/[\s}]/.test(text[i])) {
-          if (caret - 1 !== i || text[caret - 1] !== "}") break;
-        }
-
-        if (text[i] === "{") {
-          openingBrace = i;
-          break;
-        }
-      }
-
-      for (let i = caret - 1; i < text.length; i++) {
-        if (/[\s}]/.test(text[i])) {
-          variableBlockEnd = i;
-          break;
-        }
-      }
 
       if (openingBrace === -1) {
         setShowAutocomplete(false);
@@ -124,32 +141,35 @@ export default function InsertVariableButton() {
           x?.type === "insert_text" &&
           x.text === "}");
 
-      setShowAutocomplete(true);
       setVariableQuery(variableName);
-      const rect = getCaretScreenPosition(editor);
-      if (rect) {
-        const yOffset = 5;
-        const containerApproxHeight = Math.max(
-          autocompleteContainerRef.current!.offsetHeight,
-          128,
-        );
+      requestAnimationFrame(() => {
+        const rect = getCaretScreenPosition(editor);
 
-        let y = rect.y + rect.height + yOffset;
-        if (window.innerHeight - y < containerApproxHeight) {
-          y -= containerApproxHeight;
+        if (rect) {
+          const yOffset = 5;
+          const containerApproxHeight = Math.max(
+            autocompleteContainerRef.current!.offsetHeight,
+            128,
+          );
+
+          let y = rect.y + rect.height + yOffset;
+          if (window.innerHeight - y < containerApproxHeight) {
+            y -= containerApproxHeight;
+          }
+
+          animate(
+            autocompleteContainerRef.current!,
+            {
+              x: rect.x + rect.width,
+              y,
+            },
+            {
+              duration: 0,
+            },
+          );
         }
-
-        animate(
-          autocompleteContainerRef.current!,
-          {
-            x: rect.x + rect.width,
-            y,
-          },
-          {
-            duration: 0,
-          },
-        );
-      }
+      });
+      setShowAutocomplete(true);
 
       if (!completedVariableName || !VALID_VARIABLES.includes(variableName))
         return;
@@ -206,6 +226,25 @@ export default function InsertVariableButton() {
     },
   });
 
+  function insertVariable(name: string) {
+    const bounds = getVariableBounds();
+    if (!bounds) return;
+    const { openingBrace, path, text, variableBlockEnd } = bounds;
+
+    Transforms.insertText(editor, name, {
+      at: {
+        anchor: {
+          path,
+          offset: openingBrace + 1,
+        },
+        focus: {
+          path: path,
+          offset: variableBlockEnd < 0 ? text.length : variableBlockEnd,
+        },
+      },
+    });
+  }
+
   function handleClick() {
     if (insideVariable && variablePath) {
       Transforms.unwrapNodes(editor, {
@@ -257,10 +296,8 @@ export default function InsertVariableButton() {
             variant="ghost"
             className={cn("justify-start", focusedIndex === i && "bg-accent!")}
             onClick={() => {
-              Transforms.delete(editor, { at: targetRange.current! });
-              insertVariable(editor, v);
+              insertVariable(v);
               setVariableQuery(null);
-              targetRange.current = null;
             }}
           >
             {v}
@@ -269,16 +306,6 @@ export default function InsertVariableButton() {
       </motion.div>
     </>
   );
-}
-
-function insertVariable(editor: Editor, name: string) {
-  const variable: VariableElement = {
-    type: "variable",
-    variable: name,
-    children: [],
-  };
-
-  Transforms.insertNodes(editor, variable);
 }
 
 function getCaretScreenPosition(editor: Editor) {
