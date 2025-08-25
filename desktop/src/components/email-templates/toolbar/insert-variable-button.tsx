@@ -4,15 +4,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Popover, PopoverContent } from "@/components/ui/popover";
 import { useSlateElement } from "@/lib/emails/hooks/use-slate-element";
 import { useSubscribeToEmailEditorEventContext } from "@/lib/emails/hooks/use-subscribe-to-key-down-event-context";
 import { VariableElement } from "@/lib/emails/types/elements/variable-element";
 import toTitleCase from "@/lib/format/title-case";
 import { Braces } from "lucide-react";
+import { animate, motion } from "motion/react";
 import { useRef, useState } from "react";
 import { Editor, Element, Path, Range, Transforms } from "slate";
-import { useSlate } from "slate-react";
+import { ReactEditor, useSlate } from "slate-react";
 import ToolbarButton from "./toolbar-button";
 
 const VALID_VARIABLES = [
@@ -23,9 +23,11 @@ const VALID_VARIABLES = [
 ];
 
 export default function InsertVariableButton() {
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [variableQuery, setVariableQuery] = useState<string | null>(null);
   const targetRange = useRef<Range | null>(null);
   const editor = useSlate();
+  const autocompleteContainerRef = useRef<HTMLDivElement>(null);
   const [insideVariable, variablePath] = useSlateElement("variable");
 
   useSubscribeToEmailEditorEventContext({
@@ -39,9 +41,20 @@ export default function InsertVariableButton() {
       ) {
         e.preventDefault();
       }
+
+      if (e.key === "Escape") {
+        setShowAutocomplete(false);
+      }
     },
     onChange: (x) => {
-      if (x?.type !== "insert_text" && x?.type !== "remove_text") return;
+      if (
+        x?.type !== "insert_text" &&
+        x?.type !== "remove_text" &&
+        x?.type !== "set_selection"
+      )
+        return;
+
+      if (!editor.selection || !Range.isCollapsed(editor.selection)) return;
 
       // Inside a variable element already
       if (
@@ -51,10 +64,10 @@ export default function InsertVariableButton() {
       )
         return;
 
-      const caret = editor.selection!.anchor.offset;
+      const caret = editor.selection.anchor.offset;
       const text = Editor.string(
         editor,
-        Editor.node(editor, editor.selection!)[1],
+        Editor.node(editor, editor.selection)[1],
       );
       if (!text) return;
 
@@ -79,7 +92,10 @@ export default function InsertVariableButton() {
         }
       }
 
-      if (openingBrace === -1) return;
+      if (openingBrace === -1) {
+        setShowAutocomplete(false);
+        return;
+      }
 
       const variableName = text.slice(
         openingBrace + 1,
@@ -92,6 +108,33 @@ export default function InsertVariableButton() {
           x?.type === "insert_text" &&
           x.text === "}");
 
+      setShowAutocomplete(true);
+      setVariableQuery(variableName);
+      const rect = getCaretScreenPosition(editor);
+      if (rect) {
+        const yOffset = 5;
+        const containerApproxHeight = Math.max(
+          autocompleteContainerRef.current!.offsetHeight,
+          128,
+        );
+
+        let y = rect.y + rect.height + yOffset;
+        if (window.innerHeight - y < containerApproxHeight) {
+          y -= containerApproxHeight;
+        }
+
+        animate(
+          autocompleteContainerRef.current!,
+          {
+            x: rect.x + rect.width,
+            y,
+          },
+          {
+            duration: 0,
+          },
+        );
+      }
+
       if (!completedVariableName || !VALID_VARIABLES.includes(variableName))
         return;
 
@@ -100,11 +143,11 @@ export default function InsertVariableButton() {
         Transforms.insertText(editor, " ", {
           at: {
             anchor: {
-              path: editor.selection!.anchor.path,
+              path: editor.selection.anchor.path,
               offset: variableBlockEnd + 1,
             },
             focus: {
-              path: editor.selection!.focus.path,
+              path: editor.selection.focus.path,
               offset: variableBlockEnd + 1,
             },
           },
@@ -125,15 +168,15 @@ export default function InsertVariableButton() {
         {
           at: {
             anchor: {
-              path: editor.selection!.anchor.path,
+              path: editor.selection.anchor.path,
               offset: openingBrace,
             },
             focus: {
-              path: editor.selection!.focus.path,
+              path: editor.selection.focus.path,
               offset: variableBlockEnd,
             },
             offset: openingBrace,
-            path: editor.selection!.anchor.path,
+            path: editor.selection.anchor.path,
           },
         },
       );
@@ -172,14 +215,28 @@ export default function InsertVariableButton() {
         onClick={handleClick}
       />
 
-      <Popover open={!!variableQuery}>
-        <PopoverContent className="w-64 p-0">
-          <Command>
-            <CommandInput value={variableQuery ?? ""} />
-            <CommandList>
-              {VALID_VARIABLES.filter((v) =>
-                v.includes(variableQuery ?? ""),
-              ).map((v) => (
+      <motion.div
+        initial={{
+          opacity: 0,
+          scale: 0.85,
+        }}
+        animate={{
+          opacity: showAutocomplete ? 1 : 0,
+          scale: showAutocomplete ? 1 : 0.8,
+          pointerEvents: showAutocomplete ? "auto" : "none",
+          touchAction: showAutocomplete ? "auto" : "none",
+        }}
+        transition={{
+          duration: 0.2,
+        }}
+        className="bg-popover fixed left-0 top-0 z-50 max-h-64 rounded-md border p-2"
+        ref={autocompleteContainerRef}
+      >
+        <Command>
+          <CommandInput value={variableQuery ?? ""} />
+          <CommandList>
+            {VALID_VARIABLES.filter((v) => v.includes(variableQuery ?? "")).map(
+              (v) => (
                 <CommandItem
                   key={v}
                   onSelect={() => {
@@ -191,11 +248,11 @@ export default function InsertVariableButton() {
                 >
                   {v}
                 </CommandItem>
-              ))}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              ),
+            )}
+          </CommandList>
+        </Command>
+      </motion.div>
     </>
   );
 }
@@ -208,4 +265,23 @@ function insertVariable(editor: Editor, name: string) {
   };
 
   Transforms.insertNodes(editor, variable);
+}
+
+function getCaretScreenPosition(editor: Editor) {
+  const { selection } = editor;
+  if (!selection || !Range.isCollapsed(selection)) return null;
+
+  try {
+    const domRange = ReactEditor.toDOMRange(editor, selection);
+    const rect = domRange.getBoundingClientRect();
+
+    return {
+      x: rect.left,
+      y: rect.top,
+      height: rect.height,
+      width: rect.width,
+    };
+  } catch {
+    return null;
+  }
 }
