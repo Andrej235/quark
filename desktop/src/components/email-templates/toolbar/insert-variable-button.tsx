@@ -257,8 +257,14 @@ export default function InsertVariableButton() {
     if (!selection || !Range.isCollapsed(selection)) return;
 
     Transforms.insertText(editor, "{}", {
-      at: selection,
+      at: {
+        path: selection.anchor.path,
+        offset: selection.anchor.offset,
+      },
     });
+
+    Transforms.move(editor, { distance: 1, unit: "character", reverse: true });
+    ReactEditor.focus(editor);
   }
 
   return (
